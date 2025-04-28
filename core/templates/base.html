@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,7 +16,7 @@
       <div class="navbar">
         <!-- Logo (imagem + texto) -->
         <div class="logo-container">
-          <img src="{% static 'images/logo.svg' %}" alt="Logo Lukão" class="logo-img" />
+          <a href="{% url 'index' %}"><img src="{% static 'images/logo.svg' %}" alt="Logo Lukão" class="logo-img" /></a>
         </div>
 
         <!-- Informação de Entrega -->
