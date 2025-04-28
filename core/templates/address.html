@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block main %}
+    
+<link rel="stylesheet" href="{% static 'css/address.css' %}" />
+<div class="container">
+    <form class="form-address">
+      <div class="form-group">
+        <div class="input-box">
+          <label>Nome Completo</label>
+          <input type="text" placeholder="John Maker">
+        </div>
+        <div class="input-box">
+          <label>Número de Telefone</label>
+          <input type="text" placeholder="(00) 00000-0000">
+        </div>
+      </div>
+
+      <div class="input-single">
+        <label>CEP</label>
+        <input type="text" placeholder="123 Plae Grond Street">
+      </div>
+
+      <div class="form-group">
+        <div class="input-box">
+          <label>Estado - Cidade</label>
+          <input type="text" placeholder="Vermont">
+        </div>
+        <div class="input-box">
+          <label>Bairro</label>
+          <input type="text" placeholder="California">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="input-box">
+          <label>Rua / Avenida</label>
+          <input type="text" placeholder="United States of America">
+        </div>
+        <div class="input-box">
+          <label>Número da Casa</label>
+          <input type="text" placeholder="Número">
+        </div>
+      </div>
+
+      <div class="input-single">
+        <label>Complemento/Referência</label>
+        <input type="text" placeholder="Referência">
+      </div>
+
+      <div class="checkbox-area">
+        <input type="checkbox" id="default-address">
+        <label for="default-address">Save this as your default address</label>
+      </div>
+
+      <button type="submit" class="btn-add">Add Address</button>
+
+      <div class="footer-form">
+        <a href="#">Back</a>
+        <div class="secure-connection">
+          <img src="https://cdn-icons-png.flaticon.com/512/3064/3064197.png" alt="lock" width="16">
+          <span>Secure Connection</span>
+        </div>
+      </div>
+
+    </form>
+  </div>
+{% endblock main %}
+    

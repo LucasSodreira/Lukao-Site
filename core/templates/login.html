@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block main %}
+
+<link rel="stylesheet" href="{% static 'css/login.css' %}" />
+<div class="login-container">
+    <form class="login-form">
+      <h2>Sing In</h2>
+
+      <div class="input-group">
+        <label>Email</label>
+        <input type="email" placeholder="email123@gmail.com">
+      </div>
+
+      <div class="input-group">
+        <label>Password</label>
+        <div class="password-box">
+          <input type="password" placeholder="Coxinha123">
+          <span class="eye-icon">👁️</span>
+        </div>
+      </div>
+
+      <div class="options">
+        <div class="remember-me">
+          <input type="checkbox" id="remember">
+          <label for="remember">Remember me</label>
+        </div>
+        <a href="#">Forget Password?</a>
+      </div>
+
+      <button type="submit" class="btn-login">Sing In</button>
+
+      <div class="divider">
+        <div class="line"></div>
+        <span>Quick access with</span>
+        <div class="line"></div>
+      </div>
+
+      <div class="google-login">
+        <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" alt="Google Logo" width="40">
+      </div>
+
+      <p class="signup-text">
+        Don't have an account? <a href="#">Sing Up.</a>
+      </p>
+    </form>
+  </div>
+{% endblock main %}

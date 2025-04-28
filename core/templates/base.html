@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lukao MultiMarcas</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <header>
+      <!-- Navbar -->
+      <div class="navbar">
+        <!-- Logo (imagem + texto) -->
+        <div class="logo-container">
+          <img src="{% static 'images/logo.svg' %}" alt="Logo Lukão" class="logo-img" />
+        </div>
+
+        <!-- Informação de Entrega -->
+        <div class="delivery-info">
+          <img src="{% static 'images/marker.svg' %}" alt="Localização" class="delivery-icon" />
+          <div class="delivery-container">
+            <div class="delivery-text">Enviar para Lucas</div>
+            <div class="delivery-cep">CEP 59900-000</div>
+          </div>
+        </div>
+
+        <!-- Barra de Pesquisa -->
+        <div class="search-bar">
+          <!-- Categorias com Hover -->
+          <div class="category-dropdown">
+            <button class="category-button">Categorias</button>
+            <div class="category-menu">
+              <a href="#">Categoria 1</a>
+              <a href="#">Categoria 2</a>
+              <a href="#">Categoria 3</a>
+            </div>
+          </div>
+
+          <!-- Campo de Pesquisa -->
+          <input type="text" class="search-input" placeholder="Buscar produtos..." />
+
+          <!-- Botão de Busca -->
+          <button class="search-button"><img src="{% static 'images/search-icon.svg' %}" alt="Buscar" class="search-icon" /></button>
+        </div>
+
+        <!-- Ícone de Usuário -->
+        <div class="user-icon-container">
+          <img src="{% static 'images/perfil.svg' %}" alt="Usuário" class="user-icon" />
+          <p>Usuario</p>
+        </div>
+
+        <!-- Ícone de Compras -->
+        <div class="shopping-icon-container">
+          <p>Compras</p>
+        </div>
+
+        <!-- Ícone de Carrinho de Compras -->
+        <div class="cart-icon-container">
+          <img src="{% static 'images/carrinho.svg' %}" alt="Carrinho" class="cart-icon" />
+        </div>
+      </div>
+    </header>
+
+    <!-- Banner Section -->
+    {% block banner %}
+
+    {% endblock %}
+
+    <main>
+      {% block main %}
+
+      {% endblock %}
+    </main>
+
+    
+    {% comment %} {% block summary %}
+      
+    {% endblock summary %} {% endcomment %}
+      
+  </body>
+</html>

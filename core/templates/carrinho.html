@@ -1,0 +1,108 @@
+{% extends 'base.html' %} {% load static %} {% block main %}
+<link rel="stylesheet" href="{% static 'css/carrinho.css' %}" />
+
+<h1 class="page-title">Check your Bag Items</h1>
+<div class="container">
+  <div class="cart-page">
+    <div class="cart-items">
+      <div class="cart-item">
+        <input type="checkbox" name="itens_selecionados" />
+        <label for="item"></label>
+
+        <div class="item-image">
+          <img src="{% static 'images/image(1).png' %}" alt="Laptop Image" />
+        </div>
+
+        <div class="item-details">
+          <h2>Dell XPS 13</h2>
+          <p class="color">White</p>
+          <p class="description">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit ut aliquam
+          </p>
+
+          <div class="rating">
+            ⭐⭐⭐⭐⭐ <span class="rating-value">4.5 / 5</span>
+          </div>
+
+          <div class="price-quantity">
+            <span class="price">$1799.99 × 1</span>
+
+            <div class="quantity-controls">
+              <button class="decrease">−</button>
+              <span class="quantity">1</span>
+              <button class="increase">+</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="item-remove" type="submit" name="acao" value="remover"><img src="{% static 'images/delete.svg' %}" alt="deletar"></button>
+      </div>
+    </div>
+
+    <div class="cart-items">
+      <div class="cart-item">
+        <input type="checkbox" name="itens_selecionados" />
+        <label for="item"></label>
+
+        <div class="item-image">
+          <img src="{% static 'images/image(1).png' %}" alt="Laptop Image" />
+        </div>
+
+        <div class="item-details">
+          <h2>Dell XPS 13</h2>
+          <p class="color">White</p>
+          <p class="description">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit ut aliquam
+          </p>
+
+          <div class="rating">
+            ⭐⭐⭐⭐⭐ <span class="rating-value">4.5 / 5</span>
+          </div>
+
+          <div class="price-quantity">
+            <span class="price">$1799.99 × 1</span>
+
+            <div class="quantity-controls">
+              <button class="decrease">−</button>
+              <span class="quantity">1</span>
+              <button class="increase">+</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="item-remove" type="submit" name="acao" value="remover"><img src="{% static 'images/delete.svg' %}" alt="deletar"></button>
+      </div>
+    </div>
+  </div>
+  <div class="order-summary">
+    <h3>Order Summary</h3>
+
+    <div class="summary-item">
+      <span>Items:</span>
+      <span>$5849.37</span>
+    </div>
+
+    <div class="summary-item">
+      <span>Shipping:</span>
+      <span>$6.99</span>
+    </div>
+
+    <div class="summary-item">
+      <span>Frete:</span>
+      <span>$25.00</span>
+    </div>
+
+    <div class="summary-item">
+      <span>Gift Card:</span>
+      <span>$0.00</span>
+    </div>
+
+    <div class="summary-total">
+      <span>Order Total:</span>
+      <span class="total-price">$6609.78</span>
+    </div>
+
+    <button class="place-order">Place your order</button>
+  </div>
+</div>
+{% endblock %}

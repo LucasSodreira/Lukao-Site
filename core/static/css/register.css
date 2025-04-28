@@ -1,0 +1,88 @@
+/* Container do Formulário */
+.signup-container {
+    max-width: 50%;
+    margin: 2rem auto;
+    background: #2c2c2c;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.signup-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+/* Campos do Formulário */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    color: white;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #007BFF;
+}
+
+/* Botão de Submit */
+.signup-button {
+    width: 100%;
+    padding: 14px;
+    background: #00c896;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.3rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.3s;
+}
+
+.signup-button:hover {
+    background-color: #0056b3;
+}
+
+/* Link para Sign In */
+.signin-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 1.2rem;
+    color: white;
+}
+
+.signin-link a {
+    color: #007BFF;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.signin-link a:hover {
+    text-decoration: underline;
+}
+
+/* Divisor */
+.divider {
+    height: 1px;
+    background-color: #eee;
+    margin: 25px 0;
+}

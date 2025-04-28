@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block main %}
+<link rel="stylesheet" href="{% static 'css/register.css' %}" />
+
+<div class="signup-container">
+    <h1 class="signup-title">Sign Up</h1>
+
+    <form>
+        <div class="form-group">
+            <label for="nickname">Nickname</label>
+            <input type="text" id="nickname" placeholder="Faz_0_L_De_Lobo">
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="FazOLDeLobo@gmail.com">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Coxinha123">
+        </div>
+
+        <div class="form-group">
+            <label for="confirm-password">Confirm Password</label>
+            <input type="password" id="confirm-password" placeholder="Coxinha123">
+        </div>
+
+        <button type="submit" class="signup-button">Sign Up</button>
+    </form>
+
+    <div class="divider"></div>
+
+    <div class="signin-link">
+        Already have an account? <a href="#">Sign in.</a>
+    </div>
+</div>
+
+{% endblock main %}

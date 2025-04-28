@@ -1,0 +1,48 @@
+.cart-page {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  background: white;
+  border-radius: 20px;
+  gap: 0px !important;
+  align-items: center !important;
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  color: #000;
+  max-width: 100%;
+  margin-bottom: 0px !important;
+}
+
+#divider {
+  width: 95%;
+  height: 1px;
+  background-color: #ddd;
+  margin: 0px !important;
+}
+
+.shipping-address {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+  width: 100%;
+  margin-bottom: 1rem;
+  color: black;
+}
+
+.center-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.change-address {
+  font-size: 1rem;
+  padding: 1rem;
+  background: white;
+  border: solid 1px;
+  border-radius: 16px;
+}

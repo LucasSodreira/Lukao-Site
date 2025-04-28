@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block main %}
+<link rel="stylesheet" href="{% static 'css/item_view.css' %}">    
+
+<div class="container">
+
+    <button class="back-button">← Back</button>
+    <div class="product-page">
+
+        <div class="product-left">
+
+            <div class="product-images">
+                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
+                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
+                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
+            </div>
+
+            <div class="product-main-image">
+                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="main-image">
+            </div>
+        </div>
+
+        <div class="product-details">
+            <h1>Apple Watch</h1>
+            <h3>Series 5 SE</h3>
+
+            <div class="rating">
+                <span>⭐⭐⭐⭐⭐</span> <span class="rating-value">4.5 / 5</span>
+            </div>
+
+            <h2 class="price">$529.99</h2>
+
+            <p class="product-description">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quis pellentesque tellus imperdiet mattis. Proin in quis ipsum non amet imperdiet.
+            </p>
+
+            <div class="buttons">
+                <button class="add-to-bag">
+                    <img src="{% static 'images/cart.svg' %}" alt="Carrinho" id="img-cart"> Add to Bag
+                </button>
+            </div>
+        </div>
+
+        
+        
+        <div class="related-products">
+            <h4>Related to the items you viewed</h4>
+            
+            
+            <div class="related-item">
+                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
+                <div class="item-info">
+                    <p>Item Name</p>
+                    <small>Small Description</small>
+                    <div class="item-price">
+                        <span>$9.99</span>
+                        <button class="add-to-bag-small"><img src="{% static 'images/cart.svg' %}" alt="Carrinho" id="img-cart-small"></button>
+                    </div>
+                </div>
+            </div> 
+            
+            <div class="related-item">
+                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
+                <div class="item-info">
+                    <p>Item Name</p>
+                    <small>Small Description</small>
+                    <div class="item-price">
+                        <span>$9.99</span>
+                        <button class="add-to-bag-small"><img src="{% static 'images/cart.svg' %}" alt="Carrinho" id="img-cart-small"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="product-description-section">
+        <h2>Description</h2>
+        <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Dig...
+        </p>
+    </div>
+
+</div>
+
+{% endblock main %}

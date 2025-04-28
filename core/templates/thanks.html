@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block main %}
+<link rel="stylesheet" href="{% static 'css/thanks.css' %}" />
+<div class="thank-you-container">
+    <div class="icon"><img src="{% static 'images/done.svg' %}" alt=""></div>
+    <h1>Thank you for your preference!</h1>
+    <h1>Check back often!</h1>
+    <a href="/" class="btn">Return to Home</a>
+</div>
+{% endblock main %}
