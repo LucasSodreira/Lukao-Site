@@ -15,17 +15,24 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import path
-from core.views import IndexView, Item_View, Cart, ReviewCart, AddressView, LoginView, RegisterView, ThanksView
+from core.views import IndexView, ItemView, ReviewCart, AddressView, LoginView, RegisterView, ThanksView, AddToCartView, CartView, RemoverItemCarrinho
 
 urlpatterns = [
     path('', IndexView.as_view(), name='index'),
-    path('item/', Item_View.as_view(), name='item_view'),
-    path('carrinho/', Cart.as_view(), name='carrinho'),
-    path('review_cart/', ReviewCart.as_view(), name='review_cart'),
-    path('address/', AddressView.as_view(), name='address'),
+    path('produto/<int:pk>/', ItemView.as_view(), name='item-view'),
+    path('add-to-cart/<int:pk>/', AddToCartView.as_view(), name='add-to-cart'),
+    path('carrinho/', CartView.as_view(), name='carrinho'),
+    path('carrinho/remover/', RemoverItemCarrinho.as_view(), name='remover_item_carrinho'),
+    path('revisar-carrinho/', ReviewCart.as_view(), name='review-cart'),
+    path('endereco/', AddressView.as_view(), name='address'),
     path('login/', LoginView.as_view(), name='login'),
-    path('register/', RegisterView.as_view(), name='register'),
-    path('thanks/', ThanksView.as_view(), name='thanks'),
+    path('registrar/', RegisterView.as_view(), name='register'),
+    path('obrigado/', ThanksView.as_view(), name='thanks'),
     path('admin/', admin.site.urls),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

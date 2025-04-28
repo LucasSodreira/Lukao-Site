@@ -1,78 +1,71 @@
 {% extends 'base.html' %} {% load static %} {% block main %}
 <link rel="stylesheet" href="{% static 'css/carrinho.css' %}" />
 
+
 <h1 class="page-title">Check your Bag Items</h1>
+{% if messages %}
+<div class="messages">
+  {% for message in messages %}
+    <div class="message {{ message.tags }}">
+      {{ message }}
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
 <div class="container">
   <div class="cart-page">
+
     <div class="cart-items">
+      {% for item in produtos_carrinho %}
       <div class="cart-item">
         <input type="checkbox" name="itens_selecionados" />
         <label for="item"></label>
-
+    
         <div class="item-image">
-          <img src="{% static 'images/image(1).png' %}" alt="Laptop Image" />
+          <img src="{{ item.produto.imagem.url }}" alt="{{ item.produto.nome }}" />
         </div>
-
+    
         <div class="item-details">
-          <h2>Dell XPS 13</h2>
-          <p class="color">White</p>
-          <p class="description">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit ut aliquam
-          </p>
-
+          <h2>{{ item.produto.nome }}</h2>
+          <p class="color">{{ item.produto.categoria.nome }}</p> <!-- Opcional -->
+          <p class="description">{{ item.produto.descricao }}</p>
+    
           <div class="rating">
-            ⭐⭐⭐⭐⭐ <span class="rating-value">4.5 / 5</span>
+            ⭐⭐⭐⭐⭐ <span class="rating-value">4.5 / 5</span> <!-- Estático por enquanto -->
           </div>
-
+    
           <div class="price-quantity">
-            <span class="price">$1799.99 × 1</span>
-
+            <span class="price">
+              R$ {{ item.produto.preco }} × {{ item.quantidade }}
+            </span>
+    
             <div class="quantity-controls">
               <button class="decrease">−</button>
-              <span class="quantity">1</span>
+              <span class="quantity">{{ item.quantidade }}</span>
               <button class="increase">+</button>
             </div>
           </div>
         </div>
-
-        <button class="item-remove" type="submit" name="acao" value="remover"><img src="{% static 'images/delete.svg' %}" alt="deletar"></button>
+    
+        <form method="post" action="{% url 'remover_item_carrinho' %}" class="remover-form">
+          {% csrf_token %}
+          <input type="hidden" name="produto_id" value="{{ item.produto.id }}">
+          <button class="item-remove" type="submit">
+            <img src="{% static 'images/delete.svg' %}" alt="deletar" />
+          </button>
+        </form>
+        
       </div>
+      {% empty %}
+        <p>Seu carrinho está vazio.</p>
+      {% endfor %}
     </div>
-
-    <div class="cart-items">
-      <div class="cart-item">
-        <input type="checkbox" name="itens_selecionados" />
-        <label for="item"></label>
-
-        <div class="item-image">
-          <img src="{% static 'images/image(1).png' %}" alt="Laptop Image" />
-        </div>
-
-        <div class="item-details">
-          <h2>Dell XPS 13</h2>
-          <p class="color">White</p>
-          <p class="description">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit ut aliquam
-          </p>
-
-          <div class="rating">
-            ⭐⭐⭐⭐⭐ <span class="rating-value">4.5 / 5</span>
-          </div>
-
-          <div class="price-quantity">
-            <span class="price">$1799.99 × 1</span>
-
-            <div class="quantity-controls">
-              <button class="decrease">−</button>
-              <span class="quantity">1</span>
-              <button class="increase">+</button>
-            </div>
-          </div>
-        </div>
-
-        <button class="item-remove" type="submit" name="acao" value="remover"><img src="{% static 'images/delete.svg' %}" alt="deletar"></button>
-      </div>
+    
+    <div class="cart-total">
+      <h2>Total: R$ {{ total_carrinho }}</h2>
     </div>
+    
+
   </div>
   <div class="order-summary">
     <h3>Order Summary</h3>

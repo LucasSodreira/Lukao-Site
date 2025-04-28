@@ -10,39 +10,48 @@
     <div class="product-page">
 
         <div class="product-left">
-
             <div class="product-images">
-                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
+                {% if produto.imagem %}
+                    <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}" class="product-image">
+                {% else %}
+                    <img src="{% static 'images/default.png' %}" alt="Sem imagem" class="product-image">
+                {% endif %}
+                <!-- Aqui você pode duplicar essa imagem para simular várias imagens, ou depois criar galeria -->
             </div>
-
+        
             <div class="product-main-image">
-                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="main-image">
+                {% if produto.imagem %}
+                    <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}" class="main-image">
+                {% else %}
+                    <img src="{% static 'images/default.png' %}" alt="Sem imagem" class="main-image">
+                {% endif %}
             </div>
         </div>
-
+        
         <div class="product-details">
-            <h1>Apple Watch</h1>
-            <h3>Series 5 SE</h3>
-
+            <h1>{{ produto.nome }}</h1>
+            <h3>{{ produto.categoria.nome }}</h3>
+        
             <div class="rating">
-                <span>⭐⭐⭐⭐⭐</span> <span class="rating-value">4.5 / 5</span>
+                <span>⭐⭐⭐⭐⭐</span> <span class="rating-value">4.5 / 5</span> <!-- Rating ainda é estático por enquanto -->
             </div>
-
-            <h2 class="price">$529.99</h2>
-
+        
+            <h2 class="price">R$ {{ produto.preco }}</h2>
+        
             <p class="product-description">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quis pellentesque tellus imperdiet mattis. Proin in quis ipsum non amet imperdiet.
+                {{ produto.descricao }}
             </p>
-
+        
             <div class="buttons">
-                <button class="add-to-bag">
-                    <img src="{% static 'images/cart.svg' %}" alt="Carrinho" id="img-cart"> Add to Bag
-                </button>
+                <form action="{% url 'add-to-cart' produto.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="add-to-bag">
+                        <img src="{% static 'images/cart.svg' %}" alt="Carrinho" id="img-cart"> Add to Bag
+                    </button>
+                </form>
             </div>
         </div>
-
+        
         
         
         <div class="related-products">

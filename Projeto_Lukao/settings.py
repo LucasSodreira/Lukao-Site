@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -127,3 +128,22 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Garante que o diretório media exista
+os.makedirs(MEDIA_ROOT, exist_ok=True)
+
+# Configurações para os tipos de arquivos permitidos (opcional)
+ALLOWED_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'pdf']
+MAX_UPLOAD_SIZE = 5242880  # 5MB
+
+# Configuração de URLs para desenvolvimento
+if DEBUG:
+    # Serve arquivos de mídia durante o desenvolvimento
+    from django.conf.urls.static import static
+    urlpatterns = [
+        # ... suas URLs existentes ...
+    ] + static(MEDIA_URL, document_root=MEDIA_ROOT)

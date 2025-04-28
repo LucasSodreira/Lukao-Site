@@ -1,97 +1,41 @@
-{% extends 'base.html' %}
-{% load static %}
+{% extends 'base.html' %} {% load static %} {% block banner %}
+  {% include 'banner.html' %}
+{% endblock %} {% block main %}
+  <link rel="stylesheet" href="{% static 'css/index.css' %}" />
 
-{% block banner %}
-    {% include 'banner.html' %}
-{% endblock %}
-
-{% block main %}
-
-<link rel="stylesheet" href="{% static 'css/index.css' %}">
-
-<div class="product-grid">
+  <div class="product-grid">
+    {% for produto in produtos %}
     <div class="product-card">
-      <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-      <h3 class="product-title">Apple Watch</h3>
-      <p class="product-model">Series 5 SE</p>
-      <div class="product-price-container">
-            <p class="product-price">$529.99</p>
-            <img src="{% static 'images/cart.svg' %}" id='cart-icon'>
-      </div>
+          <a href="{% url 'item-view' produto.id %}">
+          {% if produto.imagem %}
+            <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}" class="product-image" />
+          {% else %}
+            <img src="{% static 'images/default.png' %}" alt="Imagem não disponível" class="product-image" />
+          {% endif %}
+
+          <h3 class="product-title">{{ produto.nome }}</h3>
+          <p class="product-model">{{ produto.categoria.nome }}</p>
+          <div class="product-price-container">
+            <p class="product-price">R$ {{ produto.preco }}</p>
+            <a href="{% url 'item-view' produto.id %}"><img src="{% static 'images/cart.svg' %}" id="cart-icon" /></a>
+          </div>
+        </a>
+        </div>
+    {% empty %}
+      <p>Sem produtos disponíveis no momento.</p>
+    {% endfor %}
+    <div class="pagination">
+      {% if produtos.has_previous %}
+        <a href="?page={{ produtos.previous_page_number }}">Anterior</a>
+      {% endif %}
+
+      <span>Página {{ produtos.number }} de {{ produtos.paginator.num_pages }}</span>
+
+      {% if produtos.has_next %}
+        <a href="?page={{ produtos.next_page_number }}">Próxima</a>
+      {% endif %}
     </div>
 
-    <div class="product-card">
-        <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-        <h3 class="product-title">Apple Watch</h3>
-        <p class="product-model">Series 5 SE</p>
-        <div class="product-price-container">
-              <p class="product-price">$529.99</p>
-              <img src="{% static 'images/cart.svg' %}" id='cart-icon'>
-        </div>
-      </div>
-
-      <div class="product-card">
-        <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-        <h3 class="product-title">Apple Watch</h3>
-        <p class="product-model">Series 5 SE</p>
-        <div class="product-price-container">
-              <p class="product-price">$529.99</p>
-              <img src="{% static 'images/cart.svg' %}" id='cart-icon'>
-        </div>
-      </div>
-
-      <div class="product-card">
-        <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-        <h3 class="product-title">Apple Watch</h3>
-        <p class="product-model">Series 5 SE</p>
-        <div class="product-price-container">
-              <p class="product-price">$529.99</p>
-              <img src="{% static 'images/cart.svg' %}" id='cart-icon'>
-        </div>
-      </div>
-
-      <div class="product-card">
-        <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-        <h3 class="product-title">Apple Watch</h3>
-        <p class="product-model">Series 5 SE</p>
-        <div class="product-price-container">
-              <p class="product-price">$529.99</p>
-              <img src="{% static 'images/cart.svg' %}" id='cart-icon'>
-        </div>
-      </div>
-
-      <div class="product-card">
-        <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-        <h3 class="product-title">Apple Watch</h3>
-        <p class="product-model">Series 5 SE</p>
-        <div class="product-price-container">
-              <p class="product-price">$529.99</p>
-              <img src="{% static 'images/cart.svg' %}" id='cart-icon'>
-        </div>
-      </div>
-
-      <div class="product-card">
-        <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-        <h3 class="product-title">Apple Watch</h3>
-        <p class="product-model">Series 5 SE</p>
-        <div class="product-price-container">
-              <p class="product-price">$529.99</p>
-              <img src="{% static 'images/cart.svg' %}" id='cart-icon'>
-        </div>
-      </div>
-
-      <div class="product-card">
-        <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-        <h3 class="product-title">Apple Watch</h3>
-        <p class="product-model">Series 5 SE</p>
-        <div class="product-price-container">
-              <p class="product-price">$529.99</p>
-              <img src="{% static 'images/cart.svg' %}" id='cart-icon'>
-        </div>
-      </div>
-    
     <!-- Repetir para outros produtos... -->
   </div>
-
-{% endblock main %}
-    
+{% endblock %}
