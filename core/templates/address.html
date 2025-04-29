@@ -3,67 +3,74 @@
 {% block main %}
     
 <link rel="stylesheet" href="{% static 'css/address.css' %}" />
+<script src="{% static 'js/address.js' %}"></script>
 <div class="container">
-    <form class="form-address">
-      <div class="form-group">
-        <div class="input-box">
-          <label>Nome Completo</label>
-          <input type="text" placeholder="John Maker">
+    <form method="post" class="form-address">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <div class="input-box">
+                <label>Nome Completo</label>
+                {{ form.nome_completo }}
+            </div>
+            <div class="input-box">
+                <label>Telefone</label>
+                {{ form.telefone }}
+            </div>
         </div>
-        <div class="input-box">
-          <label>Número de Telefone</label>
-          <input type="text" placeholder="(00) 00000-0000">
+
+        <div class="input-single">
+            <label>CEP</label>
+            {{ form.cep }}
         </div>
-      </div>
 
-      <div class="input-single">
-        <label>CEP</label>
-        <input type="text" placeholder="123 Plae Grond Street">
-      </div>
-
-      <div class="form-group">
-        <div class="input-box">
-          <label>Estado - Cidade</label>
-          <input type="text" placeholder="Vermont">
+        <div class="form-group">
+            <div class="input-box">
+                <label>Estado</label>
+                {{ form.estado }}
+            </div>
+            <div class="input-box">
+                <label>Cidade</label>
+                {{ form.cidade }}
+            </div>
         </div>
-        <div class="input-box">
-          <label>Bairro</label>
-          <input type="text" placeholder="California">
+
+        <div class="form-group">
+            <div class="input-box">
+                <label>Bairro</label>
+                {{ form.bairro }}
+            </div>
+            <div class="input-box">
+                <label>Rua/Avenida</label>
+                {{ form.rua }}
+            </div>
         </div>
-      </div>
 
-      <div class="form-group">
-        <div class="input-box">
-          <label>Rua / Avenida</label>
-          <input type="text" placeholder="United States of America">
+        <div class="form-group">
+            <div class="input-box">
+                <label>Número</label>
+                {{ form.numero }}
+            </div>
+            <div class="input-box">
+                <label>Complemento</label>
+                {{ form.complemento }}
+            </div>
         </div>
-        <div class="input-box">
-          <label>Número da Casa</label>
-          <input type="text" placeholder="Número">
+
+        <div class="checkbox-area">
+            {{ form.principal }}
+            <label for="{{ form.principal.id_for_label }}">Usar como endereço principal</label>
         </div>
-      </div>
 
-      <div class="input-single">
-        <label>Complemento/Referência</label>
-        <input type="text" placeholder="Referência">
-      </div>
+        <button type="submit" class="btn-add">Salvar Endereço</button>
 
-      <div class="checkbox-area">
-        <input type="checkbox" id="default-address">
-        <label for="default-address">Save this as your default address</label>
-      </div>
-
-      <button type="submit" class="btn-add">Add Address</button>
-
-      <div class="footer-form">
-        <a href="#">Back</a>
-        <div class="secure-connection">
-          <img src="https://cdn-icons-png.flaticon.com/512/3064/3064197.png" alt="lock" width="16">
-          <span>Secure Connection</span>
+        <div class="footer-form">
+            <a href="{% url 'review-cart' %}" class="btn-voltar">Voltar</a>
+            <div class="secure-connection">
+                <img src="https://cdn-icons-png.flaticon.com/512/3064/3064197.png" alt="lock" width="16">
+                <span>Secure Connection</span>
+            </div>
         </div>
-      </div>
-
     </form>
-  </div>
+</div>
 {% endblock main %}
-    

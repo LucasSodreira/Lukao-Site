@@ -1,101 +1,89 @@
 {% extends 'base.html' %} {% load static %} {% block main %}
-<link rel="stylesheet" href="{% static 'css/carrinho.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/carrinho.css' %}" />
+  <script src="{% static 'js/remove.js' %}"></script>
 
+  <h1 class="page-title">Check your Bag Items</h1>
 
-<h1 class="page-title">Check your Bag Items</h1>
-{% if messages %}
-<div class="messages">
-  {% for message in messages %}
-    <div class="message {{ message.tags }}">
-      {{ message }}
-    </div>
-  {% endfor %}
-</div>
-{% endif %}
-<div class="container">
-  <div class="cart-page">
+  <div id="mensagem-carrinho" class="mensagem-flutuante"></div>
 
-    <div class="cart-items">
-      {% for item in produtos_carrinho %}
-      <div class="cart-item">
-        <input type="checkbox" name="itens_selecionados" />
-        <label for="item"></label>
-    
-        <div class="item-image">
-          <img src="{{ item.produto.imagem.url }}" alt="{{ item.produto.nome }}" />
-        </div>
-    
-        <div class="item-details">
-          <h2>{{ item.produto.nome }}</h2>
-          <p class="color">{{ item.produto.categoria.nome }}</p> <!-- Opcional -->
-          <p class="description">{{ item.produto.descricao }}</p>
-    
-          <div class="rating">
-            ⭐⭐⭐⭐⭐ <span class="rating-value">4.5 / 5</span> <!-- Estático por enquanto -->
-          </div>
-    
-          <div class="price-quantity">
-            <span class="price">
-              R$ {{ item.produto.preco }} × {{ item.quantidade }}
-            </span>
-    
-            <div class="quantity-controls">
-              <button class="decrease">−</button>
-              <span class="quantity">{{ item.quantidade }}</span>
-              <button class="increase">+</button>
+  <div class="container">
+    <div class="cart-page">
+      <div class="cart-items">
+        {% for item in produtos_carrinho %}
+          <div class="cart-item">
+            <input type="checkbox" name="itens_selecionados" />
+            <label for="item"></label>
+
+            <div class="item-image">
+              <img src="{{ item.produto.imagem.url }}" alt="{{ item.produto.nome }}" />
             </div>
+
+            <div class="item-details">
+              <h2>{{ item.produto.nome }}</h2>
+              <p class="color">{{ item.produto.categoria.nome }}</p> <!-- Opcional -->
+              <p class="description">{{ item.produto.descricao }}</p>
+
+              <div class="rating">
+                ⭐⭐⭐⭐⭐ <span class="rating-value">4.5 / 5</span> <!-- Estático por enquanto -->
+              </div>
+
+              <div class="price-quantity">
+                <span class="price">R$ {{ item.produto.preco }} × {{ item.quantidade }}</span>
+
+                <div class="quantity-controls">
+                  <button class="decrease">−</button>
+                  <span class="quantity">{{ item.quantidade }}</span>
+                  <button class="increase">+</button>
+                </div>
+              </div>
+            </div>
+
+            <form method="post" action="{% url 'remover_item_carrinho' %}" class="remover-form">
+              {% csrf_token %}
+              <input type="hidden" name="produto_id" value="{{ item.produto.id }}" />
+              <button type="button" class="item-remove"><img src="{% static 'images/delete.svg' %}" alt="Remover" /></button>
+            </form>
           </div>
-        </div>
-    
-        <form method="post" action="{% url 'remover_item_carrinho' %}" class="remover-form">
-          {% csrf_token %}
-          <input type="hidden" name="produto_id" value="{{ item.produto.id }}">
-          <button class="item-remove" type="submit">
-            <img src="{% static 'images/delete.svg' %}" alt="deletar" />
-          </button>
-        </form>
-        
+        {% empty %}
+          <p>Seu carrinho está vazio.</p>
+        {% endfor %}
       </div>
-      {% empty %}
-        <p>Seu carrinho está vazio.</p>
-      {% endfor %}
-    </div>
-    
-    <div class="cart-total">
-      <h2>Total: R$ {{ total_carrinho }}</h2>
-    </div>
-    
 
+      <div class="cart-total">
+        <h2>Total: R$ {{ total_carrinho }}</h2>
+      </div>
+    </div>
+    <div class="order-summary">
+      <h3>Order Summary</h3>
+
+      <div class="summary-item">
+        <span>Items:</span>
+        <span>$5849.37</span>
+      </div>
+
+      <div class="summary-item">
+        <span>Shipping:</span>
+        <span>$6.99</span>
+      </div>
+
+      <div class="summary-item">
+        <span>Frete:</span>
+        <span>$25.00</span>
+      </div>
+
+      <div class="summary-item">
+        <span>Gift Card:</span>
+        <span>$0.00</span>
+      </div>
+
+      <div class="summary-total">
+        <span>Order Total:</span>
+        <span class="total-price">$6609.78</span>
+      </div>
+
+      <form method="get" action="{% url 'review-cart' %}">
+        <button type="submit" class="place-order">Place your order</button>
+      </form>
+    </div>
   </div>
-  <div class="order-summary">
-    <h3>Order Summary</h3>
-
-    <div class="summary-item">
-      <span>Items:</span>
-      <span>$5849.37</span>
-    </div>
-
-    <div class="summary-item">
-      <span>Shipping:</span>
-      <span>$6.99</span>
-    </div>
-
-    <div class="summary-item">
-      <span>Frete:</span>
-      <span>$25.00</span>
-    </div>
-
-    <div class="summary-item">
-      <span>Gift Card:</span>
-      <span>$0.00</span>
-    </div>
-
-    <div class="summary-total">
-      <span>Order Total:</span>
-      <span class="total-price">$6609.78</span>
-    </div>
-
-    <button class="place-order">Place your order</button>
-  </div>
-</div>
 {% endblock %}

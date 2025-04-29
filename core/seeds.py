@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 from .models import Categoria, Produto, Endereco, Pedido, ItemPedido
 import random
 from decimal import Decimal
-from django.core.files import File
 import os
 from django.conf import settings
 from django.utils import timezone
@@ -82,18 +81,27 @@ def seed_data(qtd_categorias=2, qtd_produtos=5, qtd_usuarios=2, qtd_enderecos=2,
 
     # 4. Criar Endereços
     enderecos = []
+    ESTADOS_SIGLAS = [uf[0] for uf in Endereco.ESTADO_CHOICES]
+
     for _ in range(qtd_enderecos):
+        telefone = f"({random.randint(10, 99)}) {random.randint(90000, 99999)}-{random.randint(1000, 9999)}"
+
         endereco = Endereco.objects.create(
+            nome_completo=seeder.faker.name(),
+            telefone=telefone,
             rua=seeder.faker.street_name(),
             numero=str(seeder.faker.building_number()),
             complemento=seeder.faker.secondary_address() if random.random() > 0.7 else None,
+            bairro=seeder.faker.city_suffix(),
             cep=f"{random.randint(10000, 99999)}-{random.randint(100, 999)}",
             cidade=seeder.faker.city(),
-            estado=seeder.faker.state_abbr(),
+            estado=random.choice(ESTADOS_SIGLAS),
             pais="Brasil",
-            usuario=random.choice(usuarios) if usuarios and random.random() < 0.8 else None
+            usuario=random.choice(usuarios) if usuarios and random.random() < 0.8 else None,
+            principal=random.random() < 0.3,
         )
         enderecos.append(endereco)
+
     print(f"Criados {len(enderecos)} endereços")
 
     # 5. Criar Pedidos

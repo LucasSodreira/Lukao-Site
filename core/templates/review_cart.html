@@ -1,120 +1,88 @@
-{% extends 'base.html' %} {% load static %} {% block main %}
-  <link rel="stylesheet" href="{% static 'css/review_cart.css' %}" />
-  <link rel="stylesheet" href="{% static 'css/carrinho.css' %}" />
+{% extends 'base.html' %}
+{% load static %}
+{% block main %}
+<link rel="stylesheet" href="{% static 'css/review_cart.css' %}" />
+<link rel="stylesheet" href="{% static 'css/carrinho.css' %}" />
 
-  <div class="container">
-    <div class="left-content">
-      <section class="shipping-address">
-          <h2>Shipping Address</h2>
-          <div class="center-content">
-            <div class="address-details">
-                <p>John Maker</p>
-                <p>123 Plae Grond Street</p>
-                <p>Vermont, California</p>
-                <p>United States of America</p>
-            </div>
-            <button class="change-address">Change</button>
+<div class="container">
+  <div class="left-content">
+
+    <!-- Endereço de Entrega -->
+    <div class="endereco-entrega">
+      <h2>Endereço de Entrega</h2>
+
+      {% if tem_endereco %}
+        <div class="center-infos">
+          <div class="endereco-info">
+            <p><strong>Nome:</strong> {{ endereco.nome_completo }}</p>
+            <p><strong>Telefone:</strong> {{ endereco.telefone }}</p>
+            <p><strong>Rua:</strong> {{ endereco.rua }}, {{ endereco.numero }}</p>
+            {% if endereco.complemento %}
+              <p><strong>Complemento:</strong> {{ endereco.complemento }}</p>
+            {% endif %}
+            <p><strong>CEP:</strong> {{ endereco.cep }}</p>
+            <p><strong>Cidade/Estado:</strong> {{ endereco.cidade }}/{{ endereco.estado }}</p>
+            <p><strong>País:</strong> {{ endereco.pais }}</p>
+          </div>
+          <a href="{% url 'endereco' %}" class="btn-alterar">Alterar Endereço</a>
         </div>
-      </section>
+      {% else %}
+        <div class="sem-endereco">
+          <p>Você ainda não cadastrou um endereço de entrega.</p>
+          <a href="{% url 'endereco' %}" class="btn-adicionar">Adicionar Endereço</a>
+        </div>
+      {% endif %}
+    </div>
 
-      <div class="cart-page">
-        <div class="cart-items">
-          <div class="cart-item">
-            <input type="checkbox" name="itens_selecionados" />
-            <label for="item"></label>
+    <!-- Produtos do Carrinho -->
+    <div class="cart-page">
+      {% for item in produtos_carrinho %}
+        <div class="cart-item">
+          <div class="item-image">
+            {% if item.produto.imagem %}
+              <img src="{{ item.produto.imagem.url }}" alt="{{ item.produto.nome }}">
+            {% else %}
+              <img src="{% static 'images/image(1).png' %}" alt="Imagem Padrão">
+            {% endif %}
+          </div>
 
-            <div class="item-image">
-              <img src="{% static 'images/image(1).png' %}" alt="Laptop Image" />
+          <div class="item-details">
+            <h2>{{ item.produto.nome }}</h2>
+            <p class="description">{{ item.produto.descricao|truncatewords:20 }}</p>
+
+            <div class="price-quantity">
+              <span class="price">R$ {{ item.produto.preco }} × {{ item.quantidade }}</span>
+              <span class="subtotal">Subtotal: R$ {{ item.subtotal }}</span>
             </div>
-
-            <div class="item-details">
-              <h2>Dell XPS 13</h2>
-              <p class="color">White</p>
-              <p class="description">Lorem ipsum dolor sit amet, consectetur adipiscing elit ut aliquam</p>
-
-              <div class="rating">
-                ⭐⭐⭐⭐⭐ <span class="rating-value">4.5 / 5</span>
-              </div>
-
-              <div class="price-quantity">
-                <span class="price">$1799.99 × 1</span>
-
-                <div class="quantity-controls">
-                  <button class="decrease">−</button>
-                  <span class="quantity">1</span>
-                  <button class="increase">+</button>
-                </div>
-              </div>
-            </div>
-
-            <button class="item-remove" type="submit" name="acao" value="remover"><img src="{% static 'images/delete.svg' %}" alt="deletar" /></button>
           </div>
         </div>
-        <hr id="divider" />
-        <div class="cart-items">
-          <div class="cart-item">
-            <input type="checkbox" name="itens_selecionados" />
-            <label for="item"></label>
-
-            <div class="item-image">
-              <img src="{% static 'images/image(1).png' %}" alt="Laptop Image" />
-            </div>
-
-            <div class="item-details">
-              <h2>Dell XPS 13</h2>
-              <p class="color">White</p>
-              <p class="description">Lorem ipsum dolor sit amet, consectetur adipiscing elit ut aliquam</p>
-
-              <div class="rating">
-                ⭐⭐⭐⭐⭐ <span class="rating-value">4.5 / 5</span>
-              </div>
-
-              <div class="price-quantity">
-                <span class="price">$1799.99 × 1</span>
-
-                <div class="quantity-controls">
-                  <button class="decrease">−</button>
-                  <span class="quantity">1</span>
-                  <button class="increase">+</button>
-                </div>
-              </div>
-            </div>
-
-            <button class="item-remove" type="submit" name="acao" value="remover"><img src="{% static 'images/delete.svg' %}" alt="deletar" /></button>
-          </div>
-        </div>
-      </div>
+        <hr id="divider">
+      {% empty %}
+        <p>Seu carrinho está vazio.</p>
+      {% endfor %}
     </div>
-    
-    <aside class="order-summary">
-    <h3>Order Summary</h3>
-    
+
+  </div>
+
+  <!-- RESUMO DO PEDIDO -->
+  <aside class="order-summary">
+    <h3>Resumo do Pedido</h3>
+
     <div class="summary-item">
-        <span>Items:</span>
-        <span>$5849.37</span>
-    </div>
-    
-    <div class="summary-item">
-      <span>Shipping:</span>
-      <span>$6.99</span>
-    </div>
-    
-    <div class="summary-item">
-        <span>Frete:</span>
-        <span>$25.00</span>
-    </div>
-    
-    <div class="summary-item">
-      <span>Gift Card:</span>
-      <span>$0.00</span>
+      <span>Itens:</span>
+      <span>R$ {{ total_carrinho }}</span>
     </div>
 
     <div class="summary-total">
-        <span>Order Total:</span>
-        <span class="total-price">$6609.78</span>
+      <span>Total:</span>
+      <span class="total-price">R$ {{ total_carrinho }}</span>
     </div>
 
-    <button class="place-order">Place your order</button>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="place-order">Finalizar Pedido</button>
+    </form>
   </aside>
+
 </div>
-  {% endblock %}
+{% endblock %}
