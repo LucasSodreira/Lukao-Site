@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lukao MultiMarcas</title>
     <link rel="stylesheet" href="{% static 'css/base.css' %}" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet" />
   </head>
   <body>
     <header>
@@ -23,8 +23,18 @@
         <div class="delivery-info">
           <img src="{% static 'images/marker.svg' %}" alt="Localização" class="delivery-icon" />
           <div class="delivery-container">
-            <div class="delivery-text">Enviar para Lucas</div>
-            <div class="delivery-cep">CEP 59900-000</div>
+            {% if user.is_authenticated %}
+              <div class="delivery-text">Enviar para {{ nome_usuario }}</div>
+
+              {% if cep_usuario %}
+                <div class="delivery-cep">{{ cep_usuario }}</div>
+              {% else %}
+                <div class="delivery-cep">Informe seu CEP</div>
+              {% endif %}
+            {% else %}
+              <div class="delivery-text">Enviar para</div>
+              <div class="delivery-cep">Informe o seu CEP</div>
+            {% endif %}
           </div>
         </div>
 
@@ -76,10 +86,8 @@
       {% endblock %}
     </main>
 
-    
     {% comment %} {% block summary %}
-      
-    {% endblock summary %} {% endcomment %}
-      
+
+    {% endblock %} {% endcomment %}
   </body>
 </html>

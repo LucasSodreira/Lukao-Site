@@ -2,11 +2,21 @@
   {% include 'banner.html' %}
 {% endblock %} {% block main %}
   <link rel="stylesheet" href="{% static 'css/index.css' %}" />
+  <div class="pagination">
+    {% if produtos.has_previous %}
+      <a href="?page={{ produtos.previous_page_number }}">Anterior</a>
+    {% endif %}
 
+    <span>Página {{ produtos.number }} de {{ produtos.paginator.num_pages }}</span>
+
+    {% if produtos.has_next %}
+      <a href="?page={{ produtos.next_page_number }}">Próxima</a>
+    {% endif %}
+  </div>
   <div class="product-grid">
     {% for produto in produtos %}
     <div class="product-card">
-          <a href="{% url 'item-view' produto.id %}">
+          <a href="{% url 'item-view' produto.id %}" id="produt-link">
           {% if produto.imagem %}
             <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}" class="product-image" />
           {% else %}
@@ -24,17 +34,7 @@
     {% empty %}
       <p>Sem produtos disponíveis no momento.</p>
     {% endfor %}
-    <div class="pagination">
-      {% if produtos.has_previous %}
-        <a href="?page={{ produtos.previous_page_number }}">Anterior</a>
-      {% endif %}
-
-      <span>Página {{ produtos.number }} de {{ produtos.paginator.num_pages }}</span>
-
-      {% if produtos.has_next %}
-        <a href="?page={{ produtos.next_page_number }}">Próxima</a>
-      {% endif %}
-    </div>
+    
 
     <!-- Repetir para outros produtos... -->
   </div>

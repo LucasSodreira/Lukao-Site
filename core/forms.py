@@ -4,8 +4,8 @@ from .models import Endereco
 class EnderecoForm(forms.ModelForm):
     class Meta:
         model = Endereco
-        fields = '__all__'
-        exclude = ['usuario', 'criado_em', 'atualizado_em']
+        fields = ['nome_completo', 'telefone', 'cep', 'estado', 'cidade', 
+                 'bairro', 'rua', 'numero', 'complemento', 'principal']
         widgets = {
             'telefone': forms.TextInput(attrs={
                 'placeholder': '(99) 99999-9999',

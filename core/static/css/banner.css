@@ -19,6 +19,7 @@
     overflow: hidden;
     width: 80%;
     justify-content: center;
+    color: white;
 }
 .slider-image {
     max-width: 100%;
