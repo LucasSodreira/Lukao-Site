@@ -12,23 +12,35 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Carrega .env se existir
+if os.path.exists(os.path.join(BASE_DIR, '.env')):
+    from dotenv import load_dotenv
+    load_dotenv()
+
+# Acessa variáveis
+SECRET_KEY = os.environ.get('SECRET_KEY')
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
+MELHOR_ENVIO_TOKEN = os.environ.get('MELHOR_ENVIO_TOKEN')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-wox_t^j**-a$y*joh92@+kel!5&%1625@c8y4@%2%n*1)2(jwd'
+# SECRET_KEY = 'django-insecure-wox_t^j**-a$y*joh92@+kel!5&%1625@c8y4@%2%n*1)2(jwd'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 
 # Application definition
@@ -83,7 +95,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'site_lukao',
         'USER': 'postgres',
-        'PASSWORD': 'root',
+        'PASSWORD': DB_PASSWORD,
     }
 }
 

@@ -1,0 +1,153 @@
+/* Estilos gerais */
+.shipping-container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 0 20px;
+    font-family: 'Arial', sans-serif;
+}
+
+.page-title {
+    font-size: 24px;
+    margin-bottom: 30px;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Opções de envio */
+.shipping-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.shipping-option {
+    display: flex;
+    align-items: flex-start;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.shipping-option:hover {
+    border-color: #1A1F16;
+}
+
+.shipping-option input[type="radio"] {
+    margin-right: 15px;
+    margin-top: 3px;
+}
+
+.option-content {
+    flex: 1;
+}
+
+.option-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.option-title {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.option-date {
+    color: #666;
+    font-size: 14px;
+}
+
+.option-description {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Passos do checkout */
+.checkout-steps {
+    display: flex;
+    justify-content: space-between;
+    margin: 30px 0;
+    position: relative;
+}
+
+.checkout-steps::before {
+    content: '';
+    position: absolute;
+    top: 26px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #e0e0e0;
+    z-index: 1;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.step-number {
+    display: flex;
+    font-size: 1rem;
+}
+
+.address-card.selected {
+    border: 2px solid #007bff;
+    background-color: #f3faff;
+  }
+
+.step-name {
+    font-size: 12px;
+    color: #666;
+}
+
+.step.active .step-name {
+    color: #1A1F16;
+    font-weight: bold;
+}
+
+/* Botões */
+.shipping-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.btn.primary {
+    background-color: #1A1F16;
+    color: white;
+    border: none;
+}
+
+.btn.primary:hover {
+    background-color: #2a3324;
+}
+
+.btn.outline {
+    background-color: transparent;
+    border: 1px solid #1A1F16;
+    color: #1A1F16;
+}
+
+.btn.outline:hover {
+    background-color: #f5f5f5;
+}

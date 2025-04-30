@@ -2,96 +2,92 @@
 {% load static %}
 
 {% block main %}
-<link rel="stylesheet" href="{% static 'css/item_view.css' %}">    
+<link rel="stylesheet" href="{% static 'css/item_view.css' %}">
+<script src="{% static 'js/item_view.js' %}"></script>
 
-<div class="container">
-
-    <button class="back-button">← Back</button>
-    <div class="product-page">
-
-        <div class="product-left">
-            <div class="product-images">
-                {% if produto.imagem %}
-                    <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}" class="product-image">
-                {% else %}
-                    <img src="{% static 'images/default.png' %}" alt="Sem imagem" class="product-image">
-                {% endif %}
-                <!-- Aqui você pode duplicar essa imagem para simular várias imagens, ou depois criar galeria -->
-            </div>
-        
-            <div class="product-main-image">
-                {% if produto.imagem %}
-                    <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}" class="main-image">
-                {% else %}
-                    <img src="{% static 'images/default.png' %}" alt="Sem imagem" class="main-image">
-                {% endif %}
+<div class="product-detail-container">
+    {% comment %} {% for produto in produtos %} {% endcomment %}
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="{% url 'index' %}">Home</a> > 
+        <a href="">Shop</a> > 
+        <a href="#">{{ produto.categoria.nome }}</a> > 
+        <span>{{ produto.nome }}</span>
+    </div>
+    
+    <!-- Product Details -->
+    <div class="product-detail">
+        <!-- Product Images (left side) -->
+        <div class="thumbnail-container">
+            <!-- Você pode adicionar mais thumbnails aqui se tiver imagens adicionais -->
+            <div class="thumbnail active">
+                <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}">
             </div>
         </div>
-        
-        <div class="product-details">
-            <h1>{{ produto.nome }}</h1>
-            <h3>{{ produto.categoria.nome }}</h3>
-        
-            <div class="rating">
-                <span>⭐⭐⭐⭐⭐</span> <span class="rating-value">4.5 / 5</span> <!-- Rating ainda é estático por enquanto -->
-            </div>
-        
-            <h2 class="price">R$ {{ produto.preco }}</h2>
-        
-            <p class="product-description">
-                {{ produto.descricao }}
-            </p>
-        
-            <div class="buttons">
-                <form action="{% url 'add-to-cart' produto.id %}" method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="add-to-bag">
-                        <img src="{% static 'images/cart.svg' %}" alt="Carrinho" id="img-cart"> Add to Bag
-                    </button>
-                </form>
+        <div class="product-images">
+            <div class="main-image">
+                <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}">
             </div>
         </div>
-        
-        
-        
-        <div class="related-products">
-            <h4>Related to the items you viewed</h4>
+
+        <!-- Product Info (right side) -->
+        <div class="product-info">
+            <h1 class="product-title">{{ produto.nome }}</h1>
             
+            <div class="product-price">
+                
+                <span class="current-price">${{ produto.preco }}</span>
+                
+            </div>
             
-            <div class="related-item">
-                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-                <div class="item-info">
-                    <p>Item Name</p>
-                    <small>Small Description</small>
-                    <div class="item-price">
-                        <span>$9.99</span>
-                        <button class="add-to-bag-small"><img src="{% static 'images/cart.svg' %}" alt="Carrinho" id="img-cart-small"></button>
+            <div class="product-description">
+                <p>{{ produto.descricao }}</p>
+            </div>
+            
+            <!-- Tamanhos -->
+            <div class="size-selection">
+                <h3>Choose Size</h3>
+                <div class="size-options">
+                    <input type="radio" id="size-small" name="size" value="small" class="size-radio" checked>
+                    <label for="size-small" class="size-label">Small</label>
+                    
+                        <input type="radio" id="size-medium" name="size" value="medium" class="size-radio">
+                        <label for="size-medium" class="size-label">Medium</label>
+                        
+                        <input type="radio" id="size-large" name="size" value="large" class="size-radio">
+                        <label for="size-large" class="size-label">Large</label>
+                        
+                        <input type="radio" id="size-xlarge" name="size" value="xlarge" class="size-radio">
+                        <label for="size-xlarge" class="size-label">X-Large</label>
                     </div>
                 </div>
-            </div> 
-            
-            <div class="related-item">
-                <img src="{% static 'images/image.png' %}" alt="Apple Watch Series 5 SE" class="product-image">
-                <div class="item-info">
-                    <p>Item Name</p>
-                    <small>Small Description</small>
-                    <div class="item-price">
-                        <span>$9.99</span>
-                        <button class="add-to-bag-small"><img src="{% static 'images/cart.svg' %}" alt="Carrinho" id="img-cart-small"></button>
+                
+                <div class="container-actions">
+                    <div class="quantity-container">
+                        <button type="button" class="quantity-btn" onclick="decreaseQuantity()">-</button>
+                        <span id="quantity">1</span>
+                        <button type="button" class="quantity-btn" onclick="increaseQuantity()">+</button>
                     </div>
+
+                    
+
+                <!-- Botões de ação -->
+                <div class="action-buttons">
+                    <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="size" id="selected-size" value="small">
+                        <button type="submit" class="action-btn cart-btn">
+                            <img src="{% static 'images/cart.svg' %}" alt="Cart">
+                            Add to Cart
+                        </button>
+                    </form>
+                    
+                    <button type="button" class="action-btn buy-now-btn">Buy Now</button>
                 </div>
             </div>
+
         </div>
     </div>
-
-
-    <div class="product-description-section">
-        <h2>Description</h2>
-        <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Dig...
-        </p>
-    </div>
-
+    {% comment %} {% endfor %} {% endcomment %}
 </div>
-
-{% endblock main %}
+{% endblock %}

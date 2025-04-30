@@ -17,7 +17,7 @@ def reset_pedido_sequence():
         elif connection.vendor == 'sqlite':
             cursor.execute("UPDATE sqlite_sequence SET seq = (SELECT MAX(id) FROM core_pedido) WHERE name='core_pedido';")
 
-def seed_data(qtd_categorias=2, qtd_produtos=5, qtd_usuarios=2, qtd_enderecos=2, qtd_pedidos=5):
+def seed_data(qtd_categorias=1, qtd_produtos=4, qtd_usuarios=0, qtd_enderecos=0, qtd_pedidos=0):
     
     # Reseta a sequência de pedidos ANTES de começar
     Pedido.objects.all().delete()  # Remove todos os pedidos existentes
@@ -51,7 +51,7 @@ def seed_data(qtd_categorias=2, qtd_produtos=5, qtd_usuarios=2, qtd_enderecos=2,
 
     # 3. Criar Produtos
     produtos = []
-    imagem_padrao_path = os.path.join(settings.BASE_DIR, 'media/produtos/relogio.png')
+    imagem_padrao_path = os.path.join(settings.BASE_DIR, 'media/produtos/camisa.png')
     
     imagem_content = None
     if os.path.exists(imagem_padrao_path):

@@ -6,20 +6,25 @@ from django.http import JsonResponse
 # Imports Django (Views, Forms, Models, Messages, Transactions)
 from django.views.generic import TemplateView, ListView, DetailView, View, CreateView, UpdateView
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 from django.db import transaction
+from django.views.generic.edit import FormView
 
 # Imports do seu app
-from .models import Produto, Endereco, Pedido, ItemPedido
+from django import forms
+from .models import Produto, Endereco, Pedido, ItemPedido, Categoria
 from .forms import EnderecoForm
-from core.utils import limpar_carrinho, adicionar_ao_carrinho, remover_do_carrinho, calcular_total_carrinho
+from django.conf import settings
+from core.utils import limpar_carrinho, adicionar_ao_carrinho, remover_do_carrinho, migrar_carrinho_antigo, cotar_frete_melhor_envio
 
 # ============================
 
 class IndexView(ListView):
-    model = Produto
-    template_name = 'index.html'
-    context_object_name = 'produtos'
-    paginate_by = 6  # Número de produtos por página
+     model = Produto
+     template_name = 'index.html'
+     context_object_name = 'produtos'
 
 
 class ItemView(DetailView):
@@ -33,33 +38,79 @@ class CartView(TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
         carrinho = self.request.session.get('carrinho', {})
-        produtos = Produto.objects.filter(id__in=carrinho.keys())
-
-        lista_produtos = []
-
-        for produto in produtos:
-            quantidade = carrinho[str(produto.id)]
-            subtotal = produto.preco * quantidade
-
-            lista_produtos.append({
-                'produto': produto,
-                'quantidade': quantidade,
-                'subtotal': subtotal,
-            })
-
-        total = calcular_total_carrinho(self.request)
-
-        context['produtos_carrinho'] = lista_produtos
+        itens_carrinho = []
+        
+        # Migra carrinho antigo para novo formato se necessário
+        if any(isinstance(v, int) for v in carrinho.values()):
+            carrinho = migrar_carrinho_antigo(carrinho)
+            self.request.session['carrinho'] = carrinho
+            self.request.session.modified = True
+        
+        # Obtém todos os IDs de produtos únicos
+        produto_ids = []
+        for item in carrinho.values():
+            if isinstance(item, dict) and 'produto_id' in item:
+                produto_ids.append(item['produto_id'])
+        
+        produtos = Produto.objects.filter(id__in=produto_ids)
+        produto_dict = {p.id: p for p in produtos}
+        
+        for chave, item in carrinho.items():
+            if isinstance(item, dict) and 'produto_id' in item:
+                produto = produto_dict.get(item['produto_id'])
+                if produto:
+                    itens_carrinho.append({
+                        'chave': chave,
+                        'produto': produto,
+                        'quantidade': item['quantidade'],
+                        'size': item.get('size'),
+                        'subtotal': produto.preco * item['quantidade']
+                    })
+        
+        total = sum(item['subtotal'] for item in itens_carrinho)
+        
+        context['itens_carrinho'] = itens_carrinho
         context['total_carrinho'] = total
         return context
 
 
-class AddToCartView(TemplateView):
+class ManipularItemCarrinho(View):
+    def post(self, request, *args, **kwargs):
+        chave = kwargs.get('chave')
+        carrinho = request.session.get('carrinho', {})
+        
+        if chave in carrinho:
+            self.manipular_quantidade(carrinho[chave])
+            
+            if carrinho[chave]['quantidade'] <= 0:
+                del carrinho[chave]
+            
+            request.session['carrinho'] = carrinho
+            request.session.modified = True
+        
+        return redirect('carrinho')
+
+class AumentarItemView(ManipularItemCarrinho):
+    def manipular_quantidade(self, item):
+        item['quantidade'] += 1
+
+class DiminuirItemView(ManipularItemCarrinho):
+    def manipular_quantidade(self, item):
+        item['quantidade'] -= 1
+
+class RemoverItemView(ManipularItemCarrinho):
+    def manipular_quantidade(self, item):
+        item['quantidade'] = 0  # Será removido na verificação
+
+class AddToCartView(View):
     def post(self, request, *args, **kwargs):
         produto_id = self.kwargs.get('pk')
-        adicionar_ao_carrinho(request, produto_id)
+        size = request.POST.get('size', 'medium')  # Pega o tamanho selecionado
+        
+        # Adicione a lógica para armazenar o tamanho junto com o produto
+        adicionar_ao_carrinho(request, produto_id, size=size)
+        
         return redirect('carrinho')
 
 
@@ -79,32 +130,52 @@ class RemoverItemCarrinho(View):
 
 
 class ReviewCart(View):
+    template_name = 'review_cart.html'
+    
     def get(self, request, *args, **kwargs):
-        carrinho = request.session.get('carrinho', {})
-        produtos = Produto.objects.filter(id__in=carrinho.keys())
-
-        lista_produtos = []
-        total = calcular_total_carrinho(self.request)
-
-        for produto in produtos:
-            quantidade = carrinho[str(produto.id)]
-            subtotal = produto.preco * quantidade
-
-            lista_produtos.append({
-                'produto': produto,
-                'quantidade': quantidade,
-                'subtotal': subtotal,
-            })
-
+        context = self.get_context_data()
         endereco = Endereco.objects.filter(usuario=request.user).last()
-
-        context = {
-            'produtos_carrinho': lista_produtos,
-            'total_carrinho': total,
-            'endereco': endereco,
-            'tem_endereco': endereco is not None
-        }
-        return render(request, 'review_cart.html', context)
+        context['endereco'] = endereco
+        context['tem_endereco'] = endereco is not None
+        return render(request, self.template_name, context)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        carrinho = self.request.session.get('carrinho', {})
+        itens_carrinho = []
+        
+        # Migra carrinho antigo para novo formato se necessário
+        if any(isinstance(v, int) for v in carrinho.values()):
+            carrinho = migrar_carrinho_antigo(carrinho)
+            self.request.session['carrinho'] = carrinho
+            self.request.session.modified = True
+        
+        # Obtém todos os IDs de produtos únicos
+        produto_ids = []
+        for item in carrinho.values():
+            if isinstance(item, dict) and 'produto_id' in item:
+                produto_ids.append(item['produto_id'])
+        
+        produtos = Produto.objects.filter(id__in=produto_ids)
+        produto_dict = {p.id: p for p in produtos}
+        
+        for chave, item in carrinho.items():
+            if isinstance(item, dict) and 'produto_id' in item:
+                produto = produto_dict.get(item['produto_id'])
+                if produto:
+                    itens_carrinho.append({
+                        'chave': chave,
+                        'produto': produto,
+                        'quantidade': item['quantidade'],
+                        'size': item.get('size'),
+                        'subtotal': produto.preco * item['quantidade']
+                    })
+        
+        total = sum(item['subtotal'] for item in itens_carrinho)
+        
+        context['itens_carrinho'] = itens_carrinho
+        context['total_carrinho'] = total
+        return context
 
     def post(self, request, *args, **kwargs):
         endereco = Endereco.objects.filter(usuario=request.user).last()
@@ -128,22 +199,34 @@ class ReviewCart(View):
                 pedido.save()
 
                 total = 0
-                produtos = Produto.objects.filter(id__in=carrinho.keys())
                 
-                for produto in produtos:
-                    quantidade = carrinho[str(produto.id)]
-                    subtotal = produto.preco * quantidade
-                    total += subtotal
+                # Obtém todos os IDs de produtos únicos
+                produto_ids = []
+                for item in carrinho.values():
+                    if isinstance(item, dict) and 'produto_id' in item:
+                        produto_ids.append(item['produto_id'])
+                
+                produtos = Produto.objects.filter(id__in=produto_ids)
+                produto_dict = {p.id: p for p in produtos}
+                
+                for item in carrinho.values():
+                    if isinstance(item, dict) and 'produto_id' in item:
+                        produto = produto_dict.get(item['produto_id'])
+                        if produto:
+                            quantidade = item['quantidade']
+                            subtotal = produto.preco * quantidade
+                            total += subtotal
 
-                    ItemPedido.objects.create(
-                        pedido=pedido,
-                        produto=produto,
-                        quantidade=quantidade,
-                        preco_unitario=produto.preco
-                    )
+                            ItemPedido.objects.create(
+                                pedido=pedido,
+                                produto=produto,
+                                quantidade=quantidade,
+                                preco_unitario=produto.preco,
+                                tamanho=item.get('size')
+                            )
 
-                    produto.estoque -= quantidade
-                    produto.save()
+                            produto.estoque -= quantidade
+                            produto.save()
 
                 pedido.total = total
                 pedido.save()
@@ -158,23 +241,44 @@ class ReviewCart(View):
             return redirect('review-cart')
 
 
-class AddressView(UpdateView):
+class EnderecoEditView(UpdateView):
     model = Endereco
     form_class = EnderecoForm
     template_name = 'address.html'
-    success_url = reverse_lazy('review-cart')
+    success_url = reverse_lazy('endereco-view')
 
-    def get_object(self, queryset=None):
-        # Garante que sempre retorne um endereço vinculado ao usuário
-        obj, created = Endereco.objects.get_or_create(usuario=self.request.user)
-        print(obj)
-        return obj
+    def get_queryset(self):
+        return Endereco.objects.filter(usuario=self.request.user)
+class EnderecoCreateView(CreateView):
+    model = Endereco
+    form_class = EnderecoForm
+    template_name = 'address.html'
+    success_url = reverse_lazy('endereco-view')
 
     def form_valid(self, form):
-        # Garante o vínculo com o usuário antes de salvar
         form.instance.usuario = self.request.user
-        print(form.instance.usuario)
         return super().form_valid(form)
+
+@method_decorator(login_required, name='dispatch')
+class DefinirEnderecoPrincipal(View):
+    def post(self, request, pk):
+        endereco = get_object_or_404(Endereco, pk=pk, usuario=request.user)
+
+        # Desativa os outros como principal
+        Endereco.objects.filter(usuario=request.user, principal=True).update(principal=False)
+
+        # Ativa este como principal
+        endereco.principal = True
+        endereco.save()
+
+        return redirect('endereco-view')
+
+@method_decorator(login_required, name='dispatch')
+class ExcluirEnderecoView(View):
+    def post(self, request, pk):
+        endereco = get_object_or_404(Endereco, pk=pk, usuario=request.user)
+        endereco.delete()
+        return redirect('endereco-view')
 
 class LoginView(TemplateView):
     template_name = 'login.html'
@@ -186,3 +290,67 @@ class RegisterView(TemplateView):
 
 class ThanksView(TemplateView):
     template_name = 'thanks.html'
+    
+class AddressSelection(TemplateView):
+    template_name = 'address_selection.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        if self.request.user.is_authenticated:
+            enderecos = Endereco.objects.filter(usuario=self.request.user)
+            context['enderecos'] = enderecos
+        else:
+            context['enderecos'] = []
+
+        return context
+    
+token = settings.MELHOR_ENVIO_TOKEN
+
+class FreteForm(forms.Form):
+    frete_escolhido = forms.ChoiceField(widget=forms.RadioSelect)
+
+    def __init__(self, *args, **kwargs):
+        fretes = kwargs.pop('fretes', [])
+        super().__init__(*args, **kwargs)
+        choices = []
+
+        for frete in fretes:
+            try:
+                nome = frete['company']['name']
+                servico = frete['name']
+                preco = frete['price']
+                dias = frete['delivery_time']['days']
+                choices.append((frete['id'], f"{nome} - {servico} - R$ {preco} - {dias} dias úteis"))
+            except (KeyError, TypeError):
+                continue  # Ignora entradas inválidas
+            
+        self.fields['frete_escolhido'].choices = choices
+
+class ShipmentMethodView(LoginRequiredMixin, FormView):
+    template_name = 'shipping_method.html'
+    form_class = FreteForm
+    success_url = reverse_lazy('review-cart')
+
+    def get_fretes(self):
+        endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
+        if endereco:
+            return cotar_frete_melhor_envio(endereco.cep, token)
+        return []
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['fretes'] = self.get_fretes()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['fretes'] = self.get_fretes()
+        return context
+
+    def form_valid(self, form):
+        frete_escolhido = form.cleaned_data['frete_escolhido']
+        self.request.session['frete_escolhido'] = frete_escolhido
+        self.request.session.modified = True
+        return super().form_valid(form)
+    

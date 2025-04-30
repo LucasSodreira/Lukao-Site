@@ -3,8 +3,7 @@ from django.core.validators import MinValueValidator
 from django.core.validators import RegexValidator
 from django.conf import settings
 from django.db.models import Sum, F
-
-
+from django.core.validators import MinLengthValidator
 class Categoria(models.Model):
     nome = models.CharField(max_length=100, unique=True)
 
@@ -22,6 +21,7 @@ class Produto(models.Model):
         Categoria, on_delete=models.SET_NULL, null=True, related_name="produtos"
     )
     estoque = models.PositiveIntegerField(default=0)
+    tamanhos = models.CharField(max_length=50, blank=True, null=True)
     imagem = models.ImageField(upload_to="produtos/", blank=True, null=True)
 
     def __str__(self):
@@ -39,12 +39,28 @@ class Produto(models.Model):
         """Aumenta o estoque do produto e salva no banco"""
         self.estoque += quantidade
         self.save()
+        
+    TAMANHOS = [
+        ('PP', 'Extra Pequeno'),
+        ('P', 'Pequeno'),
+        ('M', 'Médio'),
+        ('G', 'Grande'),
+        ('GG', 'Extra Grande'),
+        ('XG', 'Tamanho Extra'),
+    ]
+    
+    tamanhos_disponiveis = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Tamanhos disponíveis separados por vírgula (ex: P,M,G)"
+    )
+
+    def get_tamanhos_disponiveis(self):
+        if self.tamanhos_disponiveis:
+            return [t.strip() for t in self.tamanhos_disponiveis.split(',')]
+        return []
 
 
-from django.db import models
-from django.core.validators import RegexValidator
-from django.conf import settings
-from django.core.validators import MinLengthValidator
 
 
 class Endereco(models.Model):
@@ -215,9 +231,11 @@ class ItemPedido(models.Model):
     produto = models.ForeignKey(Produto, on_delete=models.CASCADE)
     quantidade = models.PositiveIntegerField(default=1)
     preco_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    tamanho = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.quantidade}x {self.produto.nome} (R${self.preco_unitario})"
+        tamanho = f" ({self.tamanho})" if self.tamanho else ""
+        return f"{self.quantidade}x {self.produto.nome}{tamanho} (R${self.preco_unitario})"
 
     def save(self, *args, **kwargs):
         """Sobrescreve o save para definir o preço unitário e atualizar o total do pedido"""
