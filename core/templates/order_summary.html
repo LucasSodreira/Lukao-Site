@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block main %}
+
+<link rel="stylesheet" href="{% static 'css/order_summary.css' %}">
+
+<div class="container">
+    <!-- Seção de Resumo do Pedido -->
+    <div class="order-summary">
+        <h2>Order Summary</h2>
+        
+        {% if itens_carrinho %}
+            
+            {% for item in itens_carrinho %}
+                
+            
+            
+            
+            <div class="item">
+                
+                {% if item.produto.imagem %}
+                    <img src="{% static '{{item.produto.imagem.url}}' %}" alt="{{ item.produto.nome }}">
+                    {% else %}
+                    <img src="{% static 'images/default.png' %}" alt="Imagem não disponível">
+                {% endif %}
+                    
+                <span>{{item.produto.nome}} </span>
+                <span class="price">{{item.subtotal}}</span>
+            </div>
+            
+            <div class="address">
+            <h3>Address</h3>
+            {% for endereco in enderecos %}
+            {{ endereco.nome_completo }}, {{ endereco.get_estado_display }},{{ endereco.rua }}, {{ endereco.numero }}{% if endereco.complemento %} - {{ endereco.complemento }}{{ endereco.bairro }} - {{ endereco.cidade }}/{{ endereco.estado }} endereco.cep }}  
+              {% endif %}
+            {% endfor %}
+        </div>
+        <div class="shipping">
+            <h3>Shipment method</h3>
+            <p>Free</p>
+        </div>
+        <div class="total">
+            <span>TOTAL</span>
+            <span class="price">R$ 70</span>
+            <span class="price">$467</span>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+        <p class="empty-cart">Seu carrinho está vazio.</p>
+    {% endif %}
+    
+    <!-- Seção de Pagamento -->
+    <div class="payment">
+        <h2>Payment</h2>
+        <p>Você será redirecionado para a plataforma de pagamento do Mercado Pago para finalizar sua compra com segurança.</p>
+        <div class="buttons">
+            <button class="back-btn">Back</button>
+            <button class="next-btn">Next</button>
+        </div>
+    </div>
+</div>
+    
+{% endblock main %}
+    

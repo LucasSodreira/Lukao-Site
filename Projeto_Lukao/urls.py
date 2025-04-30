@@ -37,6 +37,8 @@ urlpatterns = [
     
     path('envio/', ShipmentMethodView.as_view(), name='shipment-method'),
     
+    path('ordem/', OrderSummaryView.as_view(), name='order-summary'),
+    
     path('login/', LoginView.as_view(), name='login'),
     path('registrar/', RegisterView.as_view(), name='register'),
     path('obrigado/', ThanksView.as_view(), name='thanks'),
