@@ -1,4 +1,37 @@
 import requests
+from .models import Produto
+
+def obter_itens_do_carrinho(request):
+    carrinho = request.session.get('carrinho', {})
+    itens_carrinho = []
+    subtotal = 0
+
+    # Coletar todos os IDs de produtos usados no carrinho
+    produto_ids = []
+    for item in carrinho.values():
+        if isinstance(item, dict) and 'produto_id' in item:
+            produto_ids.append(item['produto_id'])
+
+    produtos = Produto.objects.filter(id__in=produto_ids)
+    produto_dict = {p.id: p for p in produtos}
+
+    for chave, item in carrinho.items():
+        produto = produto_dict.get(item['produto_id'])
+        if produto:
+            quantidade = item['quantidade']
+            tamanho = item.get('size')
+            subtotal_item = produto.preco * quantidade
+            subtotal += subtotal_item
+
+            itens_carrinho.append({
+                'produto': produto,
+                'quantidade': quantidade,
+                'size': tamanho,
+                'subtotal': subtotal_item,
+            })
+
+    return itens_carrinho, subtotal
+
 
 def limpar_carrinho(request):
     """Limpa completamente o carrinho da sessão."""
@@ -124,6 +157,7 @@ def cotar_frete_melhor_envio(cep_destino, token, cep_origem='01001-000'):
     }
 
     response = requests.post(url, headers=headers, json=payload)
+    print("Response Status Code:", response.status_code)  # Debug: Verifica o status da resposta
     if response.status_code == 200:
         return response.json()
     return []

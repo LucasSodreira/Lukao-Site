@@ -151,3 +151,16 @@
 .btn.outline:hover {
     background-color: #f5f5f5;
 }
+
+.hidden-radio {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* Estilize os labels para parecerem botões selecionáveis */
+.shipping-option input[type="radio"]:checked + .option-content {
+    border-color: #1A1F16;
+    background-color: #f5f5f5;
+}

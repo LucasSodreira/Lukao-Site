@@ -4,6 +4,9 @@ from django.core.validators import RegexValidator
 from django.conf import settings
 from django.db.models import Sum, F
 from django.core.validators import MinLengthValidator
+from django.core.exceptions import ValidationError
+from uuid import uuid4
+
 class Categoria(models.Model):
     nome = models.CharField(max_length=100, unique=True)
 
@@ -39,28 +42,41 @@ class Produto(models.Model):
         """Aumenta o estoque do produto e salva no banco"""
         self.estoque += quantidade
         self.save()
-        
+
     TAMANHOS = [
-        ('PP', 'Extra Pequeno'),
-        ('P', 'Pequeno'),
-        ('M', 'Médio'),
-        ('G', 'Grande'),
-        ('GG', 'Extra Grande'),
-        ('XG', 'Tamanho Extra'),
+        ("PP", "Extra Pequeno"),
+        ("P", "Pequeno"),
+        ("M", "Médio"),
+        ("G", "Grande"),
+        ("GG", "Extra Grande"),
+        ("XG", "Tamanho Extra"),
     ]
-    
+
     tamanhos_disponiveis = models.CharField(
         max_length=50,
         blank=True,
-        help_text="Tamanhos disponíveis separados por vírgula (ex: P,M,G)"
+        help_text="Tamanhos disponíveis separados por vírgula (ex: P,M,G)",
     )
 
     def get_tamanhos_disponiveis(self):
         if self.tamanhos_disponiveis:
-            return [t.strip() for t in self.tamanhos_disponiveis.split(',')]
+            return [t.strip() for t in self.tamanhos_disponiveis.split(",")]
         return []
-
-
+    
+    def clean(self):
+        """Validação no nível do model"""
+        if self.estoque < 0:
+            raise ValidationError("O estoque não pode ser negativo")
+    
+    def diminuir_estoque(self, quantidade):
+        """Método seguro para diminuir estoque"""
+        if quantidade <= 0:
+            raise ValueError("Quantidade deve ser positiva")
+        if self.estoque < quantidade:
+            raise ValueError(f"Estoque insuficiente (disponível: {self.estoque})")
+        
+        self.estoque -= quantidade
+        self.save()
 
 
 class Endereco(models.Model):
@@ -170,6 +186,7 @@ class Pedido(models.Model):
     STATUS_CHOICES = [
         ("P", "Pendente"),
         ("E", "Enviado"),
+        ("T", "Em Transporte"),
         ("C", "Concluído"),
         ("X", "Cancelado"),
     ]
@@ -181,31 +198,47 @@ class Pedido(models.Model):
         null=True,
         blank=True,
     )
-    data_criacao = models.DateTimeField(auto_now_add=True)
+    codigo = models.CharField(
+        max_length=10,
+        unique=True,
+        editable=False,
+        verbose_name="Código do Pedido"
+    )
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default="P")
-    endereco_entrega = models.ForeignKey(Endereco, on_delete=models.SET_NULL, null=True)
+    endereco_entrega = models.ForeignKey(
+        Endereco, on_delete=models.SET_NULL, null=True
+    )
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    codigo_rastreamento = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Código de Rastreio"
+    )
+
+    metodo_pagamento = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name="Método de Pagamento"
+    )
+
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-data_criacao"]
 
     def __str__(self):
-        return f"Pedido #{self.id} - {self.get_status_display()}"
+        return f"#{self.codigo} - {self.get_status_display()}"
 
     def calcular_total(self):
-        """Calcula o total do pedido somando todos os itens"""
-        return (
-            self.itens.aggregate(total=Sum(F("quantidade") * F("preco_unitario")))[
-                "total"
-            ]
-            or 0
-        )
+        return self.itens.aggregate(
+            total=Sum(F("quantidade") * F("preco_unitario"))
+        )["total"] or 0
 
     def atualizar_estoque(self, operacao="diminuir"):
-        """
-        Atualiza o estoque dos produtos conforme os itens do pedido
-        operacao: 'diminuir' (padrão) ou 'aumentar' (para cancelamentos)
-        """
         for item in self.itens.all():
             if operacao == "diminuir":
                 item.produto.diminuir_estoque(item.quantidade)
@@ -213,13 +246,11 @@ class Pedido(models.Model):
                 item.produto.aumentar_estoque(item.quantidade)
 
     def save(self, *args, **kwargs):
-        """Sobrescreve o save para calcular o total automaticamente"""
-        if not self.pk:  # Se for um novo pedido
-            super().save(*args, **kwargs)  # Salva primeiro para ter um ID
+        if not self.codigo:
+            self.codigo = str(uuid4()).split("-")[0].upper()  # Ex: A83F9C1D
         self.total = self.calcular_total()
         super().save(*args, **kwargs)
 
-        # Se o pedido foi concluído ou cancelado, atualiza o estoque
         if self.status == "C":
             self.atualizar_estoque("diminuir")
         elif self.status == "X":
@@ -235,7 +266,9 @@ class ItemPedido(models.Model):
 
     def __str__(self):
         tamanho = f" ({self.tamanho})" if self.tamanho else ""
-        return f"{self.quantidade}x {self.produto.nome}{tamanho} (R${self.preco_unitario})"
+        return (
+            f"{self.quantidade}x {self.produto.nome}{tamanho} (R${self.preco_unitario})"
+        )
 
     def save(self, *args, **kwargs):
         """Sobrescreve o save para definir o preço unitário e atualizar o total do pedido"""

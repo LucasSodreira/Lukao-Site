@@ -35,7 +35,6 @@ MELHOR_ENVIO_TOKEN = os.environ.get('MELHOR_ENVIO_TOKEN')
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = 'django-insecure-wox_t^j**-a$y*joh92@+kel!5&%1625@c8y4@%2%n*1)2(jwd'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

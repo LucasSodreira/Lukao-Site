@@ -31,28 +31,36 @@
       </div>
     <h1 class="page-title">SHIPMENT METHOD</h1>
 
-    <form method="post">
-        {% csrf_token %}
-        <div class="shipping-options">
+    <form method="post" action="{% url 'shipment-method' %}">
+      {% csrf_token %}
+      
+      <div class="shipping-options">
           {% for frete in fretes %}
-            <label class="shipping-option">
-              <input type="radio" name="frete_escolhido" value="{{ frete.id }}" {% if forloop.first %}checked{% endif %}>
+          <label class="shipping-option">
+              <input type="radio" name="frete_escolhido" value="{{ frete.id }}"
+                     {% if forloop.first %}checked{% endif %}>
               <div class="option-content">
-                <div class="option-header">
-                  <span class="option-title">{{ frete.company.name }} - {{ frete.name }}</span>
-                  <span class="option-date">Entrega em {{ frete.delivery_time.days }} dias úteis</span>
-                </div>
-                <p class="option-description">R$ {{ frete.price }}</p>
+                  <div class="option-header">
+                      <span class="option-title">
+                          {% if frete.price == 0 %}Free{% else %}${{ frete.price|floatformat:2 }}{% endif %}
+                      </span>
+                      <span class="option-date">
+                          {% if frete.delivery_time.days == 1 %}
+                              1 day
+                          {% else %}
+                              {{ frete.delivery_time.days }} days
+                          {% endif %}
+                      </span>
+                  </div>
+                  <p class="option-description">{{ frete.company.name }} - {{ frete.name }}</p>
               </div>
-            </label>
+          </label>
           {% endfor %}
-        </div>
+      </div>
       
         <div class="shipping-actions">
           <a href="{% url 'endereco-view' %}" class="btn outline">Back</a>
-          <form action="{% url 'shipment-method' %}">
             <button type="submit" class="btn primary">Next</button>
-          </form>
         </div>
       </form>
 </div>
