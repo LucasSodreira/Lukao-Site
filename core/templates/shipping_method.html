@@ -50,7 +50,9 @@
       
         <div class="shipping-actions">
           <a href="{% url 'endereco-view' %}" class="btn outline">Back</a>
-          <button type="submit" class="btn primary">Next</button>
+          <form action="{% url 'shipment-method' %}">
+            <button type="submit" class="btn primary">Next</button>
+          </form>
         </div>
       </form>
 </div>

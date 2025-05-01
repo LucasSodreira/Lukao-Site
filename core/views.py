@@ -354,3 +354,5 @@ class ShipmentMethodView(LoginRequiredMixin, FormView):
         self.request.session.modified = True
         return super().form_valid(form)
     
+class OrderSummaryView(TemplateView):
+    template_name = 'order_summary.html'
