@@ -59,8 +59,7 @@ main {
 }
 
 .delivery-text {
-    font-size: 0.8rem;
-    font-size: 1.1rem
+    font-size: 0.9rem;
 }
 
 .delivery-cep {
@@ -99,6 +98,7 @@ main {
     border: 1px solid #ccc;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     z-index: 10;
+    border-radius: 8px;
 }
 
 .category-dropdown:hover .category-menu {
@@ -115,6 +115,49 @@ main {
 .category-menu a:hover {
     background-color: #f0f0f0;
 }
+
+
+.infos-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+.infos-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
+.infos-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    border-radius: 8px;
+  }
+
+  .user-icon-container:hover .infos-menu {
+    display: block;
+  }
+
+.infos-menu a {
+    display: block;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: #333;
+}
+
+.infos-menu a:hover {
+    background-color: #f0f0f0;
+}
+
+
 
 .search-input {
     flex: 1;
@@ -148,6 +191,24 @@ main {
     display: flex;
     align-items: center;
     gap: 8px;
+    position: relative;
+    display: inline-block;
+}
+
+#login-link{
+    
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    text-decoration: none;
+    color: white;
+
+}
+
+#buy-info{
+    font-size: 1rem;
+    text-decoration: none;
+    color: white;
 }
 
 .shopping-icon-container{

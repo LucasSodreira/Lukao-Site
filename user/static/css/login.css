@@ -37,8 +37,28 @@ body {
 }
 .logo {
   margin-bottom: 20px;
-   /* Espaço reservado para a logo */
+  
 }
+
+#div-back{
+  
+  width: 100%;
+  position: relative;
+  bottom: 50px;
+
+}
+
+#back{
+  
+  padding: 10px 14px;
+  text-decoration: none;
+  color: black;
+  background: white;
+  border-radius: 11px;
+  font-size: 18px;
+
+}
+
 .login-section h2 {
   font-size: 2.5rem;
   margin-bottom: 20px;

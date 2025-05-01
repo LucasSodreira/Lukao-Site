@@ -92,8 +92,8 @@
             para finalizar sua compra com segurança.
         </p>
         <div class="buttons">
-            <a href="{% url 'shipment-method' %}" class="back-btn">Back</a>
-            <form action="{% url 'processar-pagamento' %}" method="post">
+            <a href="{% url 'checkout:select_frete' %}" class="back-btn">Back</a>
+            <form action="" method="post">
                 {% csrf_token %}
                 <button type="submit" class="next-btn">Next</button>
             </form>

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block main %}
+    
+<link rel="stylesheet" href="{% static 'css/address_management.css' %}" />
+
+<div class="container">
+    
+    {% block sidebar %}
+        {% include 'sidebar.html' %}
+    {% endblock sidebar %}
+        
+
+        <div class="main-content">
+            <div class="header">
+                <h1>My account</h1>
+            </div>
+            <div class="address-section">
+                <h2>My addresses</h2>
+                <p>Here you can view and modify your delivery and billing addresses.</p>
+                <button class="add-address-btn">Add a new address</button>
+                <div class="address-cards">
+                    <div class="address-card">
+                        <span class="default">✓ Default</span>
+                        <h3>Delivery address</h3>
+                        <p>Nathalie Mertens</p>
+                        <p>AVENUE LOUISE 123</p>
+                        <p>1050 Ixelles</p>
+                        <p>Belgium</p>
+                        <p>Additional informations :</p>
+                        <div class="actions">
+                            <button>Edit</button>
+                            <button class="delete-btn">🗑️ Delete</button>
+                        </div>
+                    </div>
+                    <div class="address-card">
+                        <span class="default">✓ Default</span>
+                        <h3>Billing address</h3>
+                        <p>Nathalie Mertens</p>
+                        <p>AVENUE LOUISE 123</p>
+                        <p>1050 Ixelles</p>
+                        <p>Belgium</p>
+                        <p>Additional informations :</p>
+                        <div class="actions">
+                            <button>Edit</button>
+                            <button class="delete-btn">🗑️ Delete</button>
+                        </div>
+                    </div>
+                    <div class="address-card">
+                        <h3>Delivery address</h3>
+                        <p>Nathalie Mertens</p>
+                        <p>AVENUE LOUISE 123</p>
+                        <p>1050 Ixelles</p>
+                        <p>Belgium</p>
+                        <p>Additional informations :</p>
+                        <div class="actions">
+                            <button>Edit</button>
+                            <button class="delete-btn">🗑️ Delete</button>
+                            <button class="select-default-btn">Select as default</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock main %}

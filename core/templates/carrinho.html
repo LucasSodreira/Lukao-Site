@@ -90,7 +90,7 @@
                 <span>R$ {{ total_carrinho }}</span>
             </div>
             
-            <form method="get" action="{% url 'endereco-view' %}">
+            <form method="get" action="{% url 'checkout:select_address' %}">
                 <button type="submit" class="checkout-btn">Finalizar Pedido</button>
             </form>
         </div>

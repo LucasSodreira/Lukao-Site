@@ -31,7 +31,7 @@
       </div>
     <h1 class="page-title">SHIPMENT METHOD</h1>
 
-    <form method="post" action="{% url 'shipment-method' %}">
+    <form method="post" action="{% url 'checkout:select_frete' %}">
       {% csrf_token %}
       
       <div class="shipping-options">
@@ -59,7 +59,7 @@
       </div>
       
         <div class="shipping-actions">
-          <a href="{% url 'endereco-view' %}" class="btn outline">Back</a>
+          <a href="{% url 'checkout:select_address' %}" class="btn outline">Back</a>
             <button type="submit" class="btn primary">Next</button>
         </div>
       </form>

@@ -53,13 +53,13 @@
 
           <div class="address-actions-inline">
             {% if not endereco.principal %}
-              <form action="{% url 'definir-endereco-principal' endereco.pk %}" method="post" style="display: inline;">
+              <form action="{% url 'checkout:definir-endereco-principal' endereco.pk %}" method="post" style="display: inline;">
                 {% csrf_token %}
                 <button type="submit" class="btn-mini">Definir como principal</button>
               </form>
             {% endif %}
-            <a href="{% url 'editar-endereco' endereco.pk %}" class="btn-mini">Editar</a>
-            <form action="{% url 'excluir-endereco' endereco.pk %}" method="post" style="display: inline;">
+            <a href="{% url 'checkout:editar-endereco' endereco.pk %}" class="btn-mini">Editar</a>
+            <form action="{% url 'checkout:excluir-endereco' endereco.pk %}" method="post" style="display: inline;">
               {% csrf_token %}
               <button type="submit" class="btn-mini danger" onclick="return confirm('Tem certeza que deseja excluir este endereço?')">Excluir</button>
             </form>
@@ -72,10 +72,10 @@
 
       <!-- Botões -->
       <div class="address-actions">
-        <a href="{% url 'endereco' %}" class="btn secondary">Add New Address</a>
+        <a href="{% url 'checkout:endereco' %}" class="btn secondary">Add New Address</a>
         <div class="action-buttons">
           <a href="{% url 'carrinho' %}" class="btn outline">Back</a>
-          <a href="{% url 'shipment-method' %}" class="btn primary">Next</a>
+          <a href="{% url 'checkout:select_frete' %}" class="btn primary">Next</a>
         </div>
       </div>
     </div>

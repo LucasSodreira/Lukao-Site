@@ -1,0 +1,83 @@
+{% extends 'base.html' %} {% load static %} {% block main %}
+
+<link rel="stylesheet" href="{% static 'css/order_details.css' %}" />
+
+<div class="container">
+    {% block sidebar %}
+    {% include 'sidebar.html' %}
+{% endblock sidebar %}
+
+  <div class="main-content">
+    <div class="header">
+      <h1>My account</h1>
+    </div>
+    <div class="order-details-section">
+      <h2>Order Details</h2>
+      <div class="order-info">
+        <h3>Order Information</h3>
+        <p><strong>Order Date:</strong> April 15, 2025</p>
+        <p><strong>Order Number:</strong> #123456</p>
+        <p><strong>Tracking Code:</strong> ABC123XYZ789</p>
+        <p>
+          <strong>Payment Status:</strong> <span class="status-paid">Paid</span>
+        </p>
+        <p>
+          <strong>Shipping Status:</strong>
+          <span class="status-shipped">Shipped</span>
+        </p>
+      </div>
+      <div class="product-details">
+        <h3>Product Details</h3>
+        <div class="grid-items">
+          <div class="product-item" style="">
+            <div class="item">
+              <img
+                src="/static/images/carrinho.svg"
+                alt="Carrinho"
+                class="img-product"
+                style="background: red"
+              />
+              <p>Name: <br />Floral Summer Dress</p>
+              <span>$49.99</span>
+            </div>
+            <div class="infos-product">
+              <p>Size: M</p>
+              <p>Color: Yellow</p>
+              <p>Quantity: 1</p>
+            </div>
+            <p><strong>Total:</strong> $49.99</p>
+          </div>
+
+          <div class="product-item" style="">
+            <div class="item">
+              <img
+                src="/static/images/carrinho.svg"
+                alt="Carrinho"
+                class="img-product"
+                style="background: red"
+              />
+              <p>Name: <br />Floral Summer Dress</p>
+              <span>$49.99</span>
+            </div>
+            <div class="infos-product">
+              <p>Size: M</p>
+              <p>Color: Yellow</p>
+              <p>Quantity: 1</p>
+            </div>
+            <p><strong>Total:</strong> $49.99</p>
+          </div>
+        </div>
+      </div>
+      <div class="delivery-infos">
+        <h3>Delivery Information</h3>
+        <p><strong>Estimated Delivery:</strong> April 20, 2025</p>
+        <p><strong>Shipping Address:</strong></p>
+        <p>Nathalie Mertens</p>
+        <p>Avenue Louise 123</p>
+        <p>1050 Ixelles, Belgium</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock main %}

@@ -17,8 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
-from django.urls import path
+from django.urls import path, include
 from core.views import *
+from user.views import *
+
 
 urlpatterns = [
     path('', IndexView.as_view(), name='index'),
@@ -28,21 +30,11 @@ urlpatterns = [
     path('carrinho/aumentar/<str:chave>/', AumentarItemView.as_view(), name='aumentar-item'),
     path('carrinho/diminuir/<str:chave>/', DiminuirItemView.as_view(), name='diminuir-item'),
     path('carrinho/remover/<str:chave>/', RemoverItemView.as_view(), name='remover-item'),
-    path('revisar-carrinho/', ReviewCart.as_view(), name='review-cart'),
-    path('endereco/', EnderecoCreateView.as_view(), name='endereco'),  
-    path('endereco/<int:pk>/editar/', EnderecoEditView.as_view(), name='editar-endereco'),
-    path('endereco/<int:pk>/excluir/', ExcluirEnderecoView.as_view(), name='excluir-endereco'),
-    path('endereco/<int:pk>/principal/', DefinirEnderecoPrincipal.as_view(), name='definir-endereco-principal'),
-    path('enderecoview/', AddressSelection.as_view(), name='endereco-view'),
     
-    path('envio/', ShipmentMethodView.as_view(), name='shipment-method'),
+    path('checkout/', include('checkout.urls', namespace='checkout')),
+    path('user/', include('user.urls', namespace='user')),
     
-    path('ordem/', OrderSummaryView.as_view(), name='order-summary'),
-    path('processar-pagamento/', ProcessarPagamentoView.as_view(), name='processar-pagamento'),
     
-    path('login/', LoginView.as_view(), name='login'),
-    path('registrar/', RegisterView.as_view(), name='register'),
-    path('obrigado/', ThanksView.as_view(), name='thanks'),
     path('admin/', admin.site.urls),
 ]
 

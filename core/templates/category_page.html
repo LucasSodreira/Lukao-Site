@@ -1,0 +1,505 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #fff;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .filter-section {
+            margin-bottom: 20px;
+        }
+        .filter-section h4 {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .filter-section ul {
+            list-style: none;
+        }
+        .filter-section ul li {
+            margin-bottom: 8px;
+        }
+        .filter-section ul li a {
+            text-decoration: none;
+            color: #333;
+            font-size: 14px;
+        }
+        .price-range {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .price-range input {
+            width: 100%;
+        }
+        .colors {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .colors div {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .sizes label {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .sizes input:checked + label {
+            background-color: #000;
+            color: #fff;
+        }
+        .apply-filter {
+            width: 100%;
+            padding: 10px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .breadcrumb a {
+            text-decoration: none;
+            color: #666;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 24px;
+        }
+        .filter-btn {
+            display: none;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .sort {
+            font-size: 14px;
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .product-card {
+            background-color: #fff;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .product-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+        .product-card h3 {
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .product-card .rating {
+            color: #f5c518;
+            font-size: 12px;
+        }
+        .product-card .price {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .product-card .price .original {
+            text-decoration: line-through;
+            color: #999;
+        }
+        .product-card .price .discount {
+            color: #ff4040;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .pagination span {
+            font-size: 14px;
+        }
+
+        /* Bottom Sheet for Mobile */
+        .bottom-sheet {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #fff;
+            padding: 20px;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .bottom-sheet.active {
+            transform: translateY(0);
+        }
+        .bottom-sheet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .bottom-sheet-header h3 {
+            font-size: 18px;
+        }
+        .bottom-sheet-header button {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* Responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                display: none;
+            }
+            .filter-btn {
+                display: block;
+            }
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            .bottom-sheet {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h3>Filters</h3>
+            <div class="filter-section">
+                <h4>T-Shirts</h4>
+                <ul>
+                    <li><a href="#">T-Shirts</a></li>
+                    <li><a href="#">Shorts</a></li>
+                    <li><a href="#">Hoodie</a></li>
+                    <li><a href="#">Jeans</a></li>
+                </ul>
+            </div>
+            <div class="filter-section">
+                <h4>Price</h4>
+                <div class="price-range">
+                    <span>$50</span>
+                    <input type="range" min="50" max="200" value="200">
+                    <span>$200</span>
+                </div>
+            </div>
+            <div class="filter-section">
+                <h4>Colors</h4>
+                <div class="colors">
+                    <div style="background-color: #00ff00;"></div>
+                    <div style="background-color: #ff0000;"></div>
+                    <div style="background-color: #ffff00;"></div>
+                    <div style="background-color: #ff8000;"></div>
+                    <div style="background-color: #00f;"></div>
+                    <div style="background-color: #800080;"></div>
+                    <div style="background-color: #ff69b4;"></div>
+                    <div style="background-color: #fff; border: 1px solid #ddd;"></div>
+                    <div style="background-color: #000;"></div>
+                </div>
+            </div>
+            <div class="filter-section">
+                <h4>Size</h4>
+                <div class="sizes">
+                    <input type="checkbox" id="xx-small" name="size">
+                    <label for="xx-small">XX-Small</label>
+                    <input type="checkbox" id="x-small" name="size">
+                    <label for="x-small">X-Small</label>
+                    <input type="checkbox" id="small" name="size">
+                    <label for="small">Small</label>
+                    <input type="checkbox" id="medium" name="size">
+                    <label for="medium">Medium</label>
+                    <input type="checkbox" id="large" name="size" checked>
+                    <label for="large">Large</label>
+                    <input type="checkbox" id="x-large" name="size">
+                    <label for="x-large">X-Large</label>
+                    <input type="checkbox" id="xx-large" name="size">
+                    <label for="xx-large">XX-Large</label>
+                    <input type="checkbox" id="3x-large" name="size">
+                    <label for="3x-large">3X-Large</label>
+                    <input type="checkbox" id="4x-large" name="size">
+                    <label for="4x-large">4X-Large</label>
+                </div>
+            </div>
+            <div class="filter-section">
+                <h4>Dress Style</h4>
+                <ul>
+                    <li><a href="#">Casual</a></li>
+                    <li><a href="#">Formal</a></li>
+                    <li><a href="#">Party</a></li>
+                    <li><a href="#">Gym</a></li>
+                </ul>
+            </div>
+            <button class="apply-filter">Apply Filter</button>
+        </div>
+        <div class="main-content">
+            <div class="breadcrumb">
+                <a href="#">Home</a> > <a href="#">Casual</a>
+            </div>
+            <div class="header">
+                <h1>Casual</h1>
+                <div>
+                    <button class="filter-btn" onclick="toggleBottomSheet()">Filters</button>
+                    <span class="sort">Showing 1-10 of 100 Products | Sort by: Most Popular ▼</span>
+                </div>
+            </div>
+            <div class="products-grid">
+                <div class="product-card">
+                    <img src="https://via.placeholder.com/200" alt="Gradient Graphic T-Shirt">
+                    <h3>Gradient Graphic T-Shirt</h3>
+                    <div class="rating">★★★★★ 3.5/5</div>
+                    <div class="price">$145 <span class="original">$242</span> <span class="discount">-20%</span></div>
+                </div>
+                <div class="product-card">
+                    <img src="https://via.placeholder.com/200" alt="Polo with Tipping Details">
+                    <h3>Polo with Tipping Details</h3>
+                    <div class="rating">★★★★★ 4.5/5</div>
+                    <div class="price">$180 <span class="original">$242</span> <span class="discount">-20%</span></div>
+                </div>
+                <div class="product-card">
+                    <img src="https://via.placeholder.com/200" alt="Black Striped T-Shirt">
+                    <h3>Black Striped T-Shirt</h3>
+                    <div class="rating">★★★★★ 4.0/5</div>
+                    <div class="price">$120 <span class="original">$150</span> <span class="discount">-30%</span></div>
+                </div>
+                <div class="product-card">
+                    <img src="https://via.placeholder.com/200" alt="Skinny Fit Jeans">
+                    <h3>Skinny Fit Jeans</h3>
+                    <div class="rating">★★★★★ 3.5/5</div>
+                    <div class="price">$240 <span class="original">$260</span> <span class="discount">-20%</span></div>
+                </div>
+                <div class="product-card">
+                    <img src="https://via.placeholder.com/200" alt="Checkered Shirt">
+                    <h3>Checkered Shirt</h3>
+                    <div class="rating">★★★★★ 1.4/5</div>
+                    <div class="price">$180</div>
+                </div>
+                <div class="product-card">
+                    <img src="https://via.placeholder.com/200" alt="Sleeve Striped T-Shirt">
+                    <h3>Sleeve Striped T-Shirt</h3>
+                    <div class="rating">★★★★★ 1.4/5</div>
+                    <div class="price">$130 <span class="original">$160</span> <span class="discount">-30%</span></div>
+                </div>
+                <div class="product-card">
+                    <img src="https://via.placeholder.com/200" alt="Vertical Striped Shirt">
+                    <h3>Vertical Striped Shirt</h3>
+                    <div class="rating">★★★★★ 5.0/5</div>
+                    <div class="price">$212 <span class="original">$232</span> <span class="discount">-20%</span></div>
+                </div>
+                <div class="product-card">
+                    <img src="https://via.placeholder.com/200" alt="Courage Graphic T-Shirt">
+                    <h3>Courage Graphic T-Shirt</h3>
+                    <div class="rating">★★★★★ 4.0/5</div>
+                    <div class="price">$145</div>
+                </div>
+                <div class="product-card">
+                    <img src="https://via.placeholder.com/200" alt="Loose Fit Bermuda Shorts">
+                    <h3>Loose Fit Bermuda Shorts</h3>
+                    <div class="rating">★★★★★ 3.0/5</div>
+                    <div class="price">$80</div>
+                </div>
+            </div>
+            <div class="pagination">
+                <button>Previous</button>
+                <span>1</span>
+                <span>2</span>
+                <span>3</span>
+                <span>...</span>
+                <span>9</span>
+                <span>10</span>
+                <button>Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Sheet for Mobile -->
+    <div class="bottom-sheet" id="bottomSheet">
+        <div class="bottom-sheet-header">
+            <h3>Filters</h3>
+            <button onclick="toggleBottomSheet()">✖</button>
+        </div>
+        <div class="filter-section">
+            <h4>T-Shirts</h4>
+            <ul>
+                <li><a href="#">T-Shirts</a></li>
+                <li><a href="#">Shorts</a></li>
+                <li><a href="#">Hoodie</a></li>
+                <li><a href="#">Jeans</a></li>
+            </ul>
+        </div>
+        <div class="filter-section">
+            <h4>Price</h4>
+            <div class="price-range">
+                <span>$50</span>
+                <input type="range" min="50" max="200" value="200">
+                <span>$200</span>
+            </div>
+        </div>
+        <div class="filter-section">
+            <h4>Colors</h4>
+            <div class="colors">
+                <div style="background-color: #00ff00;"></div>
+                <div style="background-color: #ff0000;"></div>
+                <div style="background-color: #ffff00;"></div>
+                <div style="background-color: #ff8000;"></div>
+                <div style="background-color: #00f;"></div>
+                <div style="background-color: #800080;"></div>
+                <div style="background-color: #ff69b4;"></div>
+                <div style="background-color: #fff; border: 1px solid #ddd;"></div>
+                <div style="background-color: #000;"></div>
+            </div>
+        </div>
+        <div class="filter-section">
+            <h4>Size</h4>
+            <div class="sizes">
+                <input type="checkbox" id="m-xx-small" name="size">
+                <label for="m-xx-small">XX-Small</label>
+                <input type="checkbox" id="m-x-small" name="size">
+                <label for="m-x-small">X-Small</label>
+                <input type="checkbox" id="m-small" name="size">
+                <label for="m-small">Small</label>
+                <input type="checkbox" id="m-medium" name="size">
+                <label for="m-medium">Medium</label>
+                <input type="checkbox" id="m-large" name="size" checked>
+                <label for="m-large">Large</label>
+                <input type="checkbox" id="m-x-large" name="size">
+                <label for="m-x-large">X-Large</label>
+                <input type="checkbox" id="m-xx-large" name="size">
+                <label for="m-xx-large">XX-Large</label>
+                <input type="checkbox" id="m-3x-large" name="size">
+                <label for="m-3x-large">3X-Large</label>
+                <input type="checkbox" id="m-4x-large" name="size">
+                <label for="m-4x-large">4X-Large</label>
+            </div>
+        </div>
+        <div class="filter-section">
+            <h4>Dress Style</h4>
+            <ul>
+                <li><a href="#">Casual</a></li>
+                <li><a href="#">Formal</a></li>
+                <li><a href="#">Party</a></li>
+                <li><a href="#">Gym</a></li>
+            </ul>
+        </div>
+        <button class="apply-filter">Apply Filter</button>
+    </div>
+
+    <script>
+        function toggleBottomSheet() {
+            const bottomSheet = document.getElementById('bottomSheet');
+            bottomSheet.classList.toggle('active');
+        }
+    </script>
+</body>
+</html>

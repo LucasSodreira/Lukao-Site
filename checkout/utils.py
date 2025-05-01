@@ -1,5 +1,5 @@
 import requests
-from .models import Produto
+from core.models import Produto
 
 def obter_itens_do_carrinho(request):
     carrinho = request.session.get('carrinho', {})
@@ -97,7 +97,7 @@ def remover_do_carrinho(request, produto_key):
 
 def calcular_total_carrinho(request):
     """Calcula o total geral dos produtos no carrinho."""
-    from .models import Produto
+    from ..core.models import Produto
     
     carrinho = request.session.get('carrinho', {})
     total = 0

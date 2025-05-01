@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block main %}
+    
+<link rel="stylesheet" href="{% static 'css/purchase_history.css' %}" />
+
+<div class="container">
+
+    {% block sidebar %}
+        {% include 'sidebar.html' %}
+    {% endblock sidebar %}
+
+        <div class="main-content">
+            <div class="header">
+                <h1>My account</h1>
+            </div>
+
+            <div class="history-section">
+                <h2>Hello {{nome_usuario}} !</h2>
+                <p>Here the history of your purchases</p>
+            </div>
+        </div>
+
+    </div>
+
+{% endblock main %}

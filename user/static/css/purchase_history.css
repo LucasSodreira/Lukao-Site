@@ -1,0 +1,41 @@
+.container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.logout-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #fff;
+    border: 1px solid #333;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+}
+.main-content {
+    flex: 1;
+    padding: 20px;
+}
+.header {
+    background-color: #fff;
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+    border-radius: 16px;
+}
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+.history-section {
+    margin-top: 20px;
+    padding: 20px;
+}
+.history-section h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+.history-section p {
+    font-size: 14px;
+    color: #666;
+}

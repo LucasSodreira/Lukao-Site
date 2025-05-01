@@ -1,5 +1,5 @@
 from django import forms
-from .models import Endereco
+from core.models import Endereco
 
 class EnderecoForm(forms.ModelForm):
     class Meta:

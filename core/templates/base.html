@@ -24,16 +24,16 @@
           <img src="{% static 'images/marker.svg' %}" alt="Localização" class="delivery-icon" />
           <div class="delivery-container">
             {% if user.is_authenticated %}
-              <div class="delivery-text">Enviar para {{ nome_usuario }}</div>
+              <span class="delivery-text">Enviar para {{ nome_usuario }}</span>
 
               {% if cep_usuario %}
-                <div class="delivery-cep">{{ cep_usuario }}</div>
+                <span class="delivery-cep">{{ cep_usuario }}</span>
               {% else %}
-                <div class="delivery-cep">Informe seu CEP</div>
+                <span class="delivery-cep">Informe seu CEP</span>
               {% endif %}
             {% else %}
-              <div class="delivery-text">Enviar para</div>
-              <div class="delivery-cep">Informe o seu CEP</div>
+              <span class="delivery-text">Enviar para</span>
+              <span class="delivery-cep">Informe o seu CEP</span>
             {% endif %}
           </div>
         </div>
@@ -59,18 +59,35 @@
 
         <!-- Ícone de Usuário -->
         <div class="user-icon-container">
-          <img src="{% static 'images/perfil.svg' %}" alt="Usuário" class="user-icon" />
-          <p>Usuario</p>
+          {% if user.is_authenticated %}
+            <div class="infos-dropdown">
+              <img src="{% static 'images/perfil.svg' %}" alt="Usuário" class="user-icon" />
+              <p>{{nome_usuario}}</p>
+            </div>
+            <div class="infos-menu">
+              <a href="{% url 'user:personal_info' %}">Informações Pessoais</a>
+              <a href="{% url 'user:address_management' %}">Gerenciar Endereços</a>
+              <a href="{% url 'user:purchase_history' %}">Histórico de Compras</a>
+              <a href="">Sair</a>
+            </div>
+          {% else %}
+
+            <a href="{% url 'user:login' %}" id="login-link">
+              <img src="{% static 'images/perfil.svg' %}" alt="Usuário" class="user-icon" /> Entrar
+            </a>
+
+          {% endif %}
         </div>
 
         <!-- Ícone de Compras -->
         <div class="shopping-icon-container">
-          <p>Compras</p>
+          <a href="{% url 'user:purchase_history' %}" id="buy-info">Compras</a>
         </div>
 
         <!-- Ícone de Carrinho de Compras -->
         <div class="cart-icon-container">
-          <img src="{% static 'images/carrinho.svg' %}" alt="Carrinho" class="cart-icon" />
+          <a href="{% url 'carrinho' %}"><img src="{% static 'images/carrinho.svg' %}" alt="Carrinho" class="cart-icon" />
+          </a>
         </div>
       </div>
     </header>
@@ -86,8 +103,5 @@
       {% endblock %}
     </main>
 
-    {% comment %} {% block summary %}
-
-    {% endblock %} {% endcomment %}
   </body>
 </html>

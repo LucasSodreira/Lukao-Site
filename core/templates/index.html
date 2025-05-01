@@ -11,7 +11,7 @@
     <div class="categoria-bloco">
       <div class="categoria-header">
         <h2 class="categoria-titulo">NEW ARRIVALS</h2>
-        {% comment %} <a href="{% url 'produtos-por-categoria' 0 %}" class="ver-mais">View All</a> {% endcomment %}
+
       </div>
 
       <div class="carrossel-produtos quantidade-{{ new_arrivals|length }}">
@@ -26,10 +26,7 @@
             
             <h3 class="product-title">{{ produto.nome }}</h3>
             <div class="product-rating">
-              {% comment %} {% with ''|center:produto.avaliacao as range %}
-                {% for _ in range %}★{% endfor %}
-              {% endwith %}
-              {{ produto.avaliacao }}/5 {% endcomment %}
+
             </div>
             <div class="product-price-container">
               <p class="product-price">
