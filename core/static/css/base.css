@@ -55,11 +55,12 @@ main {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    color: white;
 }
 
 .delivery-text {
     font-size: 0.8rem;
-    
+    font-size: 1.1rem
 }
 
 .delivery-cep {

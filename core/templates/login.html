@@ -1,48 +1,60 @@
-{% extends 'base.html' %}
 {% load static %}
-{% block main %}
 
-<link rel="stylesheet" href="{% static 'css/login.css' %}" />
-<div class="login-container">
-    <form class="login-form">
-      <h2>Sing In</h2>
-
-      <div class="input-group">
-        <label>Email</label>
-        <input type="email" placeholder="email123@gmail.com">
-      </div>
-
-      <div class="input-group">
-        <label>Password</label>
-        <div class="password-box">
-          <input type="password" placeholder="Coxinha123">
-          <span class="eye-icon">👁️</span>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet" />
+</head>
+<body>
+    <div class="container">
+        <div class="banner-section">
+            <h1>Banner<br>De alguma<br>Promoção</h1>
         </div>
-      </div>
+        <div class="login-section">
+            <div class="logo">
+                <img src="{% static 'images/logo.svg' %}" alt="Logo" id="logo-img">
+            </div>
+            <h2>Sing In</h2>
+            <form>
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="email123@gmail.com">
+                
+                <label for="password">Password</label>
+                <div class="password-container">
+                    <input type="password" id="password" placeholder="Coxinha123">
+                    <span class="eye-icon">👁️</span>
+                </div>
 
-      <div class="options">
-        <div class="remember-me">
-          <input type="checkbox" id="remember">
-          <label for="remember">Remember me</label>
+                <div class="options">
+                    <label>
+                        <input type="checkbox" checked>
+                        Remember me
+                    </label>
+                    <a href="#">Forget Password?</a>
+                </div>
+
+                <div class="buttons">
+                    <button type="button" class="sign-in-btn">Sing In</button>
+                    <button type="button" class="sign-up-btn">Sing Up</button>
+                </div>
+            </form>
+
+            <div class="divider">
+                <hr>
+                <span>Quick access with</span>
+                <hr>
+            </div>
+
+            <div class="google-login">
+                <img src="https://www.google.com/favicon.ico" alt="Google Login">
+            </div>
         </div>
-        <a href="#">Forget Password?</a>
-      </div>
-
-      <button type="submit" class="btn-login">Sing In</button>
-
-      <div class="divider">
-        <div class="line"></div>
-        <span>Quick access with</span>
-        <div class="line"></div>
-      </div>
-
-      <div class="google-login">
-        <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" alt="Google Logo" width="40">
-      </div>
-
-      <p class="signup-text">
-        Don't have an account? <a href="#">Sing Up.</a>
-      </p>
-    </form>
-  </div>
-{% endblock main %}
+    </div>
+</body>
+</html>

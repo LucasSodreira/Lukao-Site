@@ -28,12 +28,12 @@
                 {% else %}
                     <img src="{% static 'images/default.png' %}" alt="Imagem não disponível">
                 {% endif %}
+                <span class="product-name">{{ item.produto.nome }}</span>
                 <div class="item-details">
-                    <span class="product-name">{{ item.produto.nome }}</span>
                     {% if item.size %}
-                        <span class="size">Tamanho: {{ item.size|upper }}</span>
+                        <span class="size"> {{ item.size|upper }} X {{ item.quantidade }} </span>
                     {% endif %}
-                    <span class="quantity">Quantidade: {{ item.quantidade }}</span>
+                    {% comment %} <span class="quantity"> {{ item.quantidade }}</span> {% endcomment %}
                 </div>
                 <span class="price">R$ {{ item.subtotal|floatformat:2 }}</span>
             </div>
@@ -59,7 +59,7 @@
                 <h3>Shipment method</h3>
                 {% if frete_escolhido %}
                     <p>{{ frete_escolhido.company.name }} - {{ frete_escolhido.name }}</p>
-                    <p>Prazo: {{ frete_escolhido.delivery_time.days }} dias úteis</p>
+                    <p>Prazo: {{ frete_escolhido.delivery_time }} dias úteis</p>
                 {% else %}
                     <p>Free</p>
                 {% endif %}

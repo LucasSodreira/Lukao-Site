@@ -49,6 +49,12 @@ main{
     font-size: 17px;
 }
 
+.size{
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    color: #666;
+}
+
 .item .price {
     font-weight: bold;
     text-align: right;

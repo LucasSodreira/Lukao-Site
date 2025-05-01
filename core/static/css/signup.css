@@ -1,0 +1,96 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    min-height: 100vh;
+    background-color: #000;
+    color: #fff;
+
+    font-family: "Cabin", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    font-variation-settings:
+    "wdth" 100;
+}
+.container {
+    display: flex;
+    width: 100%;
+}
+.banner-section {
+    flex: 1;
+    background-color: #d3d3d3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+.banner-section h1 {
+    font-size: 48px;
+    color: #000;
+}
+.signup-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
+.logo {
+    margin-bottom: 20px;
+}
+.signup-section h2 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+}
+.signup-section form {
+    width: 100%;
+    max-width: 400px;
+}
+.signup-section label {
+    display: block;
+    font-size: 24px;
+    margin-bottom: 5px;
+}
+.signup-section input[type="text"],
+.signup-section input[type="email"],
+.signup-section input[type="password"] {
+    width: 100%;
+    padding: 16px 0px;
+    margin-bottom: 15px;
+    border: none;
+    border-radius: 25px;
+    font-size: 20px;
+}
+.signup-btn {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 25px;
+    background-color: #00cc00;
+    color: #fff;
+    font-size: 1.6rem;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+.signup-section p {
+    font-size: 26px;
+    text-align: center;
+}
+.signup-section a {
+    color: #66ccff;
+    text-decoration: none;
+}
+.signup-section a:hover {
+    text-decoration: underline;
+}
+
+#logo-img{
+    width: 400px;
+    height: auto;
+    margin-bottom: 20px;
+  }
+  
+  #password, #email, #nickname, #confirm_password::-webkit-input-placeholder{
+    padding-left: 16px;
+  }
