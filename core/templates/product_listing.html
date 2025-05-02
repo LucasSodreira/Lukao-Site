@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block main %}
+<link rel="stylesheet" href="{% static 'css/product_listing.css' %}">
+<script src="{% static 'js/product_listing.js' %}"></script>
+
+
+    <div class="container">
+        <div class="sidebar">
+            <h3>Filters</h3>
+            <form method="get" id="filterForm">
+                <div class="filter-section">
+                    <ul>
+                        {% for categoria in categorias %}
+                            <li><a href="?categoria={{ categoria }}">{{ categoria }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="filter-section">
+                    <h4>Price</h4>
+                    <div class="price-range">
+                        <span>$50</span>
+                        <input type="range" name="preco_max" min="50" max="1000" onchange="document.getElementById('filterForm').submit()">
+                        <span>$1000</span>
+                    </div>
+                </div>
+                <div class="filter-section">
+                    <h4>Colors</h4>
+                    <div class="colors">
+                        {% for cor in cores %}
+                            <div 
+                                class="color-circle {% if cor in cores_disponiveis %}available{% else %}unavailable{% endif %}" 
+                                style="background-color: {{ cor }};" 
+                                onclick="toggleColorFilter('{{ cor }}')">
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="cores" id="colorFilters" value="{{ request.GET.cores }}">
+                </div>
+                <div class="filter-section">
+                    <h4>Size</h4>
+                    <div class="sizes">
+                        {% for tamanho in tamanhos %}
+                        <button type="button" 
+                                class="size-button {% if tamanho in request.GET.tamanhos.split|default:'' %}selected{% endif %}" 
+                                onclick="toggleSizeFilter('{{ tamanho }}')">
+                            {{ tamanho }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button type="submit" class="apply-filter">Apply Filter</button>
+            </form>
+            
+        </div>
+        <div class="main-content">
+            <div class="breadcrumb">
+                <a href="#">Home</a> > <a href="#">Casual Clothing Collection</a>
+            </div>
+            <div class="header">
+                <h1>Casual Clothing Collection</h1>
+                <div>
+                    <button class="filter-btn" onclick="toggleBottomSheet()">Filters</button>
+                    <span class="sort">Showing 1-10 of 100 Products | Sort by: Most Popular ▼</span>
+                </div>
+            </div>
+            <div class="products-grid">
+                {% for produto in produtos %}
+                    <div class="product-card" data-size="{{ produto.tamanho }}" data-color="{{ produto.cor }}">
+                        <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}">
+                        <h3>{{ produto.nome }}</h3>
+                        <div class="rating">★★★★★ {{ produto.avaliacao|default:"0.0" }}/5</div>
+                        <div class="price">
+                            ${{ produto.preco }}
+                            {% if produto.preco_original %}
+                                <span class="original">${{ produto.preco_original }}</span>
+                                <span class="discount">-{{ produto.desconto }}%</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="pagination">
+                <button>Previous</button>
+                <span>1</span>
+                <span>2</span>
+                <span>3</span>
+                <span>...</span>
+                <span>9</span>
+                <span>10</span>
+                <button>Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Sheet for Mobile -->
+    <div class="bottom-sheet" id="bottomSheet">
+        <div class="bottom-sheet-header">
+            <h3>Filters</h3>
+            <button onclick="toggleBottomSheet()">✖</button>
+        </div>
+        <form method="get" id="mobileFilterForm">
+            <div class="filter-section">
+                <h4>T-Shirts</h4>
+                <ul>
+                    {% for categoria in categorias %}
+                        <li><a href="?categoria={{ categoria }}">{{ categoria }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="filter-section">
+                <h4>Price</h4>
+                <div class="price-range">
+                    <span>$50</span>
+                    <input type="range" name="preco_max" min="50" max="200" value="{{ request.GET.preco_max|default:200 }}" onchange="document.getElementById('mobileFilterForm').submit()">
+                    <span>$200</span>
+                </div>
+            </div>
+            <div class="filter-section">
+                <h4>Colors</h4>
+                <div class="colors">
+                    {% for cor in cores %}
+                        <div style="background-color: {{ cor }};" onclick="toggleMobileColorFilter('{{ cor }}')"></div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="cores" id="mobileColorFilters" value="{{ request.GET.cores|join:',' }}">
+            </div>
+            <div class="filter-section">
+                <h4>Size</h4>
+                <div class="sizes">
+                    {% for tamanho in tamanhos %}
+                        <button type="button" class="size-button {% if tamanho in request.GET.tamanhos %}selected{% endif %}" 
+                                onclick="toggleSizeFilter('{{ tamanho }}')">
+                            {{ tamanho }}
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+            <button type="submit" class="apply-filter">Apply Filter</button>
+        </form>
+    </div>
+
+{% endblock main %}

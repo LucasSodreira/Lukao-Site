@@ -17,7 +17,7 @@ def reset_pedido_sequence():
         elif connection.vendor == 'sqlite':
             cursor.execute("UPDATE sqlite_sequence SET seq = (SELECT MAX(id) FROM core_pedido) WHERE name='core_pedido';")
 
-def seed_data(qtd_categorias=1, qtd_produtos=4, qtd_usuarios=0, qtd_enderecos=0, qtd_pedidos=0):
+def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1, qtd_pedidos=0):
     
     # Reseta a sequência de pedidos ANTES de começar
     Pedido.objects.all().delete()  # Remove todos os pedidos existentes
@@ -65,16 +65,27 @@ def seed_data(qtd_categorias=1, qtd_produtos=4, qtd_usuarios=0, qtd_enderecos=0,
             'nome': f"{seeder.faker.word().capitalize()} {seeder.faker.word().capitalize()}",
             'descricao': seeder.faker.text(max_nb_chars=200),
             'preco': Decimal(random.uniform(10, 1000)).quantize(Decimal('0.01')),
+            'preco_original': Decimal(random.uniform(10, 1000)).quantize(Decimal('0.01')),
             'categoria': random.choice(categorias),
             'estoque': random.randint(10, 100),
+            'tamanho': random.choice([t[0] for t in Produto.TAMANHOS]),
+            'tamanhos_disponiveis': ",".join(random.sample(
+                [t[0] for t in Produto.TAMANHOS], k=min(random.randint(1, len(Produto.TAMANHOS)), 5)
+            )),
+            'cor': random.choice(['Vermelho', 'Azul', 'Verde', 'Amarelo', 'Preto', 'Branco']),
+            'avaliacao': round(random.uniform(0, 5), 1),
         }
-        
+
+        # Ajusta o preço original para ser maior que o preço atual
+        if produto_data['preco_original'] < produto_data['preco']:
+            produto_data['preco_original'] = produto_data['preco'] + Decimal(random.uniform(1, 50)).quantize(Decimal('0.01'))
+
         if imagem_content:
             produto_data['imagem'] = ContentFile(
                 imagem_content,
                 name=f"produto_{i+1}.png"
             )
-        
+
         produto = Produto.objects.create(**produto_data)
         produtos.append(produto)
     print(f"Criados {len(produtos)} produtos")

@@ -1,21 +1,28 @@
+function updateQuantityDisplay(quantity) {
+    document.getElementById("quantity").textContent = quantity;
+    document.getElementById("selected-quantity").value = quantity; // Atualiza o campo oculto
+}
+
 function decreaseQuantity() {
-    const quantitySpan = document.getElementById('quantity');
-    let currentValue = parseInt(quantitySpan.textContent);
-    if (currentValue > 1) {  // Definindo mínimo como 1
-        quantitySpan.textContent = currentValue - 1;
+    let quantity = parseInt(document.getElementById("quantity").textContent);
+    if (quantity > 1) {
+        quantity--;
+        updateQuantityDisplay(quantity);
     }
 }
 
 function increaseQuantity() {
-    const quantitySpan = document.getElementById('quantity');
-    let currentValue = parseInt(quantitySpan.textContent);
-    // Definindo um máximo opcional (remova se não quiser limite)
-    const maxQuantity = 10;  // Ou obtenha de algum atributo data-max
-    if (currentValue < maxQuantity) {
-        quantitySpan.textContent = currentValue + 1;
-    }
+    let quantity = parseInt(document.getElementById("quantity").textContent);
+    quantity++;
+    updateQuantityDisplay(quantity);
 }
 
+
+// Função para alternar a exibição do Bottom Sheet (filtros no mobile)
+function toggleBottomSheet() {
+    const bottomSheet = document.getElementById('bottomSheet');
+    bottomSheet.classList.toggle('open');
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     // Captura a seleção de tamanho

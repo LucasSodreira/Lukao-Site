@@ -1,0 +1,65 @@
+{% extends 'base.html' %} 
+{% load static %} 
+{% block main %}
+<link rel="stylesheet" href="{% static 'css/edit_profile.css' %}" />
+
+<div class="container">
+
+    {% block sidebar %}
+        {% include 'sidebar.html' %}
+    {% endblock sidebar %}
+    
+    <div class="main-content">
+        <div class="header">
+            <h1>My account</h1>
+        </div>
+        <div class="edit-section">
+            <h2>Edit Personal Information</h2>
+            <p>Modify your personal details, email address, or password below.</p>
+            <form method="post" novalidate>
+                {% csrf_token %}
+        
+                <div class="form-group">
+                  <label>{{ form.username.label }}</label>
+                  {{ form.username }} {{ form.username.errors }}
+                </div>
+        
+                <div class="form-group">
+                  <label>{{ form.email.label }}</label>
+                  {{ form.email }} {{ form.email.errors }}
+                </div>
+        
+                <div class="form-group">
+                  <label>{{ form.cpf.label }}</label>
+                  {{ form.cpf }}
+                  <small>Formato: 000.000.000-00</small>
+                  {{ form.cpf.errors }}
+                </div>
+        
+                <h3>Alterar Senha</h3>
+        
+                <div class="form-group">
+                  <label>{{ form.current_password.label }}</label>
+                  {{ form.current_password }} {{ form.current_password.errors }}
+                </div>
+        
+                <div class="form-group">
+                  <label>{{ form.new_password.label }}</label>
+                  {{ form.new_password }} {{ form.new_password.errors }}
+                </div>
+        
+                <div class="form-group">
+                  <label>{{ form.confirm_password.label }}</label>
+                  {{ form.confirm_password }} {{ form.confirm_password.errors }}
+                </div>
+        
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                <a href="{% url 'user:profile' %}" class="btn btn-secondary"
+                  >Cancelar</a
+                >
+              </form>
+        </div>
+    </div>
+
+</div>
+{% endblock main %}

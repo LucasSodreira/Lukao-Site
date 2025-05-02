@@ -4,37 +4,47 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.conf import settings
 from decimal import Decimal
-from .forms import EnderecoForm
-from .utils import obter_itens_do_carrinho, cotar_frete_melhor_envio
+from checkout.forms import EnderecoForm
+from checkout.utils import obter_itens_do_carrinho, cotar_frete_melhor_envio
 from core.models import Endereco, Produto
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django import forms
 from django.views import View
 from django.utils.decorators import method_decorator
-from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 
 
+# ==========================
+# Formulários auxiliares
+# ==========================
 
-# Create your views here.
-token = settings.MELHOR_ENVIO_TOKEN
+class FreteForm(forms.Form):
+    frete_escolhido = forms.ChoiceField(widget=forms.RadioSelect)
+
+    def __init__(self, *args, **kwargs):
+        fretes = kwargs.pop('fretes', [])
+        super().__init__(*args, **kwargs)
+        choices = []
+
+        for frete in fretes:
+            try:
+                nome = frete['company']['name']
+                servico = frete['name']
+                preco = frete['price']
+                dias = frete['delivery_time']
+                choices.append((frete['id'], f"{nome} - {servico} - R$ {preco} - {dias} dias úteis"))
+            except (KeyError, TypeError):
+                continue  # Ignora entradas inválidas
+
+        self.fields['frete_escolhido'].choices = choices
 
 
-class AddressSelection(TemplateView):
-    template_name = 'address_selection.html'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+# ==========================
+# Views relacionadas ao endereço
+# ==========================
 
-        if self.request.user.is_authenticated:
-            enderecos = Endereco.objects.filter(usuario=self.request.user)
-            context['enderecos'] = enderecos
-        else:
-            context['enderecos'] = []
-
-        return context
-    
-    
+@method_decorator(login_required, name='dispatch')
 class EnderecoEditView(UpdateView):
     model = Endereco
     form_class = EnderecoForm
@@ -43,7 +53,12 @@ class EnderecoEditView(UpdateView):
 
     def get_queryset(self):
         return Endereco.objects.filter(usuario=self.request.user)
-    
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Erro ao atualizar o endereço. Verifique os dados.")
+        return super().form_invalid(form)
+
+@method_decorator(login_required, name='dispatch')
 class EnderecoCreateView(CreateView):
     model = Endereco
     form_class = EnderecoForm
@@ -53,8 +68,47 @@ class EnderecoCreateView(CreateView):
     def form_valid(self, form):
         form.instance.usuario = self.request.user
         return super().form_valid(form)
-    
-    
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Erro ao criar o endereço. Verifique os dados.")
+        return super().form_invalid(form)
+
+@method_decorator(login_required, name='dispatch')
+class DefinirEnderecoPrincipal(View):
+    def post(self, request, pk):
+        endereco = get_object_or_404(Endereco, pk=pk, usuario=request.user)
+
+        # Desativa os outros como principal
+        Endereco.objects.filter(usuario=request.user, principal=True).update(principal=False)
+
+        # Ativa este como principal
+        endereco.principal = True
+        endereco.save()
+
+        return redirect('checkout:select_address')
+
+@method_decorator(login_required, name='dispatch')
+class ExcluirEnderecoView(View):
+    def post(self, request, pk):
+        endereco = get_object_or_404(Endereco, pk=pk, usuario=request.user)
+        endereco.delete()
+        return redirect('checkout:select_address')
+
+class AddressSelection(LoginRequiredMixin, TemplateView):
+    template_name = 'address_selection.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        enderecos = Endereco.objects.filter(usuario=self.request.user)
+        context['enderecos'] = enderecos
+
+        return context
+
+# ==========================
+# Views relacionadas ao pedido
+# ==========================
+
 class OrderSummaryView(LoginRequiredMixin, TemplateView):
     template_name = 'order_summary.html'
 
@@ -84,7 +138,6 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
         })
 
         return context
-
 
     def validate_order(self):
         errors = []
@@ -121,29 +174,7 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
             if not getattr(endereco, campo, None):
                 errors.append(f"Campo obrigatório: {campo}")
         return errors
- 
-class FreteForm(forms.Form):
-    frete_escolhido = forms.ChoiceField(widget=forms.RadioSelect)
 
-    def __init__(self, *args, **kwargs):
-        fretes = kwargs.pop('fretes', [])
-        super().__init__(*args, **kwargs)
-        choices = []
-
-        for frete in fretes:
-            try:
-                nome = frete['company']['name']
-                servico = frete['name']
-                preco = frete['price']
-                dias = frete['delivery_time']
-                choices.append((frete['id'], f"{nome} - {servico} - R$ {preco} - {dias} dias úteis"))
-            except (KeyError, TypeError):
-                continue  # Ignora entradas inválidas
-            
-        self.fields['frete_escolhido'].choices = choices
-
- 
-    
 class ShipmentMethodView(LoginRequiredMixin, FormView):
     template_name = 'shipping_method.html'
     form_class = FreteForm
@@ -185,28 +216,6 @@ class ShipmentMethodView(LoginRequiredMixin, FormView):
         context = super().get_context_data(**kwargs)
         context['fretes'] = self.get_fretes()
         return context
-    
-class ThanksView(TemplateView):
+
+class ThanksView(LoginRequiredMixin, TemplateView):
     template_name = 'thanks.html'
-    
-    
-@method_decorator(login_required, name='dispatch')
-class DefinirEnderecoPrincipal(View):
-    def post(self, request, pk):
-        endereco = get_object_or_404(Endereco, pk=pk, usuario=request.user)
-
-        # Desativa os outros como principal
-        Endereco.objects.filter(usuario=request.user, principal=True).update(principal=False)
-
-        # Ativa este como principal
-        endereco.principal = True
-        endereco.save()
-
-        return redirect('checkout:select_address')
-
-@method_decorator(login_required, name='dispatch')
-class ExcluirEnderecoView(View):
-    def post(self, request, pk):
-        endereco = get_object_or_404(Endereco, pk=pk, usuario=request.user)
-        endereco.delete()
-        return redirect('checkout:select_address')

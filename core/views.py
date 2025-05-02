@@ -1,25 +1,19 @@
-# Imports padrão Python
-from django.shortcuts import redirect, get_object_or_404 
-from django.http import JsonResponse
-
-
-# Imports Django (Views, Forms, Models, Messages, Transactions)
+from django.shortcuts import redirect, get_object_or_404
+from django.http import JsonResponse, Http404
 from django.views.generic import TemplateView, ListView, DetailView, View
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
-
-
-# Imports do seu app
-from .models import Produto, Endereco
+from django.core.exceptions import ObjectDoesNotExist
+from core.models import Produto
 from checkout.utils import adicionar_ao_carrinho, remover_do_carrinho, migrar_carrinho_antigo
 
-# ============================
+# ==========================
+# Views relacionadas aos produtos
+# ==========================
 
 class IndexView(ListView):
-     model = Produto
-     template_name = 'index.html'
-     context_object_name = 'produtos'
+    model = Produto
+    template_name = 'index.html'
+    context_object_name = 'produtos'
 
 
 class ItemView(DetailView):
@@ -27,6 +21,41 @@ class ItemView(DetailView):
     template_name = 'item_view.html'
     context_object_name = 'produto'
 
+class Product_Listing(ListView):
+    model = Produto
+    template_name = 'product_listing.html'
+    context_object_name = 'produtos'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        categoria = self.request.GET.get('categoria')
+        preco_max = self.request.GET.get('preco_max')
+        cores = self.request.GET.getlist('cores')
+        tamanhos = self.request.GET.getlist('tamanhos')
+
+        if categoria:
+            queryset = queryset.filter(categoria__nome__icontains=categoria)  # Ajuste para ForeignKey
+        if preco_max:
+            queryset = queryset.filter(preco__lte=preco_max)
+        if cores:
+            queryset = queryset.filter(cor__in=cores)
+        if tamanhos:
+            queryset = queryset.filter(tamanho__in=tamanhos)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['categorias'] = Produto.objects.values_list('categoria__nome', flat=True).distinct()  # Ajuste para ForeignKey
+        context['cores_disponiveis'] = list(Produto.objects.values_list('cor', flat=True).distinct())  # Lista de cores disponíveis
+        context['cores'] = context['cores_disponiveis']  # Passa a lista de cores disponíveis para o template
+        context['tamanhos'] = Produto.objects.values_list('tamanho', flat=True).distinct()
+        return context
+
+
+# ==========================
+# Views relacionadas ao carrinho
+# ==========================
 
 class CartView(TemplateView):
     template_name = 'carrinho.html'
@@ -75,36 +104,49 @@ class ManipularItemCarrinho(View):
         chave = kwargs.get('chave')
         carrinho = request.session.get('carrinho', {})
         
-        if chave in carrinho:
-            self.manipular_quantidade(carrinho[chave])
-            
-            if carrinho[chave]['quantidade'] <= 0:
-                del carrinho[chave]
-            
-            request.session['carrinho'] = carrinho
-            request.session.modified = True
+        if chave not in carrinho:
+            raise Http404("Item não encontrado no carrinho.")
+        
+        self.manipular_quantidade(carrinho[chave])
+        
+        if carrinho[chave]['quantidade'] <= 0:
+            del carrinho[chave]
+        
+        request.session['carrinho'] = carrinho
+        request.session.modified = True
         
         return redirect('carrinho')
+
 
 class AumentarItemView(ManipularItemCarrinho):
     def manipular_quantidade(self, item):
         item['quantidade'] += 1
 
+
 class DiminuirItemView(ManipularItemCarrinho):
     def manipular_quantidade(self, item):
         item['quantidade'] -= 1
+
 
 class RemoverItemView(ManipularItemCarrinho):
     def manipular_quantidade(self, item):
         item['quantidade'] = 0  # Será removido na verificação
 
+
 class AddToCartView(View):
     def post(self, request, *args, **kwargs):
         produto_id = self.kwargs.get('pk')
         size = request.POST.get('size', 'medium')  # Pega o tamanho selecionado
+        quantity = int(request.POST.get('quantity'))  # Pega a quantidade selecionada
         
-        # Adicione a lógica para armazenar o tamanho junto com o produto
-        adicionar_ao_carrinho(request, produto_id, size=size)
+        # Valida se o produto existe
+        try:
+            produto = Produto.objects.get(pk=produto_id)
+        except ObjectDoesNotExist:
+            raise Http404("Produto não encontrado.")
+        
+        # Adicione a lógica para armazenar o tamanho e a quantidade junto com o produto
+        adicionar_ao_carrinho(request, produto_id, size=size, quantidade=quantity)
         
         return redirect('carrinho')
 
@@ -112,7 +154,13 @@ class AddToCartView(View):
 class RemoverItemCarrinho(View):
     def post(self, request, *args, **kwargs):
         produto_id = request.POST.get('produto_id')
-
+        
+        # Valida se o produto existe
+        try:
+            Produto.objects.get(pk=produto_id)
+        except ObjectDoesNotExist:
+            raise Http404("Produto não encontrado.")
+        
         remover_do_carrinho(request, produto_id)
 
         response_data = {'success': True, 'message': 'Item removido com sucesso!'}

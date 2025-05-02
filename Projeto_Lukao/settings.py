@@ -41,6 +41,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+LOGIN_URL = 'user:login'  # URL de login padrão
+LOGIN_REDIRECT_URL = 'index'  # URL para redirecionar após o login
+LOGOUT_REDIRECT_URL = 'user:login' # URL para redirecionar após o logout
 
 # Application definition
 
@@ -119,6 +122,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# AUTH_USER_MODEL = 'user.CustomUser'
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

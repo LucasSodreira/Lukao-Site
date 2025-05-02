@@ -8,24 +8,27 @@ from django.core.exceptions import ValidationError
 from uuid import uuid4
 
 class Categoria(models.Model):
-    nome = models.CharField(max_length=100, unique=True)
+    nome = models.CharField(max_length=255)
 
     def __str__(self):
         return self.nome
 
 
 class Produto(models.Model):
-    nome = models.CharField(max_length=200)
+    nome = models.CharField(max_length=255)
     descricao = models.TextField(blank=True, null=True)
     preco = models.DecimalField(
         max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)]
     )
-    categoria = models.ForeignKey(
-        Categoria, on_delete=models.SET_NULL, null=True, related_name="produtos"
-    )
+    preco_original = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    desconto = models.IntegerField(null=True, blank=True)
+    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='produtos')
+    cor = models.CharField(max_length=50, blank=True, null=True) 
+    tamanho = models.CharField(max_length=50)
     estoque = models.PositiveIntegerField(default=0)
     tamanhos = models.CharField(max_length=50, blank=True, null=True)
-    imagem = models.ImageField(upload_to="produtos/", blank=True, null=True)
+    imagem = models.ImageField(upload_to="produtos/", default="produtos/default.jpg")
+    avaliacao = models.FloatField(default=0.0)
 
     def __str__(self):
         return f"{self.nome} (R${self.preco})"
@@ -43,13 +46,34 @@ class Produto(models.Model):
         self.estoque += quantidade
         self.save()
 
-    TAMANHOS = [
-        ("PP", "Extra Pequeno"),
-        ("P", "Pequeno"),
-        ("M", "Médio"),
-        ("G", "Grande"),
-        ("GG", "Extra Grande"),
-        ("XG", "Tamanho Extra"),
+    CATEGORY_CHOICES = [
+    ('T-Shirts', 'T-Shirts'),
+    ('Shorts', 'Shorts'),
+    ('Hoodie', 'Hoodie'),
+    ('Jeans', 'Jeans'),
+    ]
+    COLOR_CHOICES = [
+        ('Red', 'Vermelho'),
+        ('Green', 'Verde'),
+        ('Yellow', 'Amarelo'),
+        ('Blue', 'Azul'),
+        ('White', 'Branco'),
+        ('Black', 'Preto'),
+    ]
+    SIZE_CHOICES = [
+        ('XX-Small', 'XX-Small'),
+        ('X-Small', 'X-Small'),
+        ('Small', 'Small'),
+        ('Medium', 'Medium'),
+        ('Large', 'Large'),
+        ('X-Large', 'X-Large'),
+        ('XX-Large', 'XX-Large'),
+    ]
+    DRESS_STYLE_CHOICES = [
+        ('Casual', 'Casual'),
+        ('Formal', 'Formal'),
+        ('Party', 'Party'),
+        ('Gym', 'Gym'),
     ]
 
     tamanhos_disponiveis = models.CharField(
@@ -77,6 +101,11 @@ class Produto(models.Model):
         
         self.estoque -= quantidade
         self.save()
+
+    def save(self, *args, **kwargs):
+        if self.preco_original and self.preco_original > self.preco:
+            self.desconto = int((1 - (self.preco / self.preco_original)) * 100)
+        super().save(*args, **kwargs)
 
 
 class Endereco(models.Model):

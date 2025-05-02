@@ -65,10 +65,13 @@
               <p>{{nome_usuario}}</p>
             </div>
             <div class="infos-menu">
-              <a href="{% url 'user:personal_info' %}">Informações Pessoais</a>
+              <a href="{% url 'user:profile' %}">Informações Pessoais</a>
               <a href="{% url 'user:address_management' %}">Gerenciar Endereços</a>
               <a href="{% url 'user:purchase_history' %}">Histórico de Compras</a>
-              <a href="">Sair</a>
+              <form action="{% url 'user:logout' %}" method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" id="btn-logout" >Sair</button>
+              </form>
             </div>
           {% else %}
 

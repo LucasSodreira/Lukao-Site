@@ -37,7 +37,12 @@
                   ${{ produto.preco }}
                 {% endif %}
               </p>
-              <img src="{% static 'images/cart.svg' %}" id="cart-icon" />
+              <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form">
+                {% csrf_token %}
+                <button type="submit" class="cart-button">
+                  <img src="{% static 'images/cart.svg' %}" alt="Adicionar ao carrinho" id="cart-icon" />
+                </button>
+              </form>
             </div>
           </a>
         </div>
@@ -45,7 +50,7 @@
       </div>
     </div>
     <div class="ver-mais">
-      <a href="">Ver Todos</a>
+      <a href="" id="view-all">Ver Todos</a>
     </div>
 
   </div>

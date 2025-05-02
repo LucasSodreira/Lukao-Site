@@ -26,6 +26,7 @@ urlpatterns = [
     path('', IndexView.as_view(), name='index'),
     path('produto/<int:pk>/', ItemView.as_view(), name='item-view'),
     path('add-to-cart/<int:pk>/', AddToCartView.as_view(), name='add-to-cart'),
+    path('produtos/', Product_Listing.as_view(), name='product-listing'),
     path('carrinho/', CartView.as_view(), name='carrinho'),
     path('carrinho/aumentar/<str:chave>/', AumentarItemView.as_view(), name='aumentar-item'),
     path('carrinho/diminuir/<str:chave>/', DiminuirItemView.as_view(), name='diminuir-item'),

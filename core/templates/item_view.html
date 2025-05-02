@@ -69,13 +69,12 @@
                         <button type="button" class="quantity-btn" onclick="increaseQuantity()">+</button>
                     </div>
 
-                    
-
                 <!-- Botões de ação -->
                 <div class="action-buttons">
                     <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form">
                         {% csrf_token %}
                         <input type="hidden" name="size" id="selected-size" value="small">
+                        <input type="hidden" name="quantity" id="selected-quantity" value="1">
                         <button type="submit" class="action-btn cart-btn">
                             <img src="{% static 'images/cart.svg' %}" alt="Cart">
                             Add to Cart
