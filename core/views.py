@@ -3,8 +3,11 @@ from django.http import JsonResponse, Http404
 from django.views.generic import TemplateView, ListView, DetailView, View
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
-from core.models import Produto
+from core.models import Produto, Cor
 from checkout.utils import adicionar_ao_carrinho, remover_do_carrinho, migrar_carrinho_antigo
+from decimal import Decimal
+from django.shortcuts import redirect, get_object_or_404
+from user.models import Notificacao
 
 # ==========================
 # Views relacionadas aos produtos
@@ -14,7 +17,7 @@ class IndexView(ListView):
     model = Produto
     template_name = 'index.html'
     context_object_name = 'produtos'
-
+    
 
 class ItemView(DetailView):
     model = Produto
@@ -26,31 +29,77 @@ class Product_Listing(ListView):
     template_name = 'product_listing.html'
     context_object_name = 'produtos'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        queryset = self.get_queryset()
+        context['categorias'] = Produto.objects.values_list('categoria__nome', flat=True).distinct()
+        # Busca todas as cores cadastradas (model Cor)
+        context['cores_disponiveis'] = list(Cor.objects.values_list('valor_css', flat=True))
+        context['cores'] = context['cores_disponiveis']
+        context['tamanhos'] = Produto.objects.values_list('tamanho', flat=True).distinct()
+
+        if queryset.exists():
+            preco_min = queryset.order_by('preco').first().preco
+            preco_max = queryset.order_by('-preco').first().preco
+            context['preco_minimo'] = preco_min
+            context['preco_maximo'] = preco_max
+
+            faixa1 = preco_min + (preco_max - preco_min) * Decimal('0.33')
+            faixa2 = preco_min + (preco_max - preco_min) * Decimal('0.66')
+            context['faixa_preco_1'] = int(faixa1)
+            context['faixa_preco_2'] = int(faixa2)
+        else:
+            context['preco_minimo'] = 0
+            context['preco_maximo'] = 0
+            context['faixa_preco_1'] = 0
+            context['faixa_preco_2'] = 0
+
+        return context
+
     def get_queryset(self):
         queryset = super().get_queryset()
         categoria = self.request.GET.get('categoria')
+        faixa_preco = self.request.GET.get('faixa_preco')
+        preco_min = self.request.GET.get('preco_min')
         preco_max = self.request.GET.get('preco_max')
-        cores = self.request.GET.getlist('cores')
-        tamanhos = self.request.GET.getlist('tamanhos')
+        tamanhos_raw = self.request.GET.get('tamanhos', '')
+        tamanhos = [t for t in set(tamanhos_raw.split(',')) if t.strip()]
+        cores_raw = self.request.GET.get('cores', '')
+        cores = [c.strip().lower() for c in set(cores_raw.split(',')) if c.strip()]
 
         if categoria:
-            queryset = queryset.filter(categoria__nome__icontains=categoria)  # Ajuste para ForeignKey
-        if preco_max:
-            queryset = queryset.filter(preco__lte=preco_max)
+            queryset = queryset.filter(categoria__nome__icontains=categoria)
+
+        if queryset.exists():
+            preco_min_qs = queryset.order_by('preco').first().preco
+            preco_max_qs = queryset.order_by('-preco').first().preco
+            faixa1 = preco_min_qs + (preco_max_qs - preco_min_qs) * Decimal('0.33')
+            faixa2 = preco_min_qs + (preco_max_qs - preco_min_qs) * Decimal('0.66')
+            faixa1 = int(faixa1)
+            faixa2 = int(faixa2)
+        else:
+            faixa1 = faixa2 = 0
+
+        if faixa_preco:
+            if faixa_preco == "faixa1":
+                queryset = queryset.filter(preco__lte=faixa1)
+            elif faixa_preco == "faixa2":
+                queryset = queryset.filter(preco__gt=faixa1, preco__lte=faixa2)
+            elif faixa_preco == "faixa3":
+                queryset = queryset.filter(preco__gt=faixa2)
+        else:
+            if preco_min:
+                queryset = queryset.filter(preco__gte=preco_min)
+            if preco_max:
+                queryset = queryset.filter(preco__lte=preco_max)
+        # Filtro de cor: retorna produtos que tenham pelo menos uma cor associada com valor_css igual ao filtro
         if cores:
-            queryset = queryset.filter(cor__in=cores)
+            queryset = queryset.filter(cores__cor__valor_css__in=cores).distinct()
         if tamanhos:
             queryset = queryset.filter(tamanho__in=tamanhos)
 
         return queryset
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['categorias'] = Produto.objects.values_list('categoria__nome', flat=True).distinct()  # Ajuste para ForeignKey
-        context['cores_disponiveis'] = list(Produto.objects.values_list('cor', flat=True).distinct())  # Lista de cores disponíveis
-        context['cores'] = context['cores_disponiveis']  # Passa a lista de cores disponíveis para o template
-        context['tamanhos'] = Produto.objects.values_list('tamanho', flat=True).distinct()
-        return context
 
 
 # ==========================
@@ -170,5 +219,4 @@ class RemoverItemCarrinho(View):
         else:
             messages.success(request, response_data['message'])
             return redirect('carrinho')
-
 

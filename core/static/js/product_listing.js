@@ -42,56 +42,61 @@ document.querySelectorAll('.apply-filter').forEach(button => {
     });
 });
 
-function toggleSizeFilter(size) {
-    const urlParams = new URLSearchParams(window.location.search);
-    let sizes = urlParams.get('tamanhos') ? 
-                decodeURIComponent(urlParams.get('tamanhos')).split(',') : [];
-    
-    // Adiciona ou remove o tamanho
-    const index = sizes.indexOf(size);
+function selectCategoria(categoria) {
+    const input = document.getElementById('categoriaFilter');
+    input.value = categoria;
+}
+
+// Preenche o input oculto de preço quando o usuário mexe no slider
+document.getElementById('priceRange').addEventListener('change', function() {
+    document.getElementById('priceFilter').value = this.value;
+});
+
+function toggleSizeFilter(tamanho) {
+    const input = document.getElementById('sizeFilters');
+    let tamanhos = input.value ? input.value.split(',') : [];
+
+    const index = tamanhos.indexOf(tamanho);
     if (index > -1) {
-        sizes.splice(index, 1);
+        tamanhos.splice(index, 1);
     } else {
-        sizes.push(size);
+        tamanhos.push(tamanho);
     }
-    
-    // Atualiza os parâmetros da URL
-    if (sizes.length > 0) {
-        urlParams.set('tamanhos', sizes.join(','));
+
+    // Remove duplicatas e entradas vazias
+    const tamanhosFiltrados = [...new Set(tamanhos)].filter(t => t);
+    input.value = tamanhosFiltrados.join(',');
+}
+
+function toggleColorFilter(cor) {
+    const input = document.getElementById('colorFilters');
+    let cores = input.value ? input.value.split(',') : [];
+
+    const index = cores.indexOf(cor);
+    if (index > -1) {
+        cores.splice(index, 1);
     } else {
-        urlParams.delete('tamanhos');
+        cores.push(cor);
     }
-    
-    // Mantém outros parâmetros existentes (como cores, preço)
-    const currentCores = urlParams.get('cores') || '';
-    const currentPreco = urlParams.get('preco_max') || '';
-    
-    // Constrói a nova URL
-    let newUrl = window.location.pathname;
-    const params = [];
-    
-    if (sizes.length > 0) params.push(`tamanhos=${sizes.join(',')}`);
-    if (currentCores) params.push(`cores=${currentCores}`);
-    if (currentPreco) params.push(`preco_max=${currentPreco}`);
-    
-    if (params.length > 0) {
-        newUrl += `?${params.join('&')}`;
-    }
-    
-    window.location.href = newUrl;
+
+    input.value = cores.join(',');
 }
 
 
-function toggleMobileColorFilter(color) {
-    const colorFilters = document.getElementById('mobileColorFilters');
-    let colors = colorFilters.value ? colorFilters.value.split(',') : [];
-    if (colors.includes(color)) {
-        colors = colors.filter(c => c !== color);
+
+function toggleColorFilter(cor) {
+    const input = document.getElementById('colorFilters');
+    let cores = input.value ? input.value.split(',') : [];
+
+    const index = cores.indexOf(cor);
+    if (index > -1) {
+        cores.splice(index, 1);
     } else {
-        colors.push(color);
+        cores.push(cor);
     }
-    colorFilters.value = colors.join(',');
-    document.getElementById('mobileFilterForm').submit();
+
+    const coresFiltradas = [...new Set(cores)].filter(c => c);
+    input.value = coresFiltradas.join(',');
 }
 
 function toggleColorFilter(cor) {

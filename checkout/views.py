@@ -1,15 +1,14 @@
-from django.views.generic import TemplateView, UpdateView, CreateView, FormView
+from django.views.generic import TemplateView, UpdateView, CreateView, FormView, View
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.conf import settings
 from decimal import Decimal
 from checkout.forms import EnderecoForm
-from checkout.utils import obter_itens_do_carrinho, cotar_frete_melhor_envio
-from core.models import Endereco, Produto
+from checkout.utils import obter_itens_do_carrinho, cotar_frete_melhor_envio, criar_preferencia_pagamento
+from core.models import Endereco, Produto, Pedido, ItemPedido
 from django.shortcuts import redirect, get_object_or_404
 from django import forms
-from django.views import View
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 
@@ -119,7 +118,7 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
         if validation_errors:
             messages.error(self.request, validation_errors)
             return redirect('review-cart')
-
+        
         itens_carrinho, subtotal = obter_itens_do_carrinho(self.request)
 
         frete_info = self.request.session.get('frete_escolhido')
@@ -127,6 +126,30 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
         total = subtotal + frete_valor
 
         endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
+
+        # 1. Crie ou recupere o pedido pendente
+        pedido = Pedido.objects.filter(usuario=self.request.user, status='P').last()
+        if not pedido:
+            pedido = Pedido.objects.create(
+                usuario=self.request.user,
+                status='P',
+                endereco_entrega=endereco,
+                total=total
+            )
+            # 2. Crie os itens do pedido a partir do carrinho
+            for item in itens_carrinho:
+                ItemPedido.objects.create(
+                    pedido=pedido,
+                    produto=item['produto'],
+                    quantidade=item['quantidade'],
+                    preco_unitario=item['produto'].preco,
+                    tamanho=item.get('size')
+                )
+
+        # 3. Gere a preferência do Mercado Pago
+        preference_id = criar_preferencia_pagamento(pedido)
+        context['preference_id'] = preference_id
+        context['mercado_pago_public_key'] = settings.MERCADO_PAGO_PUBLIC_KEY
 
         context.update({
             'itens_carrinho': itens_carrinho,
@@ -174,6 +197,8 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
             if not getattr(endereco, campo, None):
                 errors.append(f"Campo obrigatório: {campo}")
         return errors
+    
+    
 
 class ShipmentMethodView(LoginRequiredMixin, FormView):
     template_name = 'shipping_method.html'
@@ -188,7 +213,22 @@ class ShipmentMethodView(LoginRequiredMixin, FormView):
     def get_fretes(self):
         endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
         if endereco:
-            return cotar_frete_melhor_envio(endereco.cep, settings.MELHOR_ENVIO_TOKEN)
+            itens_carrinho, _ = obter_itens_do_carrinho(self.request)
+            produtos = []
+            for item in itens_carrinho:
+                produtos.append({
+                    "weight": float(item['produto'].peso or 1),
+                    "width": 15,
+                    "height": 10,
+                    "length": 20,
+                    "insurance_value": float(item['subtotal']),
+                    "quantity": item['quantidade']
+                })
+            return cotar_frete_melhor_envio(
+                endereco.cep,
+                settings.MELHOR_ENVIO_TOKEN,
+                produtos
+            )
         return []
 
     def form_valid(self, form):
@@ -219,3 +259,11 @@ class ShipmentMethodView(LoginRequiredMixin, FormView):
 
 class ThanksView(LoginRequiredMixin, TemplateView):
     template_name = 'thanks.html'
+
+class FinalizarPedidoView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        pedido_id = request.session.get('pedido_id')
+        pedido = get_object_or_404(Pedido, id=pedido_id, usuario=request.user)
+        # Gere o link de pagamento
+        link_pagamento = criar_preferencia_pagamento(pedido)
+        return redirect(link_pagamento)

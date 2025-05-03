@@ -11,32 +11,71 @@
             <h3>Filters</h3>
             <form method="get" id="filterForm">
                 <div class="filter-section">
+                    {% for categoria in categorias  %}
                     <ul>
-                        {% for categoria in categorias %}
-                            <li><a href="?categoria={{ categoria }}">{{ categoria }}</a></li>
-                        {% endfor %}
+                            <button type="button"
+                            class="{% if categoria == request.GET.categoria %}selected{% endif %}"
+                            onclick="selectCategoria('{{ categoria }}')">
+                            {{ categoria }}
+                        </button>
                     </ul>
+                    {% endfor %}
                 </div>
                 <div class="filter-section">
                     <h4>Price</h4>
                     <div class="price-range">
                         <span>$50</span>
-                        <input type="range" name="preco_max" min="50" max="1000" onchange="document.getElementById('filterForm').submit()">
+  
+                        <input type="hidden" name="preco_max" id="priceFilter">
+
                         <span>$1000</span>
+                    </div>
+                </div>
+                <div class="filter-section">
+                    <h4>Preço</h4>
+                    <div class="price-range">
+                        <label>
+                            <input type="radio" name="faixa_preco" value="faixa1"
+                                {% if request.GET.faixa_preco == "faixa1" %}checked{% endif %}
+                                onchange="document.getElementById('filterForm').submit()">
+                            Até R$ {{ faixa_preco_1 }}
+                        </label>
+                        <label>
+                            <input type="radio" name="faixa_preco" value="faixa2"
+                                {% if request.GET.faixa_preco == "faixa2" %}checked{% endif %}
+                                onchange="document.getElementById('filterForm').submit()">
+                            R$ {{ faixa_preco_1 }} a R$ {{ faixa_preco_2 }}
+                        </label>
+                        <label>
+                            <input type="radio" name="faixa_preco" value="faixa3"
+                                {% if request.GET.faixa_preco == "faixa3" %}checked{% endif %}
+                                onchange="document.getElementById('filterForm').submit()">
+                            Mais de R$ {{ faixa_preco_2 }}
+                        </label>
+                    </div>
+                    <div class="price-custom">
+                        <input type="number" name="preco_min" placeholder="Mínimo"
+                               min="{{ preco_minimo }}" max="{{ preco_maximo }}"
+                               value="{{ request.GET.preco_min|default:preco_minimo }}">
+                        <span>–</span>
+                        <input type="number" name="preco_max" placeholder="Máximo"
+                               min="{{ preco_minimo }}" max="{{ preco_maximo }}"
+                               value="{{ request.GET.preco_max|default:preco_maximo }}">
+                        <button type="submit" class="apply-filter">→</button>
                     </div>
                 </div>
                 <div class="filter-section">
                     <h4>Colors</h4>
                     <div class="colors">
-                        {% for cor in cores %}
+                        {% for cor in cores_disponiveis %}
                             <div 
-                                class="color-circle {% if cor in cores_disponiveis %}available{% else %}unavailable{% endif %}" 
-                                style="background-color: {{ cor }};" 
-                                onclick="toggleColorFilter('{{ cor }}')">
+                                class="color-circle {% if cor in request.GET.cores.split|default:'' %}selected{% endif %} available"
+                                style="background-color: {{ cor }}; border: 1px solid #ccc;"
+                                onclick="toggleColorFilter('{{ cor }}')"
+                                title="{{ cor|capfirst }}">
                             </div>
                         {% endfor %}
                     </div>
-                    <input type="hidden" name="cores" id="colorFilters" value="{{ request.GET.cores }}">
                 </div>
                 <div class="filter-section">
                     <h4>Size</h4>
@@ -50,6 +89,10 @@
                         {% endfor %}
                     </div>
                 </div>
+                <input type="hidden" name="categoria" id="categoriaFilter" value="{{ request.GET.categoria }}">
+                <input type="hidden" name="tamanhos" id="sizeFilters" value="{{ request.GET.tamanhos }}">
+                <input type="hidden" name="cores" id="colorFilters" value="{{ request.GET.cores }}">
+
                 <button type="submit" class="apply-filter">Apply Filter</button>
             </form>
             

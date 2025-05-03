@@ -29,6 +29,8 @@ if os.path.exists(os.path.join(BASE_DIR, '.env')):
 SECRET_KEY = os.environ.get('SECRET_KEY')
 DB_PASSWORD = os.environ.get('DB_PASSWORD')
 MELHOR_ENVIO_TOKEN = os.environ.get('MELHOR_ENVIO_TOKEN')
+MERCADO_PAGO_PUBLIC_KEY = os.getenv('MERCADO_PAGO_PUBLIC_KEY')
+MERCADO_PAGO_ACCESS_TOKEN = os.getenv('MERCADO_PAGO_ACCESS_TOKEN')
 
 
 # Quick-start development settings - unsuitable for production
@@ -80,6 +82,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
+                'core.context_processors.notificacoes_nao_lidas',
                 'core.context_processors.endereco_do_usuario',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',

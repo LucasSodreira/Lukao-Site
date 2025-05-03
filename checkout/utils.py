@@ -1,5 +1,7 @@
 import requests
 from core.models import Produto
+import mercadopago
+from django.conf import settings
 
 # ==========================
 # Funções relacionadas ao carrinho
@@ -15,11 +17,14 @@ def obter_itens_do_carrinho(request):
     produto_ids = []
     for item in carrinho.values():
         if isinstance(item, dict) and 'produto_id' in item:
-            
+            # Verifica se o item tem 'produto_id' e adiciona ao produto_ids
             produto_ids.append(item['produto_id'])
+            
 
     produtos = Produto.objects.filter(id__in=produto_ids)
-    produto_dict = {p.id: p for p in produtos}
+    produto_dict = {p.id: p for p in produtos}  
+    
+    
 
     for chave, item in carrinho.items():
         produto = produto_dict.get(item['produto_id'])
@@ -137,7 +142,7 @@ def migrar_carrinho_antigo(carrinho):
 # Funções relacionadas ao frete
 # ==========================
 
-def cotar_frete_melhor_envio(cep_destino, token, cep_origem='01001-000'):
+def cotar_frete_melhor_envio(cep_destino, token, produtos, cep_origem='01001-000'):
     url = "https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate"
 
     headers = {
@@ -149,64 +154,116 @@ def cotar_frete_melhor_envio(cep_destino, token, cep_origem='01001-000'):
     payload = {
         "from": {"postal_code": cep_origem},
         "to": {"postal_code": cep_destino},
-        "products": [
-            {
-                "weight": 1,
-                "width": 15,
-                "height": 10,
-                "length": 20,
-                "insurance_value": 100,
-                "quantity": 1
-            }
-        ],
+        "products": produtos,  # Lista de produtos com peso, dimensões, quantidade
         "options": {
             "receipt": False,
             "own_hand": False,
-            "insurance_value": 100,
+            "insurance_value": sum(p['insurance_value'] for p in produtos),
             "reverse": False,
             "non_commercial": True
         }
     }
 
     response = requests.post(url, headers=headers, json=payload)
-    print("Response Status Code:", response.status_code)  # Debug: Verifica o status da resposta
     if response.status_code == 200:
         return response.json()
     return []
 
-def cotar_frete_melhor_envio(cep_destino, token, cep_origem='01001-000'):
-    url = "https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate"
 
+def preparar_produtos_para_frete(itens_carrinho):
+    """Prepara a lista de produtos para cálculo de frete."""
+    produtos = []
+    for item in itens_carrinho:
+        produtos.append({
+            "weight": float(item['produto'].peso or 1),
+            "width": 15,
+            "height": 10,
+            "length": 20,
+            "insurance_value": float(item['subtotal']),
+            "quantity": item['quantidade']
+        })
+    return produtos
+
+
+def criar_envio_melhor_envio(pedido, token):
+    url = "https://sandbox.melhorenvio.com.br/api/v2/me/shipment"
     headers = {
-        "Accept": "application/json",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}"
+        "Accept": "application/json"
     }
+    payload = montar_payload_envio(pedido)
+    response = requests.post(url, headers=headers, json=payload)
+    return response.json()
 
-    payload = {
-        "from": {"postal_code": cep_origem},
-        "to": {"postal_code": cep_destino},
+def montar_payload_envio(pedido):
+    return {
+        "service": pedido.frete_id,  # ID do frete escolhido
+        "from": {
+            "name": "Lukao MultiMarcas",
+            "phone": "(83)99381-0707",
+            "email": "lucas.sobreira@academico.ifpb.edu.br",
+            "document": "00000000000",
+            "company_document": "00000000000000",
+            "state_register": "",
+            "address": "Rua Hipólito Cassiano",
+            "complement": "",
+            "number": "123",
+            "district": "Centro",
+            "city": "Pau dos Ferros",
+            "state_abbr": "RN",
+            "country_id": "BR",
+            "postal_code": "01001-000"
+        },
+        "to": {
+            "name": pedido.endereco.nome_completo,
+            "phone": pedido.endereco.telefone,
+            "email": pedido.usuario.email,
+            "document": "15306069428",  # CPF do cliente, se tiver
+            "address": pedido.endereco.rua,
+            "complement": pedido.endereco.complemento,
+            "number": pedido.endereco.numero,
+            "district": pedido.endereco.bairro,
+            "city": pedido.endereco.cidade,
+            "state_abbr": pedido.endereco.estado,
+            "country_id": "BR",
+            "postal_code": pedido.endereco.cep
+        },
         "products": [
             {
-                "weight": 1,
-                "width": 15,
-                "height": 10,
-                "length": 20,
-                "insurance_value": 100,
-                "quantity": 1
-            }
+                "name": item.produto.nome,
+                "quantity": item.quantidade,
+                "unitary_value": float(item.preco_unitario)
+            } for item in pedido.itens.all()
         ],
-        "options": {
-            "receipt": False,
-            "own_hand": False,
-            "insurance_value": 100,
-            "reverse": False,
-            "non_commercial": True
+        "insurance_value": float(pedido.total),
+        "package": {
+            "weight": sum([float(item.produto.peso or 1) for item in pedido.itens.all()]),
+            "width": 15,
+            "height": 10,
+            "length": 20
         }
     }
 
-    response = requests.post(url, headers=headers, json=payload)
-    print("Response Status Code:", response.status_code)  # Debug: Verifica o status da resposta
-    if response.status_code == 200:
-        return response.json()
-    return []
+# ==========================
+# Funções relacionadas ao pagamento
+# ==========================
+
+def criar_preferencia_pagamento(pedido):
+    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+    preference_data = {
+        "items": [
+            {
+                "title": f"Pedido #{pedido.id}",
+                "quantity": 1,
+                "unit_price": float(pedido.total)
+            }
+        ],
+        "payer": {
+            "email": pedido.usuario.email,
+        },
+        "external_reference": str(pedido.id)
+    }
+    preference_response = sdk.preference().create(preference_data)
+    print(preference_response)
+    return preference_response["response"]["id"]

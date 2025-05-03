@@ -205,6 +205,16 @@
 }
 
 
+.color-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 2px;
+    border: 1px solid #ccc;
+}
+
+
 /* Estilo para cores disponíveis */
 .color-circle.available {
     border: 1px solid #c9c9c9;

@@ -1,6 +1,8 @@
 from django_seed import Seed
 from django.contrib.auth import get_user_model
 from .models import Categoria, Produto, Endereco, Pedido, ItemPedido
+# Adicione os imports dos novos models
+from .models import Cor, ProdutoCor
 import random
 from decimal import Decimal
 import os
@@ -18,12 +20,10 @@ def reset_pedido_sequence():
             cursor.execute("UPDATE sqlite_sequence SET seq = (SELECT MAX(id) FROM core_pedido) WHERE name='core_pedido';")
 
 def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1, qtd_pedidos=0):
-    
-    # Reseta a sequência de pedidos ANTES de começar
-    Pedido.objects.all().delete()  # Remove todos os pedidos existentes
-    reset_pedido_sequence()  # Reseta a sequência de IDs
-    
-    # Configuração inicial
+    # Limpa pedidos e reseta sequência
+    Pedido.objects.all().delete()
+    reset_pedido_sequence()
+
     seeder = Seed.seeder()
     User = get_user_model()
 
@@ -31,12 +31,10 @@ def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1
     seeder.add_entity(Categoria, qtd_categorias, {
         'nome': lambda x: seeder.faker.word().capitalize(),
     })
-    
     inserted = seeder.execute()
     print(f"Criadas {qtd_categorias} categorias")
-    
     categorias = list(Categoria.objects.all())
-    
+
     # 2. Criar Usuários
     usuarios = []
     for i in range(qtd_usuarios):
@@ -49,18 +47,40 @@ def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1
         usuarios.append(user)
     print(f"Criados {len(usuarios)} usuários")
 
-    # 3. Criar Produtos
+    # 3. Criar Cores (caso não existam)
+    cores_possiveis = [
+        {'nome': 'vermelho', 'valor_css': 'red'},
+        {'nome': 'azul', 'valor_css': 'blue'},
+        {'nome': 'verde', 'valor_css': 'green'},
+        {'nome': 'amarelo', 'valor_css': 'yellow'},
+        {'nome': 'preto', 'valor_css': 'black'},
+        {'nome': 'branco', 'valor_css': 'white'},
+    ]
+    cor_objs = []
+    for cor_dict in cores_possiveis:
+        cor_obj, _ = Cor.objects.get_or_create(nome=cor_dict['nome'], defaults={'valor_css': cor_dict['valor_css']})
+        cor_objs.append(cor_obj)
+
+    # 4. Criar Produtos e associar cores via ProdutoCor
     produtos = []
     imagem_padrao_path = os.path.join(settings.BASE_DIR, 'media/produtos/camisa.png')
-    
     imagem_content = None
-    if os.path.exists(imagem_padrao_path):
+    imagem_url = 'produtos/camisa.png'
+    imagem_ja_existe = os.path.exists(imagem_padrao_path)
+
+    if imagem_ja_existe:
         with open(imagem_padrao_path, 'rb') as img_file:
             imagem_content = img_file.read()
     else:
         print(f"AVISO: Imagem padrão não encontrada em {imagem_padrao_path}")
 
     for i in range(qtd_produtos):
+        peso = Decimal(random.uniform(0.1, 5.0)).quantize(Decimal('0.001'))
+        largura = random.randint(10, 60)
+        altura = random.randint(5, 40)
+        profundidade = random.randint(1, 30)
+        dimensoes = f"{largura}x{altura}x{profundidade} cm"
+
         produto_data = {
             'nome': f"{seeder.faker.word().capitalize()} {seeder.faker.word().capitalize()}",
             'descricao': seeder.faker.text(max_nb_chars=200),
@@ -68,11 +88,12 @@ def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1
             'preco_original': Decimal(random.uniform(10, 1000)).quantize(Decimal('0.01')),
             'categoria': random.choice(categorias),
             'estoque': random.randint(10, 100),
-            'tamanho': random.choice([t[0] for t in Produto.TAMANHOS]),
+            'tamanho': random.choice([t[0] for t in Produto.SIZE_CHOICES]),
             'tamanhos_disponiveis': ",".join(random.sample(
-                [t[0] for t in Produto.TAMANHOS], k=min(random.randint(1, len(Produto.TAMANHOS)), 5)
+                [t[0] for t in Produto.SIZE_CHOICES], k=min(random.randint(1, len(Produto.SIZE_CHOICES)), 5)
             )),
-            'cor': random.choice(['Vermelho', 'Azul', 'Verde', 'Amarelo', 'Preto', 'Branco']),
+            'peso': peso,
+            'dimensoes': dimensoes,
             'avaliacao': round(random.uniform(0, 5), 1),
         }
 
@@ -80,23 +101,34 @@ def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1
         if produto_data['preco_original'] < produto_data['preco']:
             produto_data['preco_original'] = produto_data['preco'] + Decimal(random.uniform(1, 50)).quantize(Decimal('0.01'))
 
-        if imagem_content:
+        # Se a imagem já existe no media, apenas use o caminho relativo
+        if imagem_ja_existe:
+            produto_data['imagem'] = imagem_url
+        elif imagem_content:
             produto_data['imagem'] = ContentFile(
                 imagem_content,
                 name=f"produto_{i+1}.png"
             )
+        # Se não houver imagem, o campo usará o default do model
 
         produto = Produto.objects.create(**produto_data)
         produtos.append(produto)
-    print(f"Criados {len(produtos)} produtos")
 
-    # 4. Criar Endereços
+        # Associa de 1 a 3 cores aleatórias ao produto, cada uma com estoque aleatório
+        cores_escolhidas = random.sample(cor_objs, k=random.randint(1, 3))
+        for cor in cores_escolhidas:
+            ProdutoCor.objects.create(
+                produto=produto,
+                cor=cor,
+                estoque=random.randint(1, 30)
+            )
+    print(f"Criados {len(produtos)} produtos com cores")
+
+    # 5. Criar Endereços
     enderecos = []
     ESTADOS_SIGLAS = [uf[0] for uf in Endereco.ESTADO_CHOICES]
-
     for _ in range(qtd_enderecos):
         telefone = f"({random.randint(10, 99)}) {random.randint(90000, 99999)}-{random.randint(1000, 9999)}"
-
         endereco = Endereco.objects.create(
             nome_completo=seeder.faker.name(),
             telefone=telefone,
@@ -112,16 +144,12 @@ def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1
             principal=random.random() < 0.3,
         )
         enderecos.append(endereco)
-
     print(f"Criados {len(enderecos)} endereços")
 
-    # 5. Criar Pedidos
+    # 6. Criar Pedidos
     status_choices = ['P', 'E', 'C', 'X']
     pedidos_criados = 0
-    
-    # Obtém o próximo ID disponível
     next_id = Pedido.objects.last().id + 1 if Pedido.objects.exists() else 1
-    
     for i in range(qtd_pedidos):
         try:
             pedido = Pedido.objects.create(
@@ -131,7 +159,6 @@ def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1
                 endereco_entrega=random.choice(enderecos) if enderecos else None,
                 data_criacao=timezone.now()
             )
-
             itens_produtos = random.sample(produtos, k=random.randint(1, min(5, len(produtos))))
             for produto in itens_produtos:
                 ItemPedido.objects.create(
@@ -144,6 +171,5 @@ def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1
         except Exception as e:
             print(f"Erro ao criar pedido {i+1}: {str(e)}")
             continue
-    
     print(f"Criados {pedidos_criados}/{qtd_pedidos} pedidos com itens")
     print("Seed concluído com sucesso!")

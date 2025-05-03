@@ -2,6 +2,7 @@ from django.urls import path
 from django.conf import settings
 from django.contrib.auth.views import LogoutView
 from user.views import *
+from . import views
 
 app_name = 'user'
 
@@ -20,5 +21,7 @@ urlpatterns = [
     path('endereco/<int:pk>/editar/', EnderecoEditView.as_view(), name='editar-endereco'),
     path('endereco/<int:pk>/excluir/', ExcluirEnderecoView.as_view(), name='excluir-endereco'),
     path('endereco/<int:pk>/principal/', DefinirEnderecoPrincipal.as_view(), name='definir-endereco-principal'),
+    
+    path('notificacao/<int:notificacao_id>/lida/', views.marcar_notificacao_lida, name='marcar_notificacao_lida'),
     
 ]

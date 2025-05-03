@@ -1,8 +1,10 @@
 # forms.py
 from django import forms
+import re
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from user.models import Perfil
 
 
 User = get_user_model()
@@ -29,13 +31,6 @@ class CustomUserChangeForm(UserChangeForm):
         fields = ('username', 'email',
                  'current_password', 'new_password', 'confirm_password')
 
-    # def clean_cpf(self):
-    #     cpf = self.cleaned_data.get('cpf')
-    #     if cpf:
-    #         cpf = re.sub(r'[^0-9]', '', cpf)
-    #         if len(cpf) != 11:
-    #             raise ValidationError("CPF deve conter 11 dígitos")
-    #     return cpf
 
     def clean(self):
         cleaned_data = super().clean()
@@ -55,3 +50,24 @@ class CustomUserChangeForm(UserChangeForm):
                 raise ValidationError("Senha atual incorreta")
         
         return cleaned_data
+    
+class PerfilForm(forms.ModelForm):
+    class Meta:
+        model = Perfil
+        fields = [
+            'cpf', 'telefone', 'data_nascimento', 'sexo',
+            'endereco_padrao', 'newsletter'
+        ]
+        widgets = {
+            'data_nascimento': forms.DateInput(attrs={'type': 'date'}),
+            'sexo': forms.Select(),
+        }
+        
+        
+    def clean_cpf(self):
+        cpf = self.cleaned_data.get('cpf')
+        if cpf:
+            cpf = re.sub(r'[^0-9]', '', cpf)
+            if len(cpf) != 11:
+                raise ValidationError("CPF deve conter 11 dígitos")
+        return cpf

@@ -1,4 +1,12 @@
 from .models import Endereco
+from user.models import Notificacao
+
+def notificacoes_nao_lidas(request):
+    if request.user.is_authenticated:
+        return {
+            'notificacoes_nao_lidas': Notificacao.objects.filter(usuario=request.user, lida=False)
+        }
+    return {}
 
 def endereco_do_usuario(request):
     """

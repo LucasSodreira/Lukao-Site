@@ -86,18 +86,25 @@
 
     <!-- Seção de Pagamento -->
     <div class="payment">
-        <h2>Payment</h2>
-        <p>
-            Você será redirecionado para a plataforma de pagamento do Mercado Pago
-            para finalizar sua compra com segurança.
-        </p>
-        <div class="buttons">
-            <a href="{% url 'checkout:select_frete' %}" class="back-btn">Back</a>
-            <form action="" method="post">
-                {% csrf_token %}
-                <button type="submit" class="next-btn">Next</button>
-            </form>
-        </div>
+        <h2>Pagamento</h2>
+        <div id="wallet_container"></div>
+        <script src="https://sdk.mercadopago.com/js/v2"></script>
+        <script>
+          const mp = new MercadoPago('{{ mercado_pago_public_key }}', {
+            locale: 'pt-BR'
+          });
+
+          mp.bricks().create("wallet", "wallet_container", {
+            initialization: {
+              preferenceId: "{{ preference_id }}"
+            },
+            customization: {
+              texts: {
+                valueProp: 'security_details'
+              }
+            }
+          });
+        </script>
     </div>
 </div>
 {% endblock %}

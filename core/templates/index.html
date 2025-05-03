@@ -15,7 +15,7 @@
       </div>
 
       <div class="carrossel-produtos quantidade-{{ new_arrivals|length }}">
-        {% for produto in produtos %}
+        {% for produto in produtos|slice:":4" %}
         <div class="product-card">
           <a href="{% url 'item-view' produto.id %}" id="produto-link">
             {% if produto.imagem %}
@@ -39,6 +39,7 @@
               </p>
               <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form">
                 {% csrf_token %}
+                <input type="hidden" name="quantity" value="1" />
                 <button type="submit" class="cart-button">
                   <img src="{% static 'images/cart.svg' %}" alt="Adicionar ao carrinho" id="cart-icon" />
                 </button>

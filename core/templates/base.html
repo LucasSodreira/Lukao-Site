@@ -87,6 +87,26 @@
           <a href="{% url 'user:purchase_history' %}" id="buy-info">Compras</a>
         </div>
 
+        <!-- Ícone de Favoritos -->
+        {% comment %} <div class="favorites-icon-container">
+          <a href="{% url 'user:favoritos' %}"><img src="{% static 'images/favoritos.svg' %}" alt="Favoritos" class="favorites-icon" /></a>
+        </div> {% endcomment %}
+
+        {% if user.is_authenticated %}
+          <div class="notificacoes">
+            <div class="notificacoes">
+              {% for notificacao in notificacoes_nao_lidas %}
+                  <div class="alert alert-info">
+                      {{ notificacao.mensagem }}
+                      <a href="{% url 'user:marcar_notificacao_lida' notificacao.id %}">Marcar como lida</a>
+                  </div>
+                {% empty %}
+                  <!-- Sem notificações -->
+              {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
         <!-- Ícone de Carrinho de Compras -->
         <div class="cart-icon-container">
           <a href="{% url 'carrinho' %}"><img src="{% static 'images/carrinho.svg' %}" alt="Carrinho" class="cart-icon" />

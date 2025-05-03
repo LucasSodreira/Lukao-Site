@@ -20,6 +20,9 @@ from checkout.views import (
 )
 from user.forms import CustomUserChangeForm
 
+from django.shortcuts import redirect, get_object_or_404
+from .models import Notificacao
+
 # ==========================
 # Views relacionadas à autenticação
 # ==========================
@@ -147,3 +150,9 @@ class EnderecoEditView(BaseEnderecoEditView):
 
 class EnderecoCreateView(BaseEnderecoCreateView):
     success_url = reverse_lazy('user:address_management')
+
+def marcar_notificacao_lida(request, notificacao_id):
+    notificacao = get_object_or_404(Notificacao, id=notificacao_id, usuario=request.user)
+    notificacao.lida = True
+    notificacao.save()
+    return redirect(request.META.get('HTTP_REFERER', '/'))
