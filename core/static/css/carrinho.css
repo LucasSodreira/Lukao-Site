@@ -6,6 +6,7 @@
     font-family: 'Cabin', sans-serif;
 }
 
+/* Breadcrumb */
 .breadcrumb {
     margin-bottom: 20px;
     font-size: 14px;
@@ -35,8 +36,6 @@
 /* Layout do conteúdo */
 .cart-content {
     display: flex;
-    /* gap: 80px; */
-    /* margin: 0 auto; */
     justify-content: space-between;
 }
 
@@ -53,13 +52,18 @@
 
 .order-summary {
     flex: 1;
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 16px;
+    height: fit-content;
+    border: 1px solid;
+    max-width: 400px;
 }
 
 /* Estilos dos itens do carrinho */
 .cart-item {
     display: flex;
     gap: 20px;
-    /* padding: 16px 0; */
 }
 
 .item-image img {
@@ -79,7 +83,6 @@
 .item-name {
     font-size: 2rem;
     margin-bottom: 8px;
-    font-weight: 600;
     font-weight: bold;
 }
 
@@ -112,16 +115,7 @@
     color: #333;
 }
 
-/* Estilos do resumo do pedido */
-.order-summary {
-    background: #f9f9f9;
-    padding: 20px;
-    border-radius: 16px;
-    height: fit-content;
-    border: 1px solid;
-    max-width: 400px;
-}
-
+/* Resumo do pedido */
 .summary-title {
     font-size: 24px;
     margin-bottom: 20px;
@@ -167,33 +161,34 @@
 }
 
 .item-divider {
-    
     background-color: black;
-    
 }
 
-.item-subtotal{
+.item-subtotal {
     font-weight: bold;
     font-size: 1.4rem;
     margin-top: 0.4rem;
 }
 
-.action-center{
-    
+.action-center {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-
 }
 
 /* Estilização dos botões de quantidade */
-.quantity-control form {
-    display: inline; /* Mantém os forms na mesma linha */
-    margin: 0; /* Remove margens */
+.quantity-control {
+    background: #dfd9d9;
+    border-radius: 62px;
 }
 
-#carrinho-vazio{
+.quantity-control form {
+    display: inline;
+    margin: 0;
+}
+
+#carrinho-vazio {
     text-align: center;
     font-size: 2rem;
 }
@@ -204,7 +199,7 @@
     padding: 5px 10px;
     font-size: 16px;
     cursor: pointer;
-    color: #333; /* Cor do texto */
+    color: #333;
     margin: 0 5px;
 }
 
@@ -217,16 +212,4 @@
     min-width: 20px;
     display: inline-block;
     text-align: center;
-}
-
-.action-center{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.quantity-control{
-    background: #dfd9d9;
-    border-radius: 62px;
 }

@@ -1,83 +1,73 @@
 {% extends 'base.html' %}
 {% load static %}
-
 {% block main %}
-  <link rel="stylesheet" href="{% static 'css/address_selection.css' %}" />
-
-  <div class="address-container">
+<link rel="stylesheet" href="{% static 'css/address_selection.css' %}" />
+<div class="address-container">
     <!-- Passos -->
     <div class="checkout-steps">
-      <div class="step active">
-        <img src="{% static 'images/Location.svg' %}" alt="Localização" id="location-icon" />
-        <div class="step-info">
-          <span class="step-number">Step 1</span>
-          <span class="step-name">Address</span>
+        <div class="step active">
+            <img src="{% static 'images/Location.svg' %}" alt="Localização" id="location-icon" />
+            <div class="step-info">
+                <span class="step-number">Step 1</span>
+                <span class="step-name">Address</span>
+            </div>
         </div>
-      </div>
-      <div class="step">
-        <img src="{% static 'images/Shipping.svg' %}" alt="Shipping" id="Shipping-icon" />
-        <div class="step-info">
-          <span class="step-number">Step 2</span>
-          <span class="step-name">Shipping</span>
+        <div class="step">
+            <img src="{% static 'images/Shipping.svg' %}" alt="Shipping" id="Shipping-icon" />
+            <div class="step-info">
+                <span class="step-number">Step 2</span>
+                <span class="step-name">Shipping</span>
+            </div>
         </div>
-      </div>
-      <div class="step">
-        <img src="{% static 'images/Payment.svg' %}" alt="Payment" id="paymentg-icon" />
-        <div class="step-info">
-          <span class="step-number">Step 3</span>
-          <span class="step-name">Payment</span>
+        <div class="step">
+            <img src="{% static 'images/Payment.svg' %}" alt="Payment" id="paymentg-icon" />
+            <div class="step-info">
+                <span class="step-number">Step 3</span>
+                <span class="step-name">Payment</span>
+            </div>
         </div>
-      </div>
     </div>
-
     <h1 class="page-title">Select Address</h1>
-
     <div class="address-options">
-      {% for endereco in enderecos %}
+        {% for endereco in enderecos %}
         <div class="address-card {% if endereco.principal %}selected{% endif %}">
-          <div class="address-header">
-            <h2>{{ endereco.nome_completo }}</h2>
-            <span class="address-type">{{ endereco.get_estado_display }}</span>
-          </div>
-
-          <div class="address-details">
-            <p>
-              {{ endereco.rua }}, {{ endereco.numero }}{% if endereco.complemento %}
-                - {{ endereco.complemento }}
-              {% endif %}
-            </p>
-            <p>{{ endereco.bairro }} - {{ endereco.cidade }}/{{ endereco.estado }}</p>
-            <p>{{ endereco.cep }} - {{ endereco.pais }}</p>
-            <p>{{ endereco.telefone }}</p>
-          </div>
-
-          <div class="address-actions-inline">
-            {% if not endereco.principal %}
-              <form action="{% url 'checkout:definir-endereco-principal' endereco.pk %}" method="post" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn-mini">Definir como principal</button>
-              </form>
-            {% endif %}
-            <a href="{% url 'checkout:editar-endereco' endereco.pk %}" class="btn-mini">Editar</a>
-            <form action="{% url 'checkout:excluir-endereco' endereco.pk %}" method="post" style="display: inline;">
-              {% csrf_token %}
-              <button type="submit" class="btn-mini danger" onclick="return confirm('Tem certeza que deseja excluir este endereço?')">Excluir</button>
-            </form>
-          </div>
+            <div class="address-header">
+                <h2>{{ endereco.nome_completo }}</h2>
+                <span class="address-type">{{ endereco.get_estado_display }}</span>
+            </div>
+            <div class="address-details">
+                <p>
+                    {{ endereco.rua }}, {{ endereco.numero }}{% if endereco.complemento %} - {{ endereco.complemento }}{% endif %}
+                </p>
+                <p>{{ endereco.bairro }} - {{ endereco.cidade }}/{{ endereco.estado }}</p>
+                <p>{{ endereco.cep }} - {{ endereco.pais }}</p>
+                <p>{{ endereco.telefone }}</p>
+            </div>
+            <div class="address-actions-inline">
+                {% if not endereco.principal %}
+                <form action="{% url 'checkout:definir-endereco-principal' endereco.pk %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-mini">Definir como principal</button>
+                </form>
+                {% endif %}
+                <a href="{% url 'checkout:editar-endereco' endereco.pk %}" class="btn-mini">Editar</a>
+                <form action="{% url 'checkout:excluir-endereco' endereco.pk %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-mini danger" onclick="return confirm('Tem certeza que deseja excluir este endereço?')">Excluir</button>
+                </form>
+            </div>
         </div>
         {% empty %}
         <p class="no-address">Você ainda não tem endereços cadastrados.</p>
-      {% endfor %}
+        {% endfor %}
     </div>
-
-      <!-- Botões -->
-      <div class="address-actions">
+    <!-- Botões -->
+    <div class="address-actions">
         <a href="{% url 'checkout:endereco' %}" class="btn secondary">Add New Address</a>
         <div class="action-buttons">
-          <a href="{% url 'carrinho' %}" class="btn outline">Back</a>
-          <a href="{% url 'checkout:select_frete' %}" class="btn primary">Next</a>
+            <a href="{% url 'carrinho' %}" class="btn outline">Back</a>
+            <a href="{% url 'checkout:select_frete' %}" class="btn primary">Next</a>
         </div>
-      </div>
     </div>
-  </div>
+</div>
 {% endblock %}

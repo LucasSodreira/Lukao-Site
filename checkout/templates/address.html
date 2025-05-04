@@ -1,14 +1,11 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block main %}
-    
 <link rel="stylesheet" href="{% static 'css/address.css' %}" />
 <script src="{% static 'js/address.js' %}"></script>
 <div class="container">
-    
     <form method="post" class="form-address">
         {% csrf_token %}
-        
         <div class="form-group">
             <div class="input-box">
                 <label>Nome Completo</label>
@@ -19,12 +16,10 @@
                 {{ form.telefone }}
             </div>
         </div>
-
         <div class="input-single">
             <label>CEP</label>
             {{ form.cep }}
         </div>
-
         <div class="form-group">
             <div class="input-box">
                 <label>Estado</label>
@@ -35,7 +30,6 @@
                 {{ form.cidade }}
             </div>
         </div>
-
         <div class="form-group">
             <div class="input-box">
                 <label>Bairro</label>
@@ -46,7 +40,6 @@
                 {{ form.rua }}
             </div>
         </div>
-
         <div class="form-group">
             <div class="input-box">
                 <label>Número</label>
@@ -57,20 +50,16 @@
                 {{ form.complemento }}
             </div>
         </div>
-
         <div class="checkbox-area">
             {{ form.principal }}
             <label for="{{ form.principal.id_for_label }}">Usar como endereço principal</label>
         </div>
-
         <button type="submit" class="btn-add">Salvar Endereço</button>
-
         <div class="footer-form">
             {% if eh_user_app %}
-            <a href="{% url 'user:address_management' %}" class="btn-voltar">Voltar</a>
+                <a href="{% url 'user:address_management' %}" class="btn-voltar">Voltar</a>
             {% else %}
-            
-            <a href="{% url 'checkout:select_address' %}" class="btn-voltar">Voltar</a>
+                <a href="{% url 'checkout:select_address' %}" class="btn-voltar">Voltar</a>
             {% endif %}
             <div class="secure-connection">
                 <img src="https://cdn-icons-png.flaticon.com/512/3064/3064197.png" alt="lock" width="16">

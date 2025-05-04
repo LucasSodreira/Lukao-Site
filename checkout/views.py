@@ -1,26 +1,28 @@
 import stripe
-from django.views.generic import TemplateView, UpdateView, CreateView, FormView, View
-from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib import messages
-from django.conf import settings
+import json
 from decimal import Decimal
+
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
+from django.shortcuts import redirect, get_object_or_404
+from django.urls import reverse_lazy
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.views.generic import TemplateView, UpdateView, CreateView, FormView, View
+
 from checkout.forms import EnderecoForm
 from checkout.utils import obter_itens_do_carrinho, cotar_frete_melhor_envio
 from core.models import Endereco, Produto, Pedido, ItemPedido
-from django.shortcuts import redirect, get_object_or_404
-from django import forms
-from django.utils.decorators import method_decorator
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponseRedirect
-from django.views.decorators.http import require_POST
-import json
-
 
 # ==========================
 # Formulários auxiliares
 # ==========================
+
+from django import forms
 
 class FreteForm(forms.Form):
     frete_escolhido = forms.ChoiceField(widget=forms.RadioSelect)
@@ -29,7 +31,6 @@ class FreteForm(forms.Form):
         fretes = kwargs.pop('fretes', [])
         super().__init__(*args, **kwargs)
         choices = []
-
         for frete in fretes:
             try:
                 nome = frete['company']['name']
@@ -38,11 +39,8 @@ class FreteForm(forms.Form):
                 dias = frete['delivery_time']
                 choices.append((frete['id'], f"{nome} - {servico} - R$ {preco} - {dias} dias úteis"))
             except (KeyError, TypeError):
-                continue  # Ignora entradas inválidas
-
+                continue
         self.fields['frete_escolhido'].choices = choices
-
-
 
 # ==========================
 # Views relacionadas ao endereço
@@ -81,14 +79,9 @@ class EnderecoCreateView(CreateView):
 class DefinirEnderecoPrincipal(View):
     def post(self, request, pk):
         endereco = get_object_or_404(Endereco, pk=pk, usuario=request.user)
-
-        # Desativa os outros como principal
         Endereco.objects.filter(usuario=request.user, principal=True).update(principal=False)
-
-        # Ativa este como principal
         endereco.principal = True
         endereco.save()
-
         return redirect('checkout:select_address')
 
 @method_decorator(login_required, name='dispatch')
@@ -103,10 +96,7 @@ class AddressSelection(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        enderecos = Endereco.objects.filter(usuario=self.request.user)
-        context['enderecos'] = enderecos
-
+        context['enderecos'] = Endereco.objects.filter(usuario=self.request.user)
         return context
 
 # ==========================
@@ -118,21 +108,15 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         validation_errors = self.validate_order()
         if validation_errors:
             messages.error(self.request, validation_errors)
             return redirect('review-cart')
-        
         itens_carrinho, subtotal = obter_itens_do_carrinho(self.request)
-
         frete_info = self.request.session.get('frete_escolhido')
         frete_valor = Decimal(str(frete_info.get('price'))) if frete_info else Decimal('0.00')
         total = subtotal + frete_valor
-
         endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
-
-        # 1. Crie ou recupere o pedido pendente
         pedido = Pedido.objects.filter(usuario=self.request.user, status='P').last()
         if not pedido:
             pedido = Pedido.objects.create(
@@ -141,7 +125,6 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
                 endereco_entrega=endereco,
                 total=total
             )
-            # 2. Crie os itens do pedido a partir do carrinho
             for item in itens_carrinho:
                 ItemPedido.objects.create(
                     pedido=pedido,
@@ -150,7 +133,6 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
                     preco_unitario=item['produto'].preco,
                     tamanho=item.get('size')
                 )
-
         context.update({
             'itens_carrinho': itens_carrinho,
             'subtotal': subtotal,
@@ -159,9 +141,7 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
             'frete_escolhido': frete_info,
             'endereco': endereco,
         })
-        
         context['stripe_public_key'] = settings.STRIPE_PUBLIC_KEY
-
         return context
 
     def validate_order(self):
@@ -169,7 +149,6 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
         carrinho = self.request.session.get('carrinho', {})
         if not carrinho:
             return "Seu carrinho está vazio."
-
         for item_id, item in carrinho.items():
             try:
                 produto = Produto.objects.get(id=item['produto_id'])
@@ -177,16 +156,13 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
                     errors.append(f"{produto.nome}: estoque insuficiente")
             except Produto.DoesNotExist:
                 errors.append(f"Produto {item_id} não encontrado")
-
         endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
         if not endereco:
             errors.append("Endereço principal não encontrado")
         else:
             errors.extend(self.validate_address(endereco))
-
         if not self.request.session.get('frete_escolhido'):
             errors.append("Método de envio não selecionado")
-
         return "\n".join(errors) if errors else None
 
     def validate_address(self, endereco):
@@ -199,8 +175,6 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
             if not getattr(endereco, campo, None):
                 errors.append(f"Campo obrigatório: {campo}")
         return errors
-    
-    
 
 class ShipmentMethodView(LoginRequiredMixin, FormView):
     template_name = 'shipping_method.html'
@@ -239,7 +213,6 @@ class ShipmentMethodView(LoginRequiredMixin, FormView):
             (f for f in self.get_fretes() if str(f['id']) == frete_id),
             None
         )
-
         if frete_escolhido:
             self.request.session['frete_escolhido'] = {
                 'id': frete_escolhido['id'],
@@ -250,41 +223,35 @@ class ShipmentMethodView(LoginRequiredMixin, FormView):
             }
             self.request.session.modified = True
             return super().form_valid(form)
-
         messages.error(self.request, "Método de envio inválido")
         return self.form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         itens_carrinho, subtotal = obter_itens_do_carrinho(self.request)
-        # ... outros cálculos ...
         context['itens_carrinho'] = itens_carrinho
         context['subtotal'] = subtotal
-        # ... outros contextos ...
         context['fretes'] = self.get_fretes()
         return context
 
 class ThanksView(LoginRequiredMixin, TemplateView):
     template_name = 'thanks.html'
 
+# ==========================
+# Stripe Payment
+# ==========================
 
 @login_required
 def checkout_stripe(request):
-    """
-    Cria uma sessão de checkout Stripe e redireciona o usuário para o Stripe Checkout.
-    """
     try:
         stripe.api_key = settings.STRIPE_SECRET_KEY
-
         itens_carrinho, subtotal = obter_itens_do_carrinho(request)
         if not itens_carrinho:
             messages.error(request, "Seu carrinho está vazio.")
             return redirect('checkout:order-summary')
-
         frete_info = request.session.get('frete_escolhido')
         frete_valor = Decimal(str(frete_info.get('price'))) if frete_info else Decimal('0.00')
         total = subtotal + frete_valor
-
         line_items = []
         for item in itens_carrinho:
             line_items.append({
@@ -293,7 +260,7 @@ def checkout_stripe(request):
                     'product_data': {
                         'name': item['produto'].nome,
                     },
-                    'unit_amount': int(item['produto'].preco * 100),  # Stripe usa centavos
+                    'unit_amount': int(item['produto'].preco * 100),
                 },
                 'quantity': int(item['quantidade']),
             })
@@ -308,7 +275,6 @@ def checkout_stripe(request):
                 },
                 'quantity': 1,
             })
-
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=line_items,
@@ -321,7 +287,6 @@ def checkout_stripe(request):
         messages.error(request, f"Erro ao processar pagamento: {str(e)}")
         return redirect('checkout:order-summary')
 
-
 @require_POST
 @login_required
 def stripe_create_payment_intent(request):
@@ -331,9 +296,7 @@ def stripe_create_payment_intent(request):
         frete_info = request.session.get('frete_escolhido')
         frete_valor = Decimal(str(frete_info.get('price'))) if frete_info else Decimal('0.00')
         total = subtotal + frete_valor
-
-        amount = int(total * 100)  # em centavos
-
+        amount = int(total * 100)
         intent = stripe.PaymentIntent.create(
             amount=amount,
             currency='brl',

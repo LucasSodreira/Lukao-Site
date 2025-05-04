@@ -42,7 +42,6 @@ def devolver_estoque_variacao(sender, instance, **kwargs):
     except ProdutoVariacao.DoesNotExist:
         pass
 
-
 @receiver(post_save, sender=ProdutoVariacao)
 def atualizar_estoque_produto(sender, instance, **kwargs):
     produto = instance.produto
@@ -50,13 +49,11 @@ def atualizar_estoque_produto(sender, instance, **kwargs):
     produto.estoque = estoque_total
     produto.save(update_fields=['estoque'])
 
-
 @receiver(pre_save, sender=ProdutoVariacao)
 def gerar_sku_variacao(sender, instance, **kwargs):
     if not instance.sku:
         instance.sku = f"{instance.produto.id}-{instance.cor.id}-{instance.tamanho}-{uuid4().hex[:6].upper()}"
-        
-        
+
 @receiver(pre_save, sender=Pedido)
 def notificar_status_pedido(sender, instance, **kwargs):
     if instance.pk:

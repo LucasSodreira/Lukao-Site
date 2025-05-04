@@ -1,31 +1,31 @@
-
+/* Container */
 .container {
     display: flex;
     gap: 20px;
-
     width: 80%;
     padding: 20px;
     justify-content: center;
     flex-direction: column;
 }
 
-main{
+main {
     display: flex;
     justify-content: center;
 }
 
-.checkout-steps{
+.checkout-steps {
     display: flex;
     justify-content: space-between;
     margin-bottom: 20px;
 }
 
-.order-summary-header{
+/* Layout */
+.order-summary-header {
     display: flex;
     gap: 30px;
 }
 
-.total-row.grand-total{
+.total-row.grand-total {
     display: flex;
     justify-content: space-between;
     font-size: 1.3rem;
@@ -33,21 +33,21 @@ main{
     margin-top: 20px;
 }
 
-.payment{
+.payment {
     max-width: 500px;
 }
 
-.total-row{
+.total-row {
     display: flex;
     justify-content: space-between;
 }
 
-.item-details{
+.item-details {
     display: flex;
     flex-direction: column;
 }
 
-.shipping-details{
+.shipping-details {
     display: flex;
     justify-content: space-between;
 }
@@ -68,6 +68,7 @@ main{
     margin-bottom: 20px;
 }
 
+/* Items */
 .item {
     display: flex;
     gap: 19px;
@@ -89,7 +90,7 @@ main{
     font-size: 17px;
 }
 
-.size{
+.size {
     font-size: 1rem !important;
     font-weight: 500 !important;
     color: #666;
@@ -101,6 +102,7 @@ main{
     font-size: 1.1rem;
 }
 
+/* Address */
 .address, .shipping {
     margin: 20px 0;
 }
@@ -132,6 +134,7 @@ main{
     text-align: center;
 }
 
+/* Buttons */
 .buttons {
     display: flex;
     justify-content: flex-end;
@@ -157,6 +160,7 @@ main{
     color: #fff;
 }
 
+/* Alerts */
 .alert-messages {
     position: fixed;
     top: 20px;
@@ -177,6 +181,7 @@ main{
     border: 1px solid #f5c6cb;
 }
 
+/* Stripe */
 .stripe-form-container {
     max-width: 420px;
     margin: 32px auto 0 auto;
@@ -244,11 +249,13 @@ main{
     text-align: center;
 }
 
+/* Animations */
 @keyframes slideIn {
     from { transform: translateX(100%); }
     to { transform: translateX(0); }
 }
 
+/* Responsiveness */
 @media (max-width: 768px) {
     .container {
         flex-direction: column;

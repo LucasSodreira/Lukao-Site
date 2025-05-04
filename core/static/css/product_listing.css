@@ -1,7 +1,10 @@
+/* Container */
 .container {
     display: flex;
     min-height: 100vh;
 }
+
+/* Sidebar */
 .sidebar {
     width: 250px;
     background-color: #fff;
@@ -14,47 +17,59 @@
     margin-left: 45px;
     border-radius: 31px;
 }
+
 .sidebar h3 {
     font-size: 18px;
     margin-bottom: 15px;
 }
+
+/* Filtros */
 .filter-section {
     margin-bottom: 20px;
 }
+
 .filter-section h4 {
     font-size: 14px;
     margin-bottom: 10px;
 }
+
 .filter-section ul {
     list-style: none;
 }
+
 .filter-section ul li {
     margin-bottom: 8px;
 }
+
 .filter-section ul li a {
     text-decoration: none;
     color: #333;
     font-size: 14px;
 }
+
 .price-range {
     display: flex;
     align-items: center;
     gap: 10px;
 }
+
 .price-range input {
     width: 100%;
 }
+
 .colors {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
 }
+
 .colors div {
     width: 26px;
     height: 26px;
     border-radius: 50%;
     cursor: pointer;
 }
+
 .sizes label {
     display: inline-block;
     padding: 5px 10px;
@@ -64,10 +79,12 @@
     font-size: 14px;
     cursor: pointer;
 }
+
 .sizes input:checked + label {
     background-color: #000;
     color: #fff;
 }
+
 .apply-filter {
     width: 100%;
     padding: 10px;
@@ -78,29 +95,36 @@
     cursor: pointer;
     margin-top: 20px;
 }
+
+/* Produtos */
 .main-content {
     flex: 1;
     padding: 20px;
 }
+
 .breadcrumb {
     font-size: 14px;
     margin-bottom: 10px;
 }
+
 .breadcrumb a {
     text-decoration: none;
     color: #666;
     font-size: 14px;
 }
+
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
 }
+
 .header h1 {
     font-size: 24px;
     font-weight: bold;
 }
+
 .filter-btn {
     display: none;
     padding: 10px;
@@ -109,14 +133,17 @@
     border-radius: 5px;
     cursor: pointer;
 }
+
 .sort {
     font-size: 14px;
 }
+
 .products-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(250px, 1fr));
     gap: 26px;
 }
+
 .product-card {
     padding: 2px;
     border-radius: 20;
@@ -125,31 +152,38 @@
     flex-direction: column;
     align-items: flex-start;
 }
+
 .product-card img {
     width: 100%;
-    /* height: 200px; */
     object-fit: cover;
     border-radius: 26px;
 }
+
 .product-card h3 {
     font-size: 21px;
     margin: 7px 0 0;
 }
+
 .product-card .rating {
     color: #f5c518;
     font-size: 17px;
 }
+
 .product-card .price {
     font-size: 19px;
     margin-top: 5px;
 }
+
 .product-card .price .original {
     text-decoration: line-through;
     color: #999;
 }
+
 .product-card .price .discount {
     color: #ff4040;
 }
+
+/* Paginação */
 .pagination {
     display: flex;
     justify-content: center;
@@ -157,6 +191,7 @@
     gap: 10px;
     margin-top: 20px;
 }
+
 .pagination button {
     padding: 5px 10px;
     border: 1px solid #ddd;
@@ -164,11 +199,12 @@
     cursor: pointer;
     border-radius: 5px;
 }
+
 .pagination span {
     font-size: 14px;
 }
 
-/* Bottom Sheet for Mobile */
+/* Bottom Sheet para Mobile */
 .bottom-sheet {
     display: none;
     position: fixed;
@@ -185,18 +221,22 @@
     transform: translateY(100%);
     transition: transform 0.3s ease-in-out;
 }
+
 .bottom-sheet.active {
     transform: translateY(0);
 }
+
 .bottom-sheet-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
 }
+
 .bottom-sheet-header h3 {
     font-size: 18px;
 }
+
 .bottom-sheet-header button {
     background: none;
     border: none;
@@ -204,7 +244,7 @@
     cursor: pointer;
 }
 
-
+/* Cores */
 .color-circle {
     width: 24px;
     height: 24px;
@@ -214,27 +254,25 @@
     border: 1px solid #ccc;
 }
 
-
-/* Estilo para cores disponíveis */
 .color-circle.available {
     border: 1px solid #c9c9c9;
     cursor: pointer;
     opacity: 1;
 }
 
-/* Estilo para cores indisponíveis */
 .color-circle.unavailable {
     border: 2px dashed #ccc;
     cursor: not-allowed;
     opacity: 0.5;
 }
 
+/* Tamanhos */
 .size-button.selected {
     background-color: #000;
     color: #fff;
 }
 
-/* Responsiveness */
+/* Responsividade */
 @media (max-width: 768px) {
     .container {
         flex-direction: column;

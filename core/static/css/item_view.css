@@ -3,7 +3,7 @@ body {
   background-color: #ededed;
 }
 
-/* Estilos gerais */
+/* Container principal */
 .product-detail-container {
   max-width: 1500px;
   margin: 0 auto;
@@ -63,9 +63,7 @@ body {
 .thumbnail {
   width: 100px;
   height: 110px;
-  /* border: 2px solid; */
   cursor: pointer;
-  /* border-radius: 16px; */
 }
 
 .thumbnail.active {
@@ -142,16 +140,11 @@ body {
 
 .quantity-btn {
   appearance: none;
-
   border: none;
-
   font-size: 3rem;
-
   background: none;
-
   text-align: center;
 }
-
 
 /* Seção de tamanhos */
 .size-selection {
@@ -185,7 +178,6 @@ body {
 }
 
 .size-radio:checked + .size-label {
-  /* border-color: #000; */
   background-color: #dfd9d9;
   font-weight: bold;
 }
@@ -248,14 +240,12 @@ body {
   border-radius: 62px;
 }
 
-
 /* Responsividade */
 @media (max-width: 768px) {
   .product-detail {
     flex-direction: column;
     gap: 30px;
   }
-
   .product-title {
     font-size: 24px;
   }

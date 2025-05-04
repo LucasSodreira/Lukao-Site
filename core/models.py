@@ -355,7 +355,7 @@ class Pedido(models.Model):
                 status_novo=self.status,
                 usuario=getattr(self, 'usuario', None)
             )
-        
+
 
 class ItemPedido(models.Model):
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name="itens")

@@ -1,5 +1,4 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -17,7 +16,9 @@
             <h1>Banner<br>De alguma<br>Promoção</h1>
         </div>
         <div class="login-section">
-            <div id="div-back"><a href="{% url 'index' %}" id="back"> ← Voltar</a></div>
+            <div id="div-back">
+                <a href="{% url 'index' %}" id="back">← Voltar</a>
+            </div>
             <div class="logo">
                 <img src="{% static 'images/logo.svg' %}" alt="Logo" id="logo-img">
             </div>
@@ -26,13 +27,11 @@
                 {% csrf_token %}
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" placeholder="Seu usuário" required>
-                
                 <label for="password">Password</label>
                 <div class="password-container">
                     <input type="password" id="password" name="password" placeholder="Sua senha" required>
                     <span class="eye-icon">👁️</span>
                 </div>
-
                 <div class="options">
                     <label>
                         <input type="checkbox" name="remember_me">
@@ -40,19 +39,18 @@
                     </label>
                     <a href="#">Forget Password?</a>
                 </div>
-
                 <div class="buttons">
                     <button type="submit" class="sign-in-btn">Sign In</button>
-                    <button><a href="{% url 'user:register' %}" class="sign-up-btn">Sign Up</a></button>
+                    <button>
+                        <a href="{% url 'user:register' %}" class="sign-up-btn">Sign Up</a>
+                    </button>
                 </div>
             </form>
-
             <div class="divider">
                 <hr>
                 <span>Quick access with</span>
                 <hr>
             </div>
-
             <div class="google-login">
                 <img src="https://www.google.com/favicon.ico" alt="Google Login">
             </div>

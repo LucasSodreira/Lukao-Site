@@ -5,51 +5,59 @@
     background: white;
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  }
-  
-  .form-address {
+}
+
+.form-address {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-  }
-  
-  .form-group {
+}
+
+.form-group {
     display: flex;
     gap: 1rem;
-  }
-  
-  .input-box, .input-single {
+}
+
+.input-box, .input-single {
     flex: 1;
     display: flex;
     flex-direction: column;
-  }
-  
-  label {
+}
+
+label {
     font-size: 0.9rem;
     margin-bottom: 5px;
     color: #555;
-  }
-  
-  input[type="text"] {
+}
+
+input[type="text"] {
     padding: 0.8rem;
     border: none;
     border-radius: 8px;
     background: #f7f7f7;
     box-shadow: 0px 1px 4px rgba(0,0,0,0.1);
-  }
-  
-  input[type="text"]:focus {
+}
+
+input[type="text"]:focus {
     outline: 2px solid #00c896;
-  }
-  
-  .checkbox-area {
+}
+
+#id_estado {
+    padding: 0.8rem;
+    border: none;
+    border-radius: 8px;
+    background: #f7f7f7;
+    box-shadow: 0px 1px 4px rgba(0,0,0,0.1);
+}
+
+.checkbox-area {
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 0.9rem;
-  }
-  
-  .btn-add {
+}
+
+.btn-add {
     background: #111;
     color: white;
     padding: 1rem;
@@ -57,38 +65,28 @@
     border-radius: 8px;
     font-size: 1rem;
     cursor: pointer;
-  }
-  
-  .btn-add:hover {
+}
+
+.btn-add:hover {
     background: #333;
-  }
-  
-  .footer-form {
+}
+
+.footer-form {
     margin-top: 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 0.9rem;
-  }
-  
-  .footer-form a {
+}
+
+.footer-form a {
     color: #555;
     text-decoration: none;
-  }
-  
-  .secure-connection {
+}
+
+.secure-connection {
     display: flex;
     align-items: center;
     gap: 5px;
     color: #00c896;
-  }
-
-#id_estado{
-  
-  padding: 0.8rem;
-  border: none;
-  border-radius: 8px;
-  background: #f7f7f7;
-  box-shadow: 0px 1px 4px rgba(0,0,0,0.1);
-
 }

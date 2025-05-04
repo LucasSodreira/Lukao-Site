@@ -101,11 +101,6 @@
     font-size: 1rem;
 }
 
-.address-card.selected {
-    border: 2px solid #007bff;
-    background-color: #f3faff;
-  }
-
 .step-name {
     font-size: 12px;
     color: #666;

@@ -13,27 +13,33 @@
     width: 100%;
     text-align: center;
 }
+
 .main-content {
     flex: 1;
     padding: 20px;
 }
+
 .header {
     background-color: #fff;
     padding: 15px;
     border-bottom: 1px solid #ddd;
     border-radius: 16px;
 }
+
 .header h1 {
     margin: 0;
     font-size: 24px;
 }
+
 .order-details-section {
     margin-top: 20px;
 }
+
 .order-details-section h2 {
     font-size: 24px;
     margin-bottom: 20px;
 }
+
 .order-info, .product-details, .delivery-infos {
     background-color: #fff;
     padding: 20px;
@@ -41,42 +47,47 @@
     border-radius: 16px;
     margin-bottom: 20px;
 }
+
 .order-info h3, .product-details h3, .delivery-info h3 {
     font-size: 18px;
     margin-bottom: 15px;
 }
+
 .order-info p, .product-details p, .delivery-info p {
     margin: 2px 0;
     font-size: 16px;
 }
+
 .order-info .status-paid {
     color: #28a745;
     font-weight: bold;
     font-size: 1.1rem;
 }
+
 .order-info .status-shipped {
     color: #007bff;
     font-weight: bold;
     font-size: 1.1rem;
 }
+
 .product-details .item {
     display: flex;
-    /* justify-content: space-between; */
     margin-bottom: 10px;
     gap: 20px;
 }
+
 .product-details .item span {
     font-weight: bold;
 }
 
-.grid-items{
+.grid-items {
     display: grid;
     column-gap: 35px;
     row-gap: 20px;
     grid-template-columns: auto auto auto auto;
 }
 
-.infos-product{
-    display: flex; 
-    gap: 14px
+.infos-product {
+    display: flex;
+    gap: 14px;
 }

@@ -13,27 +13,33 @@
     width: 100%;
     text-align: center;
 }
+
 .main-content {
     flex: 1;
     padding: 20px;
 }
+
 .header {
     background-color: #fff;
     padding: 15px;
     border-bottom: 1px solid #ddd;
     border-radius: 16px;
 }
+
 .header h1 {
     margin: 0;
     font-size: 24px;
 }
+
 .address-section {
     margin-top: 20px;
 }
+
 .address-section h2 {
     font-size: 18px;
     margin-bottom: 10px;
 }
+
 .add-address-btn {
     background-color: #f5c518;
     padding: 10px 20px;
@@ -45,11 +51,13 @@
     margin-top: 10px;
     font-size: 16px;
 }
+
 .address-cards {
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
 }
+
 .address-card {
     background-color: #fff;
     padding: 28px 30px;
@@ -58,6 +66,7 @@
     width: 385px;
     position: relative;
 }
+
 .address-card .default {
     position: absolute;
     top: 10px;
@@ -65,11 +74,12 @@
     color: #28a745;
     font-size: 16px;
 }
+
 .address-card p {
     margin: 5px 0;
 }
 
-#add-address{
+#add-address {
     text-decoration: none;
     color: black;
 }
@@ -81,14 +91,12 @@
     align-items: center;
 }
 
-.btn-mini{
-    
+.btn-mini {
     text-decoration: none;
     color: black;
     padding: 8px;
     border: 1px solid;
     border-radius: 12px;
-
 }
 
 .address-card .actions button {

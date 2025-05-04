@@ -1,281 +1,210 @@
-{% extends 'base.html' %} {% load static %} {% block main %}
+{% extends 'base.html' %}
+{% load static %}
+{% block main %}
 <link rel="stylesheet" href="{% static 'css/order_summary.css' %}" />
-
 <div class="container">
-  <!-- Seção de Resumo do Pedido -->
+    <!-- Seção de Resumo do Pedido -->
     <!-- Passos -->
     <div class="checkout-steps">
-      <div class="step active">
-        <img
-          src="{% static 'images/Location.svg' %}"
-          alt="Localização"
-          id="location-icon"
-        />
-        <div class="step-info">
-          <span class="step-number">Step 1</span>
-          <span class="step-name">Address</span>
+        <div class="step active">
+            <img src="{% static 'images/Location.svg' %}" alt="Localização" id="location-icon" />
+            <div class="step-info">
+                <span class="step-number">Step 1</span>
+                <span class="step-name">Address</span>
+            </div>
         </div>
-      </div>
-
-      <div class="step">
-        <img
-          src="{% static 'images/Shipping.svg' %}"
-          alt="Shipping"
-          id="Shipping-icon"
-        />
-        <div class="step-info">
-          <span class="step-number">Step 2</span>
-          <span class="step-name">Shipping</span>
+        <div class="step">
+            <img src="{% static 'images/Shipping.svg' %}" alt="Shipping" id="Shipping-icon" />
+            <div class="step-info">
+                <span class="step-number">Step 2</span>
+                <span class="step-name">Shipping</span>
+            </div>
         </div>
-      </div>
-
-      <div class="step">
-        <img
-          src="{% static 'images/Payment.svg' %}"
-          alt="Payment"
-          id="paymentg-icon"
-        />
-        <div class="step-info">
-          <span class="step-number">Step 3</span>
-          <span class="step-name">Payment</span>
+        <div class="step">
+            <img src="{% static 'images/Payment.svg' %}" alt="Payment" id="paymentg-icon" />
+            <div class="step-info">
+                <span class="step-number">Step 3</span>
+                <span class="step-name">Payment</span>
+            </div>
         </div>
-      </div>
     </div>
-
     <div class="order-summary-header">
-      <div class="order-summary">
-        <h2>Order Summary</h2>
-
-        <div class="order-item">
-        {% if itens_carrinho %} {% for item in itens_carrinho %}
-            <div class="item">
-                {% if item.produto.imagem %}
-                <img
-                src="{{ item.produto.imagem.url }}"
-                alt="{{ item.produto.nome }}"
-                />
-                {% else %}
-                <img
-                src="{% static 'images/default.png' %}"
-                alt="Imagem não disponível"
-                />
-                {% endif %}
-                <div class="item-details">
-                    <span class="product-name">{{ item.produto.nome }}</span>
-                    {% if item.size %}
-                    <span class="size">
-                        {{ item.size|upper }} X {{ item.quantidade }}
-                    </span>
+        <div class="order-summary">
+            <h2>Order Summary</h2>
+            <div class="order-item">
+                {% if itens_carrinho %}
+                {% for item in itens_carrinho %}
+                <div class="item">
+                    {% if item.produto.imagem %}
+                    <img src="{{ item.produto.imagem.url }}" alt="{{ item.produto.nome }}" />
+                    {% else %}
+                    <img src="{% static 'images/default.png' %}" alt="Imagem não disponível" />
                     {% endif %}
+                    <div class="item-details">
+                        <span class="product-name">{{ item.produto.nome }}</span>
+                        {% if item.size %}
+                        <span class="size">{{ item.size|upper }} X {{ item.quantidade }}</span>
+                        {% endif %}
+                    </div>
+                    <span class="price">R$ {{ item.subtotal|floatformat:2 }}</span>
                 </div>
-                <span class="price">R$ {{ item.subtotal|floatformat:2 }}</span>
+                {% endfor %}
             </div>
-            {% endfor %}
+            <div class="address">
+                <h3>Address</h3>
+                {% if endereco %}
+                    {% if endereco.complemento %}
+                    <p>{{ endereco.nome_completo }}</p>
+                    <p>{{ endereco.rua }}, {{ endereco.numero }}, {{ endereco.bairro }} - {{ endereco.cidade }}/{{endereco.get_estado_display }}</p>
+                    <p>CEP: {{ endereco.cep }} | Complemento: {{ endereco.complemento }}</p>
+                    <p>Telefone: {{ endereco.telefone }}</p>
+                    {% endif %}
+                {% else %}
+                <p>Nenhum endereço cadastrado</p>
+                {% endif %}
+            </div>
+            <div class="shipping">
+                <h3>Shipment method</h3>
+                {% if frete_escolhido %}
+                <div class="shipping-details">
+                    <p>{{ frete_escolhido.company.name }}:</p>
+                    <span>{{ frete_escolhido.name }}</span>
+                </div>
+                <div class="shipping-details">
+                    <p>Prazo:</p>
+                    <span>{{ frete_escolhido.delivery_time }} dias úteis</span>
+                </div>
+                <div class="shipping-details">
+                    <p>Valor:</p>
+                    <span class="price">R$ {{ frete|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="totals">
+                <div class="total-row">
+                    <span>Subtotal</span>
+                    <span class="price">R$ {{ subtotal|floatformat:2 }}</span>
+                </div>
+                <div class="total-row grand-total">
+                    <span>TOTAL</span>
+                    <span class="price">R$ {{ total|floatformat:2 }}</span>
+                </div>
+            </div>
+            {% else %}
+            <p class="empty-cart">Seu carrinho está vazio.</p>
+            {% endif %}
         </div>
-
-        <div class="address">
-          <h3>Address</h3>
-          {% if endereco %}
-          {% if endereco.complemento %}
-          <p>{{ endereco.nome_completo }}</p>
-          <p>{{ endereco.rua }}, {{ endereco.numero }}, {{ endereco.bairro }} - {{ endereco.cidade }}/{{endereco.get_estado_display }}</p>
-          <p>CEP: {{ endereco.cep }} | Complemento: {{ endereco.complemento }}</p>
-          <p>Telefone: {{ endereco.telefone }}</p>
-          {% endif %}
-          {% else %}
-          <p>Nenhum endereço cadastrado</p>
-          {% endif %}
+        <div class="payment">
+            <div class="stripe-form-container">
+                <h2>Pagamento com Cartão</h2>
+                <div class="stripe-card-icons">
+                    <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/visa.svg" alt="Visa" />
+                    <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/mastercard.svg" alt="Mastercard" />
+                    <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/amex.svg" alt="Amex" />
+                    <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/elo.svg" alt="Elo" />
+                    <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/hipercard.svg" alt="Hipercard" />
+                </div>
+                <div class="stripe-form-note">
+                    Aceitamos cartões de crédito nacionais e internacionais.
+                </div>
+                <form id="payment-form" autocomplete="off">
+                    <div class="stripe-form-group">
+                        <label class="stripe-form-label" for="cardholder-name">Nome do Titular</label>
+                        <input type="text" id="cardholder-name" name="cardholder-name" class="form-control" placeholder="Como no cartão" required />
+                    </div>
+                    <div class="stripe-form-group">
+                        <label class="stripe-form-label" for="email">E-mail</label>
+                        <input type="email" id="email" name="email" class="form-control" placeholder="seu@email.com" required value="{{ request.user.email }}" />
+                    </div>
+                    <div class="stripe-form-group">
+                        <label class="stripe-form-label" for="cpf">CPF</label>
+                        <input type="text" id="cpf" name="cpf" class="form-control" placeholder="000.000.000-00" maxlength="14" />
+                    </div>
+                    <div class="stripe-form-group">
+                        <label class="stripe-form-label" for="card-element">Dados do Cartão</label>
+                        <div id="card-element"></div>
+                    </div>
+                    <button id="submit" class="stripe-form-btn">Pagar com Cartão</button>
+                    <div id="payment-message"></div>
+                </form>
+                <div class="stripe-form-note">
+                    Seus dados estão protegidos por criptografia SSL 256 bits.
+                </div>
+            </div>
         </div>
-
-        <div class="shipping">
-          <h3>Shipment method</h3>
-          {% if frete_escolhido %}
-            <div class="shipping-details">
-                <p>{{ frete_escolhido.company.name }}:</p>
-                <span>{{ frete_escolhido.name }}</span>
-            </div>
-            <div class="shipping-details">
-                <p>Prazo:</p>
-                <span>{{ frete_escolhido.delivery_time }} dias úteis</span>
-            </div>
-
-            <div class="shipping-details">
-                <p>Valor:</p>
-                <span class="price">R$ {{ frete|floatformat:2 }}</span>
-            </div>
-          {% endif %}
-        </div>
-
-        <div class="totals">
-          <div class="total-row">
-            <span>Subtotal</span>
-            <span class="price">R$ {{ subtotal|floatformat:2 }}</span>
-          </div>
-        
-          <div class="total-row grand-total">
-            <span>TOTAL</span>
-            <span class="price">R$ {{ total|floatformat:2 }}</span>
-          </div>
-        </div>
-        {% else %}
-        <p class="empty-cart">Seu carrinho está vazio.</p>
-        {% endif %}
-      </div>
-
-      <div class="payment">
-        <div class="stripe-form-container">
-          <h2>Pagamento com Cartão</h2>
-          <div class="stripe-card-icons">
-            <img
-              src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/visa.svg"
-              alt="Visa"
-            />
-            <img
-              src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/mastercard.svg"
-              alt="Mastercard"
-            />
-            <img
-              src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/amex.svg"
-              alt="Amex"
-            />
-            <img
-              src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/elo.svg"
-              alt="Elo"
-            />
-            <img
-              src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/hipercard.svg"
-              alt="Hipercard"
-            />
-          </div>
-          <div class="stripe-form-note">
-            Aceitamos cartões de crédito nacionais e internacionais.
-          </div>
-          <form id="payment-form" autocomplete="off">
-            <div class="stripe-form-group">
-              <label class="stripe-form-label" for="cardholder-name"
-                >Nome do Titular</label
-              >
-              <input
-                type="text"
-                id="cardholder-name"
-                name="cardholder-name"
-                class="form-control"
-                placeholder="Como no cartão"
-                required
-              />
-            </div>
-            <div class="stripe-form-group">
-              <label class="stripe-form-label" for="email">E-mail</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                class="form-control"
-                placeholder="seu@email.com"
-                required
-                value="{{ request.user.email }}"
-              />
-            </div>
-            <div class="stripe-form-group">
-              <label class="stripe-form-label" for="cpf">CPF</label>
-              <input
-                type="text"
-                id="cpf"
-                name="cpf"
-                class="form-control"
-                placeholder="000.000.000-00"
-                maxlength="14"
-              />
-            </div>
-            <div class="stripe-form-group">
-              <label class="stripe-form-label" for="card-element"
-                >Dados do Cartão</label
-              >
-              <div id="card-element"></div>
-            </div>
-            <button id="submit" class="stripe-form-btn">
-              Pagar com Cartão
-            </button>
-            <div id="payment-message"></div>
-          </form>
-          <div class="stripe-form-note">
-            Seus dados estão protegidos por criptografia SSL 256 bits.
-          </div>
-        </div>
-      </div>
-      <script src="https://js.stripe.com/v3/"></script>
-      <script>
+        <script src="https://js.stripe.com/v3/"></script>
+        <script>
         document.addEventListener("DOMContentLoaded", function () {
-          const stripe = Stripe("{{ stripe_public_key }}");
-          let elements = stripe.elements();
-          let card = elements.create("card", { hidePostalCode: true });
-          card.mount("#card-element");
+            const stripe = Stripe("{{ stripe_public_key }}");
+            let elements = stripe.elements();
+            let card = elements.create("card", { hidePostalCode: true });
+            card.mount("#card-element");
 
-          document
-            .getElementById("payment-form")
-            .addEventListener("submit", async function (e) {
-              e.preventDefault();
-              document.getElementById("submit").disabled = true;
-              document.getElementById("payment-message").textContent = "";
+            document
+                .getElementById("payment-form")
+                .addEventListener("submit", async function (e) {
+                    e.preventDefault();
+                    document.getElementById("submit").disabled = true;
+                    document.getElementById("payment-message").textContent = "";
 
-              // Cria PaymentIntent no backend
-              const response = await fetch(
-                "{% url 'checkout:stripe_create_payment_intent' %}",
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": "{{ csrf_token }}",
-                  },
-                }
-              );
-              const data = await response.json();
-              if (data.error) {
-                document.getElementById("payment-message").textContent =
-                  data.error;
-                document.getElementById("submit").disabled = false;
-                return;
-              }
-              const clientSecret = data.clientSecret;
+                    // Cria PaymentIntent no backend
+                    const response = await fetch(
+                        "{% url 'checkout:stripe_create_payment_intent' %}",
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRFToken": "{{ csrf_token }}",
+                            },
+                        }
+                    );
+                    const data = await response.json();
+                    if (data.error) {
+                        document.getElementById("payment-message").textContent =
+                            data.error;
+                        document.getElementById("submit").disabled = false;
+                        return;
+                    }
+                    const clientSecret = data.clientSecret;
 
-              // Coleta dados extras
-              const cardholderName =
-                document.getElementById("cardholder-name").value;
-              const email = document.getElementById("email").value;
-              const cpf = document.getElementById("cpf").value;
+                    // Coleta dados extras
+                    const cardholderName =
+                        document.getElementById("cardholder-name").value;
+                    const email = document.getElementById("email").value;
+                    const cpf = document.getElementById("cpf").value;
 
-              const result = await stripe.confirmCardPayment(clientSecret, {
-                payment_method: {
-                  card: card,
-                  billing_details: {
-                    name: cardholderName,
-                    email: email,
-                  },
-                },
-              });
-              if (result.error) {
-                document.getElementById("payment-message").textContent =
-                  result.error.message;
-                document.getElementById("submit").disabled = false;
-              } else {
-                if (result.paymentIntent.status === "succeeded") {
-                  window.location.href = "{% url 'checkout:thanks' %}";
-                }
-              }
-            });
+                    const result = await stripe.confirmCardPayment(clientSecret, {
+                        payment_method: {
+                            card: card,
+                            billing_details: {
+                                name: cardholderName,
+                                email: email,
+                            },
+                        },
+                    });
+                    if (result.error) {
+                        document.getElementById("payment-message").textContent =
+                            result.error.message;
+                        document.getElementById("submit").disabled = false;
+                    } else {
+                        if (result.paymentIntent.status === "succeeded") {
+                            window.location.href = "{% url 'checkout:thanks' %}";
+                        }
+                    }
+                });
 
-          // Máscara simples para CPF
-          document
-            .getElementById("cpf")
-            .addEventListener("input", function (e) {
-              let v = e.target.value.replace(/\D/g, "");
-              v = v.replace(/(\d{3})(\d)/, "$1.$2");
-              v = v.replace(/(\d{3})(\d)/, "$1.$2");
-              v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-              e.target.value = v;
-            });
+            // Máscara simples para CPF
+            document
+                .getElementById("cpf")
+                .addEventListener("input", function (e) {
+                    let v = e.target.value.replace(/\D/g, "");
+                    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+                    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+                    v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+                    e.target.value = v;
+                });
         });
-      </script>
+        </script>
     </div>
-  </div>
-  {% endblock %}
+</div>
+{% endblock %}

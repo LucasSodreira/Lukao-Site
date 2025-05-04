@@ -1,7 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="pt-br">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lukao MultiMarcas</title>
@@ -10,123 +10,118 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet" />
     <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet">
-                
-  </head>
-  <body>
+</head>
+<body>
     <header>
-      <!-- Navbar -->
-      <div class="navbar">
-        <!-- Logo (imagem + texto) -->
-        <div class="logo-container">
-          <a href="{% url 'index' %}"><img src="{% static 'images/logo.svg' %}" alt="Logo Lukão" class="logo-img" /></a>
-        </div>
+        <!-- Navbar -->
+        <div class="navbar">
+            <!-- Logo -->
+            <div class="logo-container">
+                <a href="{% url 'index' %}">
+                    <img src="{% static 'images/logo.svg' %}" alt="Logo Lukão" class="logo-img" />
+                </a>
+            </div>
 
-        <!-- Informação de Entrega -->
-        <div class="delivery-info">
-          <img src="{% static 'images/marker.svg' %}" alt="Localização" class="delivery-icon" />
-          <div class="delivery-container">
+            <!-- Informação de Entrega -->
+            <div class="delivery-info">
+                <img src="{% static 'images/marker.svg' %}" alt="Localização" class="delivery-icon" />
+                <div class="delivery-container">
+                    {% if user.is_authenticated %}
+                        <span class="delivery-text">Enviar para {{ nome_usuario }}</span>
+                        {% if cep_usuario %}
+                            <span class="delivery-cep">{{ cep_usuario }}</span>
+                        {% else %}
+                            <span class="delivery-cep">Informe seu CEP</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="delivery-text">Enviar para</span>
+                        <span class="delivery-cep">Informe o seu CEP</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Barra de Pesquisa -->
+            <div class="search-bar">
+                <div class="category-dropdown">
+                    <button class="category-button">Categorias</button>
+                    <div class="category-menu">
+                        <a href="#">Categoria 1</a>
+                        <a href="#">Categoria 2</a>
+                        <a href="#">Categoria 3</a>
+                    </div>
+                </div>
+                <input type="text" class="search-input" placeholder="Buscar produtos..." />
+                <button class="search-button">
+                    <img src="{% static 'images/search-icon.svg' %}" alt="Buscar" class="search-icon" />
+                </button>
+            </div>
+
+            <!-- Ícone de Usuário -->
+            <div class="user-icon-container">
+                {% if user.is_authenticated %}
+                    <div class="infos-dropdown">
+                        <img src="{% static 'images/perfil.svg' %}" alt="Usuário" class="user-icon" />
+                        <p>{{ nome_usuario }}</p>
+                    </div>
+                    <div class="infos-menu">
+                        <a href="{% url 'user:profile' %}">Informações Pessoais</a>
+                        <a href="{% url 'user:address_management' %}">Gerenciar Endereços</a>
+                        <a href="{% url 'user:purchase_history' %}">Histórico de Compras</a>
+                        <form action="{% url 'user:logout' %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" id="btn-logout">Sair</button>
+                        </form>
+                    </div>
+                {% else %}
+                    <a href="{% url 'user:login' %}" id="login-link">
+                        <img src="{% static 'images/perfil.svg' %}" alt="Usuário" class="user-icon" /> Entrar
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- Ícone de Compras -->
+            <div class="shopping-icon-container">
+                <a href="{% url 'user:purchase_history' %}" id="buy-info">Compras</a>
+            </div>
+
+            <!-- Ícone de Favoritos -->
+            {# 
+            <div class="favorites-icon-container">
+                <a href="{% url 'user:favoritos' %}">
+                    <img src="{% static 'images/favoritos.svg' %}" alt="Favoritos" class="favorites-icon" />
+                </a>
+            </div>
+            #}
+
             {% if user.is_authenticated %}
-              <span class="delivery-text">Enviar para {{ nome_usuario }}</span>
-
-              {% if cep_usuario %}
-                <span class="delivery-cep">{{ cep_usuario }}</span>
-              {% else %}
-                <span class="delivery-cep">Informe seu CEP</span>
-              {% endif %}
-            {% else %}
-              <span class="delivery-text">Enviar para</span>
-              <span class="delivery-cep">Informe o seu CEP</span>
+                <div class="notificacoes">
+                    <div class="notificacoes">
+                        {% for notificacao in notificacoes_nao_lidas %}
+                            <div class="alert alert-info">
+                                {{ notificacao.mensagem }}
+                                <a href="{% url 'user:marcar_notificacao_lida' notificacao.id %}">Marcar como lida</a>
+                            </div>
+                        {% empty %}
+                            <!-- Sem notificações -->
+                        {% endfor %}
+                    </div>
+                </div>
             {% endif %}
-          </div>
-        </div>
 
-        <!-- Barra de Pesquisa -->
-        <div class="search-bar">
-          <!-- Categorias com Hover -->
-          <div class="category-dropdown">
-            <button class="category-button">Categorias</button>
-            <div class="category-menu">
-              <a href="#">Categoria 1</a>
-              <a href="#">Categoria 2</a>
-              <a href="#">Categoria 3</a>
+            <!-- Ícone de Carrinho de Compras -->
+            <div class="cart-icon-container">
+                <a href="{% url 'carrinho' %}">
+                    <img src="{% static 'images/carrinho.svg' %}" alt="Carrinho" class="cart-icon" />
+                </a>
             </div>
-          </div>
-
-          <!-- Campo de Pesquisa -->
-          <input type="text" class="search-input" placeholder="Buscar produtos..." />
-
-          <!-- Botão de Busca -->
-          <button class="search-button"><img src="{% static 'images/search-icon.svg' %}" alt="Buscar" class="search-icon" /></button>
         </div>
-
-        <!-- Ícone de Usuário -->
-        <div class="user-icon-container">
-          {% if user.is_authenticated %}
-            <div class="infos-dropdown">
-              <img src="{% static 'images/perfil.svg' %}" alt="Usuário" class="user-icon" />
-              <p>{{nome_usuario}}</p>
-            </div>
-            <div class="infos-menu">
-              <a href="{% url 'user:profile' %}">Informações Pessoais</a>
-              <a href="{% url 'user:address_management' %}">Gerenciar Endereços</a>
-              <a href="{% url 'user:purchase_history' %}">Histórico de Compras</a>
-              <form action="{% url 'user:logout' %}" method="post" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" id="btn-logout" >Sair</button>
-              </form>
-            </div>
-          {% else %}
-
-            <a href="{% url 'user:login' %}" id="login-link">
-              <img src="{% static 'images/perfil.svg' %}" alt="Usuário" class="user-icon" /> Entrar
-            </a>
-
-          {% endif %}
-        </div>
-
-        <!-- Ícone de Compras -->
-        <div class="shopping-icon-container">
-          <a href="{% url 'user:purchase_history' %}" id="buy-info">Compras</a>
-        </div>
-
-        <!-- Ícone de Favoritos -->
-        {% comment %} <div class="favorites-icon-container">
-          <a href="{% url 'user:favoritos' %}"><img src="{% static 'images/favoritos.svg' %}" alt="Favoritos" class="favorites-icon" /></a>
-        </div> {% endcomment %}
-
-        {% if user.is_authenticated %}
-          <div class="notificacoes">
-            <div class="notificacoes">
-              {% for notificacao in notificacoes_nao_lidas %}
-                  <div class="alert alert-info">
-                      {{ notificacao.mensagem }}
-                      <a href="{% url 'user:marcar_notificacao_lida' notificacao.id %}">Marcar como lida</a>
-                  </div>
-                {% empty %}
-                  <!-- Sem notificações -->
-              {% endfor %}
-          </div>
-        </div>
-        {% endif %}
-
-        <!-- Ícone de Carrinho de Compras -->
-        <div class="cart-icon-container">
-          <a href="{% url 'carrinho' %}"><img src="{% static 'images/carrinho.svg' %}" alt="Carrinho" class="cart-icon" />
-          </a>
-        </div>
-      </div>
     </header>
 
     <!-- Banner Section -->
-    {% block banner %}
-
-    {% endblock %}
+    {% block banner %}{% endblock %}
 
     <main>
-      {% block main %}
-
-      {% endblock %}
+        {% block main %}{% endblock %}
     </main>
-
-  </body>
+</body>
 </html>

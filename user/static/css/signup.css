@@ -5,36 +5,31 @@ body {
     min-height: 100vh;
     background-color: #000;
     color: #fff;
-
     font-family: "Cabin", sans-serif;
     font-optical-sizing: auto;
     font-style: normal;
-    font-variation-settings:
-    "wdth" 100;
+    font-variation-settings: "wdth" 100;
 }
+
 .container {
     display: flex;
     width: 100%;
 }
 
-#div-back{
-  
+#div-back {
     width: 100%;
     position: relative;
     bottom: 50px;
-  
-  }
-  
-  #back{
-    
+}
+
+#back {
     padding: 10px 14px;
     text-decoration: none;
     color: black;
     background: white;
     border-radius: 11px;
     font-size: 18px;
-  
-  }
+}
 
 .banner-section {
     flex: 1;
@@ -48,6 +43,7 @@ body {
     font-size: 48px;
     color: #000;
 }
+
 .signup-section {
     flex: 1;
     display: flex;
@@ -105,12 +101,16 @@ body {
     text-decoration: underline;
 }
 
-#logo-img{
+#logo-img {
     width: 350px;
     height: auto;
     margin-bottom: 20px;
-  }
-  
-  #password, #email, #nickname, #confirm_password::-webkit-input-placeholder{
+}
+
+/* Placeholder padding para inputs */
+#password::-webkit-input-placeholder,
+#email::-webkit-input-placeholder,
+#nickname::-webkit-input-placeholder,
+#confirm_password::-webkit-input-placeholder {
     padding-left: 13px;
-  }
+}

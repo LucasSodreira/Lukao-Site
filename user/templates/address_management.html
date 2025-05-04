@@ -2,64 +2,53 @@
 {% load static %}
 
 {% block main %}
-    
 <link rel="stylesheet" href="{% static 'css/address_management.css' %}" />
-
 <div class="container">
-    
     {% block sidebar %}
         {% include 'sidebar.html' %}
     {% endblock sidebar %}
-        
-
-        <div class="main-content">
-            <div class="header">
-                <h1>My account</h1>
-            </div>
-            <div class="address-section">
-                <h2>My addresses</h2>
-                <p>Here you can view and modify your delivery and billing addresses.</p>
-                <button class="add-address-btn"><a href="{% url 'user:endereco' %}" id="add-address"> Add a new address</a></button>
-        
-                <div class="address-cards">
-                    {% for endereco in enderecos %}
-                    <div class="address-card">
-                        {% if endereco.principal %}
-                        <span class="default" >✓ Default</span>
+    <div class="main-content">
+        <div class="header">
+            <h1>My account</h1>
+        </div>
+        <div class="address-section">
+            <h2>My addresses</h2>
+            <p>Here you can view and modify your delivery and billing addresses.</p>
+            <button class="add-address-btn">
+                <a href="{% url 'user:endereco' %}" id="add-address">Add a new address</a>
+            </button>
+            <div class="address-cards">
+                {% for endereco in enderecos %}
+                <div class="address-card">
+                    {% if endereco.principal %}
+                    <span class="default">✓ Default</span>
+                    {% endif %}
+                    <h3>{{ endereco.nome_completo }}</h3>
+                    <p>
+                        {{ endereco.rua }}, {{ endereco.numero }}{% if endereco.complemento %} - {{ endereco.complemento }}{% endif %}
+                    </p>
+                    <p>{{ endereco.bairro }} - {{ endereco.cidade }}/{{ endereco.estado }}</p>
+                    <p>{{ endereco.cep }} - {{ endereco.pais }}</p>
+                    <p>{{ endereco.telefone }}</p>
+                    <div class="actions">
+                        {% if not endereco.principal %}
+                        <form action="{% url 'user:definir-endereco-principal' endereco.pk %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-mini">Definir como principal</button>
+                        </form>
                         {% endif %}
-                        
-                        <h3>{{ endereco.nome_completo }}</h3>
-                        <p>
-                            {{ endereco.rua }}, {{ endereco.numero }}{% if endereco.complemento %}
-                              - {{ endereco.complemento }}
-                            {% endif %}
-                          </p>
-                          <p>{{ endereco.bairro }} - {{ endereco.cidade }}/{{ endereco.estado }}</p>
-                          <p>{{ endereco.cep }} - {{ endereco.pais }}</p>
-                          <p>{{ endereco.telefone }}</p>
-                        <div class="actions">
-                            {% if not endereco.principal %}
-                            <form action="{% url 'user:definir-endereco-principal' endereco.pk %}" method="post" style="display: inline;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-mini">Definir como principal</button>
-                            </form>
-                            {% endif %}
-                            <a href="{% url 'user:editar-endereco' endereco.pk %}" class="btn-mini">Editar</a>
-                            <form action="{% url 'user:excluir-endereco' endereco.pk %}" method="post" style="display: inline;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-mini danger" onclick="return confirm('Tem certeza que deseja excluir este endereço?')">Excluir</button>
-                              </form>
-                            
-                        </div>
+                        <a href="{% url 'user:editar-endereco' endereco.pk %}" class="btn-mini">Editar</a>
+                        <form action="{% url 'user:excluir-endereco' endereco.pk %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-mini danger" onclick="return confirm('Tem certeza que deseja excluir este endereço?')">Excluir</button>
+                        </form>
                     </div>
-
-
-                    {% empty %}
-                        <p class="no-address">Você ainda não tem endereços cadastrados.</p>
-                    {% endfor %}
                 </div>
+                {% empty %}
+                <p class="no-address">Você ainda não tem endereços cadastrados.</p>
+                {% endfor %}
             </div>
         </div>
     </div>
-
+</div>
 {% endblock main %}

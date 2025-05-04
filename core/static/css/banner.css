@@ -10,10 +10,12 @@
     margin-top: 16px;
     font-size: 3rem;
 }
+
 .arrow {
     width: 30px;
     cursor: pointer;
 }
+
 .image-slider {
     display: flex;
     overflow: hidden;
@@ -21,6 +23,7 @@
     justify-content: center;
     color: white;
 }
+
 .slider-image {
     max-width: 100%;
     height: auto;

@@ -1,11 +1,9 @@
-# forms.py
 from django import forms
-import re
-from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
+from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+import re
 from user.models import Perfil
-
 
 User = get_user_model()
 
@@ -28,9 +26,7 @@ class CustomUserChangeForm(UserChangeForm):
 
     class Meta:
         model = User
-        fields = ('username', 'email',
-                 'current_password', 'new_password', 'confirm_password')
-
+        fields = ('username', 'email', 'current_password', 'new_password', 'confirm_password')
 
     def clean(self):
         cleaned_data = super().clean()
@@ -41,16 +37,13 @@ class CustomUserChangeForm(UserChangeForm):
         if new_password or confirm_password or current_password:
             if not (new_password and confirm_password and current_password):
                 raise ValidationError("Para alterar a senha, todos os campos de senha são obrigatórios")
-            
             if new_password != confirm_password:
                 raise ValidationError("As novas senhas não coincidem")
-            
             user = self.instance
             if not user.check_password(current_password):
                 raise ValidationError("Senha atual incorreta")
-        
         return cleaned_data
-    
+
 class PerfilForm(forms.ModelForm):
     class Meta:
         model = Perfil
@@ -62,8 +55,7 @@ class PerfilForm(forms.ModelForm):
             'data_nascimento': forms.DateInput(attrs={'type': 'date'}),
             'sexo': forms.Select(),
         }
-        
-        
+
     def clean_cpf(self):
         cpf = self.cleaned_data.get('cpf')
         if cpf:

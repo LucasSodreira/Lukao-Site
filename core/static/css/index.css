@@ -12,10 +12,10 @@
   margin-top: 40px;
   margin-bottom: 20px;
   font-weight: bold;
+  font-size: 4rem;
 }
 
 .product-card {
-  /* border: 1px solid #e0e0e0; */
   border-radius: 10px;
   padding: 16px;
   display: flex;
@@ -23,7 +23,8 @@
   transition: transform 0.3s, box-shadow 0.3s;
   flex-direction: column;
   align-items: center;
-  /* max-width: 225px; */
+  position: relative;
+  scroll-snap-align: start;
 }
 
 .product-card:hover {
@@ -70,11 +71,10 @@
   background: #1A1F16;
   padding: 12px;
   border-radius: 16px;
-}	
+}
 
 .categoria-bloco {
   margin-bottom: 40px;
-  /* width: 50%; */
 }
 
 .categoria-header {
@@ -84,17 +84,12 @@
   margin: 0 20px;
 }
 
-.categoria-titulo {
-  font-size: 4rem;
-  font-weight: bold;
-}
-
 .ver-mais {
   padding: 1rem 4rem;
-    border: 1px solid;
-    color: black;
-    border-radius: 62px;
-    font-size: 1.5rem;
+  border: 1px solid;
+  color: black;
+  border-radius: 62px;
+  font-size: 1.5rem;
 }
 
 .ver-mais:hover {
@@ -118,22 +113,13 @@
   border-radius: 4px;
 }
 
-.product-card {
-  /* flex: 0 0 auto; */
-  /* width: 200px; */
-  scroll-snap-align: start;
-}
-
-
-/* Estilos para avaliaÃ§Ãµes (ratings) */
 .product-rating {
-  color: #FFC107; /* Cor amarela para as estrelas */
+  color: #FFC107;
   font-size: 0.9rem;
   margin: 5px 0;
-  letter-spacing: 2px; /* EspaÃ§amento entre estrelas */
+  letter-spacing: 2px;
 }
 
-/* Estilos para preÃ§os com desconto */
 .product-price .current-price {
   color: #000;
   font-weight: bold;
@@ -146,12 +132,6 @@
   margin-left: 8px;
 }
 
-/* Melhorias no cartÃ£o de produto */
-.product-card {
-  position: relative;
-}
-
-/* Efeito de "novo" para os arrivals */
 .product-card::after {
   content: "NOVO";
   position: absolute;
@@ -165,16 +145,13 @@
   font-weight: bold;
 }
 
-#produto-link{
-  
+#produto-link {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   text-decoration: none;
-  
 }
 
-/* Ajustes para o carrossel */
 .carrossel-produtos.quantidade-4 {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -183,13 +160,14 @@
   margin: 0 auto;
 }
 
-.cart-button{
+.cart-button {
   background: none;
-    border: none;
-    cursor: pointer;
+  border: none;
+  cursor: pointer;
 }
 
-#view-all, #view-all:hover {
+#view-all,
+#view-all:hover {
   text-decoration: none;
   color: black;
 }

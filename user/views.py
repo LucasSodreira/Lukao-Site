@@ -1,5 +1,5 @@
 from django.views.generic import TemplateView, UpdateView, FormView
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, resolve_url
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
@@ -9,8 +9,9 @@ from django.contrib.auth.views import LoginView as BaseLoginView
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import redirect, resolve_url
+from django.shortcuts import redirect, get_object_or_404
 from django.conf import settings
+
 from checkout.views import (
     DefinirEnderecoPrincipal as BaseDefinirEnderecoPrincipal,
     ExcluirEnderecoView as BaseExcluirEnderecoView,
@@ -19,8 +20,6 @@ from checkout.views import (
     EnderecoCreateView as BaseEnderecoCreateView
 )
 from user.forms import CustomUserChangeForm
-
-from django.shortcuts import redirect, get_object_or_404
 from .models import Notificacao
 
 # ==========================
@@ -40,7 +39,6 @@ class LoginView(BaseLoginView):
     def form_invalid(self, form):
         messages.error(self.request, "Credenciais inválidas. Tente novamente.")
         return super().form_invalid(form)
-
 
 class RegisterView(FormView):
     template_name = 'register.html'
@@ -72,7 +70,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             return redirect('login')
         context['user'] = user
         return context
-    
+
 @method_decorator(login_required, name='dispatch')
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     model = User
@@ -105,7 +103,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
 
 class OrderDetailView(TemplateView):
     template_name = 'order_details.html'
-    
+
 class PurchaseHistoryView(TemplateView):
     template_name = 'purchase_history.html'
 
@@ -124,7 +122,6 @@ class DefinirEnderecoPrincipal(BaseDefinirEnderecoPrincipal):
         response = super().post(request, pk)
         return redirect('user:address_management')
 
-
 @method_decorator(login_required, name='dispatch')
 class ExcluirEnderecoView(BaseExcluirEnderecoView):
     def post(self, request, pk):
@@ -132,7 +129,6 @@ class ExcluirEnderecoView(BaseExcluirEnderecoView):
             raise PermissionDenied("Você não tem permissão para realizar esta ação.")
         response = super().post(request, pk)
         return redirect('user:address_management')
-
 
 class EnderecoEditView(BaseEnderecoEditView):
     success_url = reverse_lazy('user:address_management')
@@ -146,7 +142,6 @@ class EnderecoEditView(BaseEnderecoEditView):
         if not request.user.is_authenticated:
             raise PermissionDenied("Você não tem permissão para editar este endereço.")
         return super().dispatch(request, *args, **kwargs)
-
 
 class EnderecoCreateView(BaseEnderecoCreateView):
     success_url = reverse_lazy('user:address_management')

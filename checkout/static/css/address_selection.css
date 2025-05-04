@@ -29,8 +29,8 @@
 }
 
 .address-card.selected {
-    border-color: #1A1F16;
-    background-color: #f9f9f9;
+    border: 2px solid #007bff;
+    background-color: #f3faff;
 }
 
 .address-header {
@@ -91,11 +91,6 @@
     display: flex;
     font-size: 1rem;
 }
-
-.address-card.selected {
-    border: 2px solid #007bff;
-    background-color: #f3faff;
-  }
 
 .step-name {
     font-size: 12px;
@@ -166,14 +161,14 @@
     background-color: #eee;
     border: 1px solid #ccc;
     border-radius: 3px;
-  }
-  
-  .btn-mini.danger {
+}
+
+.btn-mini.danger {
     background-color: #ffcccc;
     border-color: #ff4d4d;
     color: #900;
-  }
-  
-  .address-actions-inline {
+}
+
+.address-actions-inline {
     margin-top: 8px;
-  }
+}

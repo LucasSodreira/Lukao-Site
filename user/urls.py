@@ -12,16 +12,12 @@ urlpatterns = [
     path('registrar/', RegisterView.as_view(), name='register'),
     path('order-detail/', OrderDetailView.as_view(), name='order_detail'),
     path('purchase-history/', PurchaseHistoryView.as_view(), name='purchase_history'),
-    
     path('profile/', ProfileView.as_view(), name='profile'),
     path('profile/edit/', ProfileUpdateView.as_view(), name='edit_profile'),
-    
     path('address-management/', AddresManagementView.as_view(), name='address_management'),
     path('endereco/', EnderecoCreateView.as_view(), name='endereco'),
     path('endereco/<int:pk>/editar/', EnderecoEditView.as_view(), name='editar-endereco'),
     path('endereco/<int:pk>/excluir/', ExcluirEnderecoView.as_view(), name='excluir-endereco'),
     path('endereco/<int:pk>/principal/', DefinirEnderecoPrincipal.as_view(), name='definir-endereco-principal'),
-    
     path('notificacao/<int:notificacao_id>/lida/', views.marcar_notificacao_lida, name='marcar_notificacao_lida'),
-    
 ]

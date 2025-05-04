@@ -2,7 +2,6 @@
 {% load static %}
 
 {% block main %}
-
 <link rel="stylesheet" href="{% static 'css/carrinho.css' %}">
 <script src="{% static 'js/remove.js' %}"></script>
 
@@ -18,49 +17,48 @@
         <div class="cart-items">
             {% if itens_carrinho %}
                 {% for item in itens_carrinho %}
-                <div class="cart-item">
-                    <div class="item-image">
-                        {% if item.produto.imagem %}
-                            <img src="{{ item.produto.imagem.url }}" alt="{{ item.produto.nome }}">
-                        {% else %}
-                            <img src="{% static 'images/default.png' %}" alt="Imagem não disponível">
-                        {% endif %}
-                    </div>
-                    
-                    <div class="item-details">
-                      <div class="item-info">
-                        <h3 class="item-name">{{ item.produto.nome }}</h3>
-                        {% if item.size %}
-                        <p class="item-attribute">Tamanho: {{ item.size|upper }}</p>
-                        {% endif %}
-                        <p class="item-attribute">Cor: -</p>
-                      </div>
-                        <div class="item-price-info">
-                          <p class="item-price">Preço Unitário: R$ {{ item.produto.preco }}</p>
-                          <p class="item-subtotal">Subtotal: R$ {{ item.subtotal }}</p>
+                    <div class="cart-item">
+                        <div class="item-image">
+                            {% if item.produto.imagem %}
+                                <img src="{{ item.produto.imagem.url }}" alt="{{ item.produto.nome }}">
+                            {% else %}
+                                <img src="{% static 'images/default.png' %}" alt="Imagem não disponível">
+                            {% endif %}
+                        </div>
+                        <div class="item-details">
+                            <div class="item-info">
+                                <h3 class="item-name">{{ item.produto.nome }}</h3>
+                                {% if item.size %}
+                                    <p class="item-attribute">Tamanho: {{ item.size|upper }}</p>
+                                {% endif %}
+                                <p class="item-attribute">Cor: -</p>
+                            </div>
+                            <div class="item-price-info">
+                                <p class="item-price">Preço Unitário: R$ {{ item.produto.preco }}</p>
+                                <p class="item-subtotal">Subtotal: R$ {{ item.subtotal }}</p>
+                            </div>
+                        </div>
+                        <div class="action-center">
+                            <form action="{% url 'remover-item' item.chave %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="remove-btn">
+                                    <img src="{% static 'images/delete.svg' %}" alt="delete">
+                                </button>
+                            </form>
+                            <div class="quantity-control">
+                                <form action="{% url 'diminuir-item' item.chave %}" method="post" id="quantity-btn">
+                                    {% csrf_token %}
+                                    <button type="submit">-</button>
+                                </form>
+                                <span>{{ item.quantidade }}</span>
+                                <form action="{% url 'aumentar-item' item.chave %}" method="post" id="quantity-btn">
+                                    {% csrf_token %}
+                                    <button type="submit">+</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="action-center">
-                      <form action="{% url 'remover-item' item.chave %}" method="post">
-                        {% csrf_token %}
-                        <button type="submit" class="remove-btn"><img src="{% static 'images/delete.svg' %}" alt="delete"></button>
-                      </form>
-                      <div class="quantity-control">
-                        <form action="{% url 'diminuir-item' item.chave %}" method="post" id="quantity-btn">
-                          {% csrf_token %}
-                            <button type="submit">-</button>
-                        </form>
-                        <span>{{ item.quantidade }}</span>
-                        <form action="{% url 'aumentar-item' item.chave %}" method="post" id="quantity-btn">
-                          {% csrf_token %}
-                          <button type="submit">+</button>
-                        </form>
-                      </div>
-                      
-                    </div>
-                  </div>
-                  {% if not forloop.last %}<hr class="item-divider">{% endif %}
+                    {% if not forloop.last %}<hr class="item-divider">{% endif %}
                 {% endfor %}
             {% else %}
                 <p id="carrinho-vazio">Seu carrinho está vazio.</p>
@@ -69,27 +67,22 @@
 
         <div class="order-summary">
             <h3 class="summary-title">Resumo do Pedido</h3>
-            
             <div class="summary-row">
                 <span>Subtotal</span>
                 <span>R$ {{ total_carrinho }}</span>
             </div>
-            
             <div class="summary-row discount">
                 <span>Desconto (-20%)</span>
                 <span>-R$ {{ total_carrinho }}</span>
             </div>
-            
             <div class="summary-row">
                 <span>Taxa de Entrega</span>
                 <span>R$ 15.00</span>
             </div>
-            
             <div class="summary-total">
                 <span>Total</span>
                 <span>R$ {{ total_carrinho }}</span>
             </div>
-            
             <form method="get" action="{% url 'checkout:select_address' %}">
                 <button type="submit" class="checkout-btn">Finalizar Pedido</button>
             </form>

@@ -1,58 +1,52 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block banner %}
-  {% include 'banner.html' %}
+    {% include 'banner.html' %}
 {% endblock %}
 
 {% block main %}
-  <link rel="stylesheet" href="{% static 'css/index.css' %}" />
-  
-  <div class="center-container">
+<link rel="stylesheet" href="{% static 'css/index.css' %}" />
+
+<div class="center-container">
     <div class="categoria-bloco">
-      <div class="categoria-header">
-        <h2 class="categoria-titulo">NEW ARRIVALS</h2>
-
-      </div>
-
-      <div class="carrossel-produtos quantidade-{{ new_arrivals|length }}">
-        {% for produto in produtos|slice:":4" %}
-        <div class="product-card">
-          <a href="{% url 'item-view' produto.id %}" id="produto-link">
-            {% if produto.imagem %}
-              <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}" class="product-image" />
-            {% else %}
-              <img src="{% static 'images/default.png' %}" alt="Imagem não disponível" class="product-image" />
-            {% endif %}
-            
-            <h3 class="product-title">{{ produto.nome }}</h3>
-            <div class="product-rating">
-
-            </div>
-            <div class="product-price-container">
-              <p class="product-price">
-                {% if produto.preco_desconto %}
-                  <span class="current-price">${{ produto.preco_desconto }}</span>
-                  <span class="old-price">${{ produto.preco }}</span>
-                {% else %}
-                  ${{ produto.preco }}
-                {% endif %}
-              </p>
-              <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form">
-                {% csrf_token %}
-                <input type="hidden" name="quantity" value="1" />
-                <button type="submit" class="cart-button">
-                  <img src="{% static 'images/cart.svg' %}" alt="Adicionar ao carrinho" id="cart-icon" />
-                </button>
-              </form>
-            </div>
-          </a>
+        <div class="categoria-header">
+            <h2 class="categoria-titulo">NEW ARRIVALS</h2>
         </div>
-        {% endfor %}
-      </div>
+        <div class="carrossel-produtos quantidade-{{ new_arrivals|length }}">
+            {% for produto in produtos|slice:":4" %}
+                <div class="product-card">
+                    <a href="{% url 'item-view' produto.id %}" id="produto-link">
+                        {% if produto.imagem %}
+                            <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}" class="product-image" />
+                        {% else %}
+                            <img src="{% static 'images/default.png' %}" alt="Imagem não disponível" class="product-image" />
+                        {% endif %}
+                        <h3 class="product-title">{{ produto.nome }}</h3>
+                        <div class="product-rating"></div>
+                        <div class="product-price-container">
+                            <p class="product-price">
+                                {% if produto.preco_desconto %}
+                                    <span class="current-price">${{ produto.preco_desconto }}</span>
+                                    <span class="old-price">${{ produto.preco }}</span>
+                                {% else %}
+                                    ${{ produto.preco }}
+                                {% endif %}
+                            </p>
+                            <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="quantity" value="1" />
+                                <button type="submit" class="cart-button">
+                                    <img src="{% static 'images/cart.svg' %}" alt="Adicionar ao carrinho" id="cart-icon" />
+                                </button>
+                            </form>
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
     </div>
     <div class="ver-mais">
-      <a href="" id="view-all">Ver Todos</a>
+        <a href="" id="view-all">Ver Todos</a>
     </div>
-
-  </div>
+</div>
 {% endblock %}

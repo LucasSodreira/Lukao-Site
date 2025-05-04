@@ -6,7 +6,6 @@
 <script src="{% static 'js/item_view.js' %}"></script>
 
 <div class="product-detail-container">
-    {% comment %} {% for produto in produtos %} {% endcomment %}
     <!-- Breadcrumb -->
     <div class="breadcrumb">
         <a href="{% url 'index' %}">Home</a> > 
@@ -14,12 +13,10 @@
         <a href="#">{{ produto.categoria.nome }}</a> > 
         <span>{{ produto.nome }}</span>
     </div>
-    
     <!-- Product Details -->
     <div class="product-detail">
         <!-- Product Images (left side) -->
         <div class="thumbnail-container">
-            <!-- Você pode adicionar mais thumbnails aqui se tiver imagens adicionais -->
             <div class="thumbnail active">
                 <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}">
             </div>
@@ -29,46 +26,35 @@
                 <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}">
             </div>
         </div>
-
         <!-- Product Info (right side) -->
         <div class="product-info">
             <h1 class="product-title">{{ produto.nome }}</h1>
-            
             <div class="product-price">
-                
                 <span class="current-price">${{ produto.preco }}</span>
-                
             </div>
-            
             <div class="product-description">
                 <p>{{ produto.descricao }}</p>
             </div>
-            
             <!-- Tamanhos -->
             <div class="size-selection">
                 <h3>Choose Size</h3>
                 <div class="size-options">
                     <input type="radio" id="size-small" name="size" value="small" class="size-radio" checked>
                     <label for="size-small" class="size-label">Small</label>
-                    
-                        <input type="radio" id="size-medium" name="size" value="medium" class="size-radio">
-                        <label for="size-medium" class="size-label">Medium</label>
-                        
-                        <input type="radio" id="size-large" name="size" value="large" class="size-radio">
-                        <label for="size-large" class="size-label">Large</label>
-                        
-                        <input type="radio" id="size-xlarge" name="size" value="xlarge" class="size-radio">
-                        <label for="size-xlarge" class="size-label">X-Large</label>
-                    </div>
+                    <input type="radio" id="size-medium" name="size" value="medium" class="size-radio">
+                    <label for="size-medium" class="size-label">Medium</label>
+                    <input type="radio" id="size-large" name="size" value="large" class="size-radio">
+                    <label for="size-large" class="size-label">Large</label>
+                    <input type="radio" id="size-xlarge" name="size" value="xlarge" class="size-radio">
+                    <label for="size-xlarge" class="size-label">X-Large</label>
                 </div>
-                
-                <div class="container-actions">
-                    <div class="quantity-container">
-                        <button type="button" class="quantity-btn" onclick="decreaseQuantity()">-</button>
-                        <span id="quantity">1</span>
-                        <button type="button" class="quantity-btn" onclick="increaseQuantity()">+</button>
-                    </div>
-
+            </div>
+            <div class="container-actions">
+                <div class="quantity-container">
+                    <button type="button" class="quantity-btn" onclick="decreaseQuantity()">-</button>
+                    <span id="quantity">1</span>
+                    <button type="button" class="quantity-btn" onclick="increaseQuantity()">+</button>
+                </div>
                 <!-- Botões de ação -->
                 <div class="action-buttons">
                     <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form">
@@ -80,13 +66,10 @@
                             Add to Cart
                         </button>
                     </form>
-                    
                     <button type="button" class="action-btn buy-now-btn">Buy Now</button>
                 </div>
             </div>
-
         </div>
     </div>
-    {% comment %} {% endfor %} {% endcomment %}
 </div>
 {% endblock %}

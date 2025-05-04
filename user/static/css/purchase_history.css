@@ -13,28 +13,34 @@
     width: 100%;
     text-align: center;
 }
+
 .main-content {
     flex: 1;
     padding: 20px;
 }
+
 .header {
     background-color: #fff;
     padding: 15px;
     border-bottom: 1px solid #ddd;
     border-radius: 16px;
 }
+
 .header h1 {
     margin: 0;
     font-size: 24px;
 }
+
 .history-section {
     margin-top: 20px;
     padding: 20px;
 }
+
 .history-section h2 {
     font-size: 24px;
     margin-bottom: 10px;
 }
+
 .history-section p {
     font-size: 14px;
     color: #666;

@@ -2,42 +2,38 @@
 {% load static %}
 
 {% block main %}
-    
 <link rel="stylesheet" href="{% static 'css/personal_info.css' %}" />
-
 <div class="container">
     {% block sidebar %}
         {% include 'sidebar.html' %}
     {% endblock sidebar %}
-
-
-        <div class="main-content">  
-            <div class="header">
-                <h1>My account</h1>
+    <div class="main-content">
+        <div class="header">
+            <h1>My account</h1>
+        </div>
+        <div class="info-section">
+            <h2>Personal informations</h2>
+            <p>Vous pouvez ici consulter et modifier vos données personnelles, votre adresse e-mail et votre mot de passe.</p>
+            <div class="info-item">
+                <label>Name</label>
+                <span>{{ user.username|default:"Não informado" }}</span>
             </div>
-            <div class="info-section">
-                <h2>Personal informations</h2>
-                <p>Vous pouvez ici consulter et modifier vos données personnelles, votre adresse e-mail et votre mot de passe.</p>
-                <div class="info-item">
-                    <label>Name</label>
-                    <span>{{ user.username|default:"Não informado" }}</span>
-                </div>
-                <div class="info-item">
-                    <label>E-mail</label>
-                    <span>{{ user.email| default:"Não informado" }}</span>
-                </div>
-                <div class="info-item">
-                    <label>CPF</label>
-                    <span>{{ user.cpf|default:"Não informado" }}</span>
-                </div>
-
-                <div class="info-item">
-                    <label>Password</label>
-                    <span>••••••••</span>
-                </div>
-                <a href="{% url 'user:edit_profile' %}"><button class="edit-btn">Edit</button></a>
+            <div class="info-item">
+                <label>E-mail</label>
+                <span>{{ user.email|default:"Não informado" }}</span>
             </div>
+            <div class="info-item">
+                <label>CPF</label>
+                <span>{{ user.cpf|default:"Não informado" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Password</label>
+                <span>••••••••</span>
+            </div>
+            <a href="{% url 'user:edit_profile' %}">
+                <button class="edit-btn">Edit</button>
+            </a>
         </div>
     </div>
-
+</div>
 {% endblock main %}

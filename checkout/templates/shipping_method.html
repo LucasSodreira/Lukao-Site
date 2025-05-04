@@ -1,67 +1,61 @@
 {% extends 'base.html' %}
 {% load static %}
-
 {% block main %}
 <link rel="stylesheet" href="{% static 'css/shipping_method.css' %}">
-
 <div class="shipping-container">
     <!-- Passos -->
     <div class="checkout-steps">
         <div class="step active">
-          <img src="{% static 'images/Location.svg' %}" alt="Localização" id="location-icon" />
-          <div class="step-info">
-            <span class="step-number">Step 1</span>
-            <span class="step-name">Address</span>
-          </div>
+            <img src="{% static 'images/Location.svg' %}" alt="Localização" id="location-icon" />
+            <div class="step-info">
+                <span class="step-number">Step 1</span>
+                <span class="step-name">Address</span>
+            </div>
         </div>
         <div class="step">
-          <img src="{% static 'images/Shipping.svg' %}" alt="Shipping" id="Shipping-icon" />
-          <div class="step-info">
-            <span class="step-number">Step 2</span>
-            <span class="step-name">Shipping</span>
-          </div>
+            <img src="{% static 'images/Shipping.svg' %}" alt="Shipping" id="Shipping-icon" />
+            <div class="step-info">
+                <span class="step-number">Step 2</span>
+                <span class="step-name">Shipping</span>
+            </div>
         </div>
         <div class="step">
-          <img src="{% static 'images/Payment.svg' %}" alt="Payment" id="paymentg-icon" />
-          <div class="step-info">
-            <span class="step-number">Step 3</span>
-            <span class="step-name">Payment</span>
-          </div>
+            <img src="{% static 'images/Payment.svg' %}" alt="Payment" id="paymentg-icon" />
+            <div class="step-info">
+                <span class="step-number">Step 3</span>
+                <span class="step-name">Payment</span>
+            </div>
         </div>
-      </div>
+    </div>
     <h1 class="page-title">SHIPMENT METHOD</h1>
-
     <form method="post" action="{% url 'checkout:select_frete' %}">
-      {% csrf_token %}
-      
-      <div class="shipping-options">
-          {% for frete in fretes %}
-          <label class="shipping-option">
-              <input type="radio" name="frete_escolhido" value="{{ frete.id }}"
-                     {% if forloop.first %}checked{% endif %}>
-              <div class="option-content">
-                  <div class="option-header">
-                      <span class="option-title">
-                          {% if frete.price == 0 %}Free{% else %}${{ frete.price|floatformat:2 }}{% endif %}
-                      </span>
-                      <span class="option-date">
-                          {% if frete.delivery_time.days == 1 %}
-                              1 day
-                          {% else %}
-                              {{ frete.delivery_time }} days
-                          {% endif %}
-                      </span>
-                  </div>
-                  <p class="option-description">{{ frete.company.name }} - {{ frete.name }}</p>
-              </div>
-          </label>
-          {% endfor %}
-      </div>
-      
+        {% csrf_token %}
+        <div class="shipping-options">
+            {% for frete in fretes %}
+            <label class="shipping-option">
+                <input type="radio" name="frete_escolhido" value="{{ frete.id }}" {% if forloop.first %}checked{% endif %}>
+                <div class="option-content">
+                    <div class="option-header">
+                        <span class="option-title">
+                            {% if frete.price == 0 %}Free{% else %}${{ frete.price|floatformat:2 }}{% endif %}
+                        </span>
+                        <span class="option-date">
+                            {% if frete.delivery_time.days == 1 %}
+                                1 day
+                            {% else %}
+                                {{ frete.delivery_time }} days
+                            {% endif %}
+                        </span>
+                    </div>
+                    <p class="option-description">{{ frete.company.name }} - {{ frete.name }}</p>
+                </div>
+            </label>
+            {% endfor %}
+        </div>
         <div class="shipping-actions">
-          <a href="{% url 'checkout:select_address' %}" class="btn outline">Back</a>
+            <a href="{% url 'checkout:select_address' %}" class="btn outline">Back</a>
             <button type="submit" class="btn primary">Next</button>
         </div>
-      </form>
+    </form>
 </div>
 {% endblock %}
