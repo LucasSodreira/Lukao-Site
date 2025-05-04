@@ -1,47 +1,69 @@
 import requests
-from core.models import Produto
-import mercadopago
-from django.conf import settings
+from core.models import Produto, Carrinho, ItemCarrinho
+
 
 # ==========================
 # Funções relacionadas ao carrinho
 # ==========================
 
+def obter_carrinho_usuario(request):
+    if not request.user.is_authenticated:
+        return None
+    carrinho, _ = Carrinho.objects.get_or_create(usuario=request.user)
+    return carrinho
+
 def obter_itens_do_carrinho(request):
     """Obtém os itens do carrinho e calcula o subtotal."""
-    carrinho = request.session.get('carrinho', {})
-    itens_carrinho = []
-    subtotal = 0
-
-    # Coletar todos os IDs de produtos usados no carrinho
-    produto_ids = []
-    for item in carrinho.values():
-        if isinstance(item, dict) and 'produto_id' in item:
-            # Verifica se o item tem 'produto_id' e adiciona ao produto_ids
-            produto_ids.append(item['produto_id'])
-            
-
-    produtos = Produto.objects.filter(id__in=produto_ids)
-    produto_dict = {p.id: p for p in produtos}  
-    
-    
-
-    for chave, item in carrinho.items():
-        produto = produto_dict.get(item['produto_id'])
-        if produto:
-            quantidade = item['quantidade']
-            tamanho = item.get('size')
-            subtotal_item = produto.preco * quantidade
+    if request.user.is_authenticated:
+        carrinho = obter_carrinho_usuario(request)
+        itens = carrinho.itens.select_related('produto').all()
+        itens_carrinho = []
+        subtotal = 0
+        for item in itens:
+            subtotal_item = item.produto.preco * item.quantidade
             subtotal += subtotal_item
-
             itens_carrinho.append({
-                'produto': produto,
-                'quantidade': quantidade,
-                'size': tamanho,
+                'produto': item.produto,
+                'quantidade': item.quantidade,
+                'size': item.tamanho,
                 'subtotal': subtotal_item,
             })
+        return itens_carrinho, subtotal
+    else:
+        # fallback para sessão
+        carrinho = request.session.get('carrinho', {})
+        itens_carrinho = []
+        subtotal = 0
 
-    return itens_carrinho, subtotal
+        # Coletar todos os IDs de produtos usados no carrinho
+        produto_ids = []
+        for item in carrinho.values():
+            if isinstance(item, dict) and 'produto_id' in item:
+                # Verifica se o item tem 'produto_id' e adiciona ao produto_ids
+                produto_ids.append(item['produto_id'])
+                
+
+        produtos = Produto.objects.filter(id__in=produto_ids)
+        produto_dict = {p.id: p for p in produtos}  
+        
+        
+
+        for chave, item in carrinho.items():
+            produto = produto_dict.get(item['produto_id'])
+            if produto:
+                quantidade = item['quantidade']
+                tamanho = item.get('size')
+                subtotal_item = produto.preco * quantidade
+                subtotal += subtotal_item
+
+                itens_carrinho.append({
+                    'produto': produto,
+                    'quantidade': quantidade,
+                    'size': tamanho,
+                    'subtotal': subtotal_item,
+                })
+
+        return itens_carrinho, subtotal
 
 
 def limpar_carrinho(request):
@@ -52,26 +74,40 @@ def limpar_carrinho(request):
 
 def adicionar_ao_carrinho(request, produto_id, size=None, quantidade=1):
     """Adiciona um produto ao carrinho."""
-    carrinho = request.session.get('carrinho', {})
-    
-    # Migra carrinho antigo para novo formato se necessário
-    if any(isinstance(v, int) for v in carrinho.values()):
-        carrinho = migrar_carrinho_antigo(carrinho)
-    
-    # Cria uma chave única combinando ID e tamanho
-    chave_item = f"{produto_id}-{size}" if size else str(produto_id)
-    
-    if chave_item in carrinho:
-        carrinho[chave_item]['quantidade'] += quantidade
+    if not request.user.is_authenticated:
+        # fallback para sessão se não logado
+        carrinho = request.session.get('carrinho', {})
+        
+        # Migra carrinho antigo para novo formato se necessário
+        if any(isinstance(v, int) for v in carrinho.values()):
+            carrinho = migrar_carrinho_antigo(carrinho)
+        
+        # Cria uma chave única combinando ID e tamanho
+        chave_item = f"{produto_id}-{size}" if size else str(produto_id)
+        
+        if chave_item in carrinho:
+            carrinho[chave_item]['quantidade'] += quantidade
+        else:
+            carrinho[chave_item] = {
+                'produto_id': produto_id,
+                'quantidade': quantidade,
+                'size': size
+            }
+        
+        request.session['carrinho'] = carrinho
+        request.session.modified = True
+        return carrinho
+    carrinho = obter_carrinho_usuario(request)
+    item, created = ItemCarrinho.objects.get_or_create(
+        carrinho=carrinho,
+        produto_id=produto_id,
+        tamanho=size
+    )
+    if not created:
+        item.quantidade += quantidade
     else:
-        carrinho[chave_item] = {
-            'produto_id': produto_id,
-            'quantidade': quantidade,
-            'size': size
-        }
-    
-    request.session['carrinho'] = carrinho
-    request.session.modified = True
+        item.quantidade = quantidade
+    item.save()
     return carrinho
 
 
@@ -137,6 +173,32 @@ def migrar_carrinho_antigo(carrinho):
         else:  # Já está no formato novo
             novo_carrinho[chave] = valor
     return novo_carrinho
+
+
+def migrar_carrinho_sessao_para_banco(request):
+    if not request.user.is_authenticated:
+        return
+    carrinho_sessao = request.session.get('carrinho', {})
+    if not carrinho_sessao:
+        return
+    carrinho, _ = Carrinho.objects.get_or_create(usuario=request.user)
+    for item_id, item in carrinho_sessao.items():
+        produto = Produto.objects.filter(id=item['produto_id']).first()
+        if not produto:
+            continue
+        item_carrinho, created = ItemCarrinho.objects.get_or_create(
+            carrinho=carrinho,
+            produto=produto,
+            tamanho=item.get('size')
+        )
+        if not created:
+            item_carrinho.quantidade += item['quantidade']
+        else:
+            item_carrinho.quantidade = item['quantidade']
+        item_carrinho.save()
+    # Limpa o carrinho da sessão após migrar
+    del request.session['carrinho']
+    request.session.modified = True
 
 # ==========================
 # Funções relacionadas ao frete
@@ -249,21 +311,3 @@ def montar_payload_envio(pedido):
 # Funções relacionadas ao pagamento
 # ==========================
 
-def criar_preferencia_pagamento(pedido):
-    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
-    preference_data = {
-        "items": [
-            {
-                "title": f"Pedido #{pedido.id}",
-                "quantity": 1,
-                "unit_price": float(pedido.total)
-            }
-        ],
-        "payer": {
-            "email": pedido.usuario.email,
-        },
-        "external_reference": str(pedido.id)
-    }
-    preference_response = sdk.preference().create(preference_data)
-    print(preference_response)
-    return preference_response["response"]["id"]

@@ -6,6 +6,8 @@ from core.models import AvaliacaoProduto, ItemPedido, ProdutoVariacao
 from uuid import uuid4
 from django.core.mail import send_mail
 from core.models import Pedido
+from django.contrib.auth.signals import user_logged_in
+from checkout.utils import migrar_carrinho_sessao_para_banco
 
 @receiver([post_save, post_delete], sender=AvaliacaoProduto)
 def atualizar_avaliacao_produto(sender, instance, **kwargs):
@@ -67,3 +69,10 @@ def notificar_status_pedido(sender, instance, **kwargs):
                 recipient_list=[instance.usuario.email],
                 fail_silently=True,
             )
+
+@receiver(user_logged_in)
+def migrar_carrinho_ao_login(sender, user, request, **kwargs):
+    # Só executa se request tem user (evita erro em testes)
+    if hasattr(request, "user") and request.user.is_authenticated:
+        from checkout.utils import migrar_carrinho_sessao_para_banco
+        migrar_carrinho_sessao_para_banco(request)

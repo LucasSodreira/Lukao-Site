@@ -3,7 +3,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: "Cabin", sans-serif;
+    font-family: 'SF Pro Display', sans-serif;
     font-optical-sizing: auto;
     font-style: normal;
     font-variation-settings:
@@ -11,7 +11,6 @@
 }
 
 body {
-    font-family: "Cabin", sans-serif;
     background-color: #F6F6F6;
 }
 

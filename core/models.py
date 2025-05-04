@@ -412,3 +412,16 @@ class LogStatusPedido(models.Model):
 
     def __str__(self):
         return f"Pedido {self.pedido.codigo}: {self.status_antigo} → {self.status_novo} em {self.data:%d/%m/%Y %H:%M}"
+
+
+class Carrinho(models.Model):
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='carrinho')
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+
+class ItemCarrinho(models.Model):
+    carrinho = models.ForeignKey(Carrinho, on_delete=models.CASCADE, related_name='itens')
+    produto = models.ForeignKey(Produto, on_delete=models.CASCADE)
+    quantidade = models.PositiveIntegerField(default=1)
+    tamanho = models.CharField(max_length=20, null=True, blank=True)

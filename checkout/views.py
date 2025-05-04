@@ -1,3 +1,4 @@
+import stripe
 from django.views.generic import TemplateView, UpdateView, CreateView, FormView, View
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -5,12 +6,16 @@ from django.contrib import messages
 from django.conf import settings
 from decimal import Decimal
 from checkout.forms import EnderecoForm
-from checkout.utils import obter_itens_do_carrinho, cotar_frete_melhor_envio, criar_preferencia_pagamento
+from checkout.utils import obter_itens_do_carrinho, cotar_frete_melhor_envio
 from core.models import Endereco, Produto, Pedido, ItemPedido
 from django.shortcuts import redirect, get_object_or_404
 from django import forms
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponseRedirect
+from django.views.decorators.http import require_POST
+import json
 
 
 # ==========================
@@ -146,11 +151,6 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
                     tamanho=item.get('size')
                 )
 
-        # 3. Gere a preferência do Mercado Pago
-        preference_id = criar_preferencia_pagamento(pedido)
-        context['preference_id'] = preference_id
-        context['mercado_pago_public_key'] = settings.MERCADO_PAGO_PUBLIC_KEY
-
         context.update({
             'itens_carrinho': itens_carrinho,
             'subtotal': subtotal,
@@ -159,6 +159,8 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
             'frete_escolhido': frete_info,
             'endereco': endereco,
         })
+        
+        context['stripe_public_key'] = settings.STRIPE_PUBLIC_KEY
 
         return context
 
@@ -254,16 +256,89 @@ class ShipmentMethodView(LoginRequiredMixin, FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        itens_carrinho, subtotal = obter_itens_do_carrinho(self.request)
+        # ... outros cálculos ...
+        context['itens_carrinho'] = itens_carrinho
+        context['subtotal'] = subtotal
+        # ... outros contextos ...
         context['fretes'] = self.get_fretes()
         return context
 
 class ThanksView(LoginRequiredMixin, TemplateView):
     template_name = 'thanks.html'
 
-class FinalizarPedidoView(LoginRequiredMixin, View):
-    def get(self, request, *args, **kwargs):
-        pedido_id = request.session.get('pedido_id')
-        pedido = get_object_or_404(Pedido, id=pedido_id, usuario=request.user)
-        # Gere o link de pagamento
-        link_pagamento = criar_preferencia_pagamento(pedido)
-        return redirect(link_pagamento)
+
+@login_required
+def checkout_stripe(request):
+    """
+    Cria uma sessão de checkout Stripe e redireciona o usuário para o Stripe Checkout.
+    """
+    try:
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
+        itens_carrinho, subtotal = obter_itens_do_carrinho(request)
+        if not itens_carrinho:
+            messages.error(request, "Seu carrinho está vazio.")
+            return redirect('checkout:order-summary')
+
+        frete_info = request.session.get('frete_escolhido')
+        frete_valor = Decimal(str(frete_info.get('price'))) if frete_info else Decimal('0.00')
+        total = subtotal + frete_valor
+
+        line_items = []
+        for item in itens_carrinho:
+            line_items.append({
+                'price_data': {
+                    'currency': 'brl',
+                    'product_data': {
+                        'name': item['produto'].nome,
+                    },
+                    'unit_amount': int(item['produto'].preco * 100),  # Stripe usa centavos
+                },
+                'quantity': int(item['quantidade']),
+            })
+        if frete_valor > 0:
+            line_items.append({
+                'price_data': {
+                    'currency': 'brl',
+                    'product_data': {
+                        'name': 'Frete',
+                    },
+                    'unit_amount': int(frete_valor * 100),
+                },
+                'quantity': 1,
+            })
+
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=line_items,
+            mode='payment',
+            success_url=request.build_absolute_uri(reverse_lazy('checkout:thanks')),
+            cancel_url=request.build_absolute_uri(reverse_lazy('checkout:order-summary')),
+        )
+        return redirect(session.url)
+    except Exception as e:
+        messages.error(request, f"Erro ao processar pagamento: {str(e)}")
+        return redirect('checkout:order-summary')
+
+
+@require_POST
+@login_required
+def stripe_create_payment_intent(request):
+    try:
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        itens_carrinho, subtotal = obter_itens_do_carrinho(request)
+        frete_info = request.session.get('frete_escolhido')
+        frete_valor = Decimal(str(frete_info.get('price'))) if frete_info else Decimal('0.00')
+        total = subtotal + frete_valor
+
+        amount = int(total * 100)  # em centavos
+
+        intent = stripe.PaymentIntent.create(
+            amount=amount,
+            currency='brl',
+            metadata={'user_id': request.user.id}
+        )
+        return JsonResponse({'clientSecret': intent.client_secret})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)

@@ -1,35 +1,48 @@
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 from django.contrib.auth import get_user_model
-from core.models import Categoria, Produto, Pedido, ItemPedido, LogStatusPedido
+from core.models import Produto, Carrinho, ItemCarrinho, Categoria
+from checkout.utils import migrar_carrinho_sessao_para_banco
 
 User = get_user_model()
 
-class LogStatusPedidoTest(TestCase):
+class CarrinhoMigracaoTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='cliente', password='123')
-        self.categoria = Categoria.objects.create(nome='Camisetas')
+        self.usuario = User.objects.create_user(username='testeuser', email='teste@teste.com', password='123456')
+        self.categoria = Categoria.objects.create(nome='Categoria Teste')
         self.produto = Produto.objects.create(
-            nome='Camiseta Básica',
-            preco=50,
-            categoria=self.categoria,
-            estoque=10
+            nome='Produto Teste',
+            preco=50.0,
+            peso=1,
+            categoria=self.categoria
         )
-        self.pedido = Pedido.objects.create(usuario=self.user, status='P')
-        ItemPedido.objects.create(pedido=self.pedido, produto=self.produto, quantidade=1, preco_unitario=50)
+        self.factory = RequestFactory()
 
-    def test_log_status_criado_ao_mudar_status(self):
-        # Muda status de Pendente para Concluído
-        self.pedido.status = 'C'
-        self.pedido.save()
-        log = LogStatusPedido.objects.filter(pedido=self.pedido).last()
-        self.assertIsNotNone(log)
-        self.assertEqual(log.status_antigo, 'P')
-        self.assertEqual(log.status_novo, 'C')
+    def test_migrar_carrinho_sessao_para_banco(self):
+        # Simula login do usuário
+        self.client.force_login(self.usuario)
+        session = self.client.session
+        session['carrinho'] = {
+            str(self.produto.id): {
+                'produto_id': self.produto.id,
+                'quantidade': 2,
+                'size': None
+            }
+        }
+        session.save()
 
-        # Muda status de Concluído para Cancelado
-        self.pedido.status = 'X'
-        self.pedido.save()
-        log2 = LogStatusPedido.objects.filter(pedido=self.pedido).last()
-        self.assertIsNotNone(log2)
-        self.assertEqual(log2.status_antigo, 'C')
-        self.assertEqual(log2.status_novo, 'X')
+        # Cria uma request real com sessão
+        request = self.factory.get('/')
+        request.user = self.usuario
+        request.session = self.client.session  # Usa a sessão real do client
+
+        # Executa a migração
+        migrar_carrinho_sessao_para_banco(request)
+
+        # Verifica se o item foi migrado
+        carrinho = Carrinho.objects.get(usuario=self.usuario)
+        itens = ItemCarrinho.objects.filter(carrinho=carrinho)
+        self.assertEqual(itens.count(), 1)
+        item = itens.first()
+        self.assertEqual(item.produto, self.produto)
+        self.assertEqual(item.quantidade, 2)
+        self.assertIsNone(item.tamanho)

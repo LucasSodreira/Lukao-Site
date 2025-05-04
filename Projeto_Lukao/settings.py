@@ -29,8 +29,12 @@ if os.path.exists(os.path.join(BASE_DIR, '.env')):
 SECRET_KEY = os.environ.get('SECRET_KEY')
 DB_PASSWORD = os.environ.get('DB_PASSWORD')
 MELHOR_ENVIO_TOKEN = os.environ.get('MELHOR_ENVIO_TOKEN')
+
 MERCADO_PAGO_PUBLIC_KEY = os.getenv('MERCADO_PAGO_PUBLIC_KEY')
 MERCADO_PAGO_ACCESS_TOKEN = os.getenv('MERCADO_PAGO_ACCESS_TOKEN')
+
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
 
 
 # Quick-start development settings - unsuitable for production
