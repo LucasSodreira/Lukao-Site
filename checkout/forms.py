@@ -13,7 +13,20 @@ class EnderecoForm(forms.ModelForm):
             }),
             'cep': forms.TextInput(attrs={
                 'placeholder': '12345-678',
-                'data-mask': '00000-000'
+                'data-mask': '00000-000',
+                'class': 'cep-autofill'
+            }),
+            'estado': forms.TextInput(attrs={
+                'class': 'estado-autofill'
+            }),
+            'cidade': forms.TextInput(attrs={
+                'class': 'cidade-autofill'
+            }),
+            'bairro': forms.TextInput(attrs={
+                'class': 'bairro-autofill'
+            }),
+            'rua': forms.TextInput(attrs={
+                'class': 'rua-autofill'
             }),
             'complemento': forms.TextInput(attrs={
                 'placeholder': 'Opcional'

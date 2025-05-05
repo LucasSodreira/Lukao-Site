@@ -4,12 +4,91 @@
     min-height: 100vh;
 }
 
+
+/* Estilos para a seção de filtros ativos */
+.active-filters-container {
+    margin-bottom: 20px; /* Espaçamento abaixo da seção */
+    padding: 20px;
+    border: 1px solid #eee;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    width: 250px;
+    margin-left: 45px;
+    border-radius: 31px;
+    gap: 10px;
+}
+
+.active-filters-container > span { /* "Filtros Ativos:" */
+    font-weight: bold;
+    margin-right: 10px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.active-filters-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; /* Espaçamento entre as tags */
+}
+
+.active-filter-tag {
+    display: inline-flex; /* Para alinhar texto e botão */
+    align-items: center;
+    background-color: #e0e0e0;
+    padding: 4px 8px;
+    border-radius: 12px; /* Bordas arredondadas */
+    font-size: 0.9em;
+}
+
+.active-filter-tag button {
+    background: none;
+    border: none;
+    color: #555;
+    margin-left: 6px;
+    padding: 0;
+    cursor: pointer;
+    font-size: 1.1em;
+    line-height: 1;
+}
+
+.active-filter-tag button:hover {
+    color: #000;
+}
+
+.clear-all-filters {
+    margin-right: auto; /* Empurra para a direita se houver espaço */
+    padding: 4px 8px;
+    font-size: 0.9em;
+    color: #007bff;
+    text-decoration: none;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+}
+
+.clear-all-filters:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Ajuste para tags de cor */
+.active-filter-tag[style*="background-color"] {
+    padding: 4px 6px 4px 8px; /* Ajuste padding para cor */
+}
+.active-filter-tag[style*="background-color"] button {
+     color: inherit; /* Usa a cor do texto definida no style (branco/preto) */
+     opacity: 0.7;
+}
+.active-filter-tag[style*="background-color"] button:hover {
+    opacity: 1;
+}
+
 /* Sidebar */
 .sidebar {
     width: 250px;
     background-color: #fff;
     padding: 20px;
-    border-right: 1px solid #ddd;
+    border: 1px solid #ddd;
     position: sticky;
     top: 0;
     height: auto;
@@ -18,23 +97,122 @@
     border-radius: 31px;
 }
 
+hr {
+    opacity: 40%;
+}
+
 .sidebar h3 {
     font-size: 18px;
     margin-bottom: 15px;
 }
 
 /* Filtros */
+.edit-btn{
+    
+    background: none;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+
+/* Esconde a aparência padrão do radio button */
+.price-range-options input[type="radio"] {
+    appearance: none; /* Padrão */
+    -webkit-appearance: none; /* Chrome, Safari, Edge */
+    -moz-appearance: none; /* Firefox */
+    /* Garante que ele não ocupe espaço visualmente e não seja clicável diretamente */
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+/* Estiliza o label para parecer uma opção clicável */
+.price-range-options label {
+    display: block;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    background-color: #fff;
+    color: #333;
+}
+
+/* (Opcional) Estilo ao passar o mouse sobre o label */
+.price-range-options label:hover {
+    background-color: #f0f0f0; /* Leve destaque no hover */
+    border-color: #aaa;
+}
+
+#btn-filter{
+    font-size: 1.2rem;
+}
+
+#preco_max, #preco_min {
+    background: none;
+    border: 1px solid;
+    border-radius: 8px;
+    width: 35%;
+    padding: 5px;
+}
+
+.price-range-options{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.apply-price-filter-btn{
+    background: black;
+    color: white;
+    border: 1px solid;
+    padding: 6px 8px;
+    border-radius: 8px;
+    outline: none;
+    box-shadow: none;
+    margin-left: 6px;
+}
+
+.size-button{
+    background: #F0F0F0;
+    border: 1px solid;
+    border-radius: 20px;
+    width: 100px;
+    padding: 8px;
+    font-size: 1rem;
+}
+
+.size-button:hover{
+    background: #000000;
+    color: white;
+}
+
+.price-custom-inputs{
+    margin-top: 8px;
+}
+
+.sizes{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
 .filter-section {
     margin-bottom: 20px;
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .filter-section h4 {
-    font-size: 14px;
-    margin-bottom: 10px;
+    font-size: 17px;
 }
 
 .filter-section ul {
     list-style: none;
+    display: flex;
+    justify-content: space-between;
 }
 
 .filter-section ul li {
@@ -96,6 +274,37 @@
     margin-top: 20px;
 }
 
+.filter-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+}
+
+.filter-section .arrow {
+    transition: transform 0.2s;
+    font-size: 1.5rem;
+    height: 30px;
+}
+
+.filter-section.collapsed .arrow {
+    transform: rotate(90deg);
+}
+
+.filter-section-content {
+    transition: max-height 0.3s, opacity 0.2s;
+    overflow: hidden;
+    max-height: 1000px;
+    opacity: 1;
+}
+
+.filter-section.collapsed .filter-section-content {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
 /* Produtos */
 .main-content {
     flex: 1;
@@ -146,11 +355,13 @@
 
 .product-card {
     padding: 2px;
-    border-radius: 20;
+    border-radius: 55px;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    text-decoration: none;
+    color: black;
 }
 
 .product-card img {

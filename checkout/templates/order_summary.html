@@ -95,115 +95,146 @@
             {% endif %}
         </div>
         <div class="payment">
-            <div class="stripe-form-container">
-                <h2>Pagamento com Cartão</h2>
-                <div class="stripe-card-icons">
-                    <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/visa.svg" alt="Visa" />
-                    <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/mastercard.svg" alt="Mastercard" />
-                    <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/amex.svg" alt="Amex" />
-                    <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/elo.svg" alt="Elo" />
-                    <img src="https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons/flat/hipercard.svg" alt="Hipercard" />
+            <h2>Pagamento</h2>
+            <!-- O Payment Element será montado aqui -->
+            <form id="payment-form">
+                <div id="payment-element">
+                    <!--Stripe.js insere o Payment Element aqui-->
                 </div>
-                <div class="stripe-form-note">
-                    Aceitamos cartões de crédito nacionais e internacionais.
-                </div>
-                <form id="payment-form" autocomplete="off">
-                    <div class="stripe-form-group">
-                        <label class="stripe-form-label" for="cardholder-name">Nome do Titular</label>
-                        <input type="text" id="cardholder-name" name="cardholder-name" class="form-control" placeholder="Como no cartão" required />
-                    </div>
-                    <div class="stripe-form-group">
-                        <label class="stripe-form-label" for="email">E-mail</label>
-                        <input type="email" id="email" name="email" class="form-control" placeholder="seu@email.com" required value="{{ request.user.email }}" />
-                    </div>
-                    <div class="stripe-form-group">
-                        <label class="stripe-form-label" for="cpf">CPF</label>
-                        <input type="text" id="cpf" name="cpf" class="form-control" placeholder="000.000.000-00" maxlength="14" />
-                    </div>
-                    <div class="stripe-form-group">
-                        <label class="stripe-form-label" for="card-element">Dados do Cartão</label>
-                        <div id="card-element"></div>
-                    </div>
-                    <button id="submit" class="stripe-form-btn">Pagar com Cartão</button>
-                    <div id="payment-message"></div>
-                </form>
-                <div class="stripe-form-note">
-                    Seus dados estão protegidos por criptografia SSL 256 bits.
-                </div>
+                <button id="submit" class="stripe-form-btn">
+                    <div class="spinner hidden" id="spinner"></div>
+                    <span id="button-text">Pagar R$ {{ total|floatformat:2 }}</span>
+                </button>
+                <div id="payment-message" class="hidden"></div>
+            </form>
+            <div class="stripe-form-note">
+                Pagamentos seguros via Stripe. Aceitamos os principais cartões.
             </div>
         </div>
         <script src="https://js.stripe.com/v3/"></script>
         <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const stripe = Stripe("{{ stripe_public_key }}");
-            let elements = stripe.elements();
-            let card = elements.create("card", { hidePostalCode: true });
-            card.mount("#card-element");
+            document.addEventListener("DOMContentLoaded", async () => {
+                const stripe = Stripe("{{ stripe_public_key }}");
 
-            document
-                .getElementById("payment-form")
-                .addEventListener("submit", async function (e) {
-                    e.preventDefault();
-                    document.getElementById("submit").disabled = true;
-                    document.getElementById("payment-message").textContent = "";
+                let elements;
 
-                    // Cria PaymentIntent no backend
-                    const response = await fetch(
-                        "{% url 'checkout:stripe_create_payment_intent' %}",
-                        {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "X-CSRFToken": "{{ csrf_token }}",
-                            },
+                // --- Definição da Aparência ---
+                const appearance = {
+                    theme: 'stripe',
+                    variables: {
+                        colorPrimary: '#0570de',
+                        colorBackground: '#ffffff',
+                        colorText: '#30313d',
+                        colorDanger: '#df1b41',
+                        fontFamily: 'Ideal Sans, system-ui, sans-serif',
+                        spacingUnit: '4px',
+                        borderRadius: '4px',
+                        colorTextPlaceholder: '#9a9a9a',
+                        colorIcon: '#6b7280',
+                    },
+                    rules: {
+                        '.Input': {
+                            border: '1px solid #d1d1d1',
+                            boxShadow: 'none',
+                        },
+                        '.Input:focus': {
+                             borderColor: '#0570de',
+                             boxShadow: 'none',
+                        },
+                        '.Input--invalid': {
+                            borderColor: '#df1b41',
+                        },
+                        '.Tab': {
+                            border: '1px solid #d1d1d1',
+                        },
+                        '.Tab--selected': {
+                            borderColor: '#0570de',
                         }
-                    );
-                    const data = await response.json();
-                    if (data.error) {
-                        document.getElementById("payment-message").textContent =
-                            data.error;
-                        document.getElementById("submit").disabled = false;
-                        return;
                     }
-                    const clientSecret = data.clientSecret;
+                };
+                // --- Fim da Definição da Aparência ---
 
-                    // Coleta dados extras
-                    const cardholderName =
-                        document.getElementById("cardholder-name").value;
-                    const email = document.getElementById("email").value;
-                    const cpf = document.getElementById("cpf").value;
+                initialize();
 
-                    const result = await stripe.confirmCardPayment(clientSecret, {
-                        payment_method: {
-                            card: card,
-                            billing_details: {
-                                name: cardholderName,
-                                email: email,
-                            },
+                document
+                    .querySelector("#payment-form")
+                    .addEventListener("submit", handleSubmit);
+
+                async function initialize() {
+                    const response = await fetch("{% url 'checkout:stripe_create_payment_intent' %}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": "{{ csrf_token }}",
                         },
                     });
-                    if (result.error) {
-                        document.getElementById("payment-message").textContent =
-                            result.error.message;
-                        document.getElementById("submit").disabled = false;
-                    } else {
-                        if (result.paymentIntent.status === "succeeded") {
-                            window.location.href = "{% url 'checkout:thanks' %}";
+                    const { clientSecret, error } = await response.json();
+
+                    if (error) {
+                        showMessage(error);
+                        setLoading(false);
+                        return;
+                    }
+                    if (!clientSecret) {
+                         showMessage("Erro: clientSecret não recebido do servidor.");
+                         setLoading(false);
+                         return;
+                    }
+
+                    elements = stripe.elements({ appearance, clientSecret });
+
+                    const paymentElementOptions = {
+                        layout: "tabs",
+                    };
+
+                    const paymentElement = elements.create("payment", paymentElementOptions);
+                    paymentElement.mount("#payment-element");
+                    setLoading(false);
+                }
+
+                async function handleSubmit(e) {
+                    e.preventDefault();
+                    setLoading(true);
+
+                    const { error } = await stripe.confirmPayment({
+                        elements,
+                        confirmParams: {
+                            return_url: "{{ request.scheme }}://{{ request.get_host }}{% url 'checkout:thanks' %}",
+                        },
+                    });
+
+                    if (error) {
+                         if (error.type === "card_error" || error.type === "validation_error") {
+                            showMessage(error.message);
+                        } else {
+                            showMessage("Ocorreu um erro inesperado.");
                         }
                     }
-                });
 
-            // Máscara simples para CPF
-            document
-                .getElementById("cpf")
-                .addEventListener("input", function (e) {
-                    let v = e.target.value.replace(/\D/g, "");
-                    v = v.replace(/(\d{3})(\d)/, "$1.$2");
-                    v = v.replace(/(\d{3})(\d)/, "$1.$2");
-                    v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-                    e.target.value = v;
-                });
-        });
+                    setLoading(false);
+                }
+
+                function showMessage(messageText) {
+                    const messageContainer = document.querySelector("#payment-message");
+                    messageContainer.classList.remove("hidden");
+                    messageContainer.textContent = messageText;
+
+                    setTimeout(function () {
+                        messageContainer.classList.add("hidden");
+                        messageContainer.textContent = "";
+                    }, 4000);
+                }
+
+                function setLoading(isLoading) {
+                    const submitButton = document.querySelector("#submit");
+                    const spinner = document.querySelector("#spinner");
+                    const buttonText = document.querySelector("#button-text");
+
+                    submitButton.disabled = isLoading;
+                    spinner.classList.toggle("hidden", !isLoading);
+                    buttonText.classList.toggle("hidden", isLoading);
+                }
+            });
         </script>
     </div>
 </div>

@@ -1,5 +1,5 @@
 from django.views.generic import TemplateView, UpdateView, FormView
-from django.urls import reverse_lazy, resolve_url
+from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
@@ -9,7 +9,7 @@ from django.contrib.auth.views import LoginView as BaseLoginView
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404, resolve_url
 from django.conf import settings
 
 from checkout.views import (

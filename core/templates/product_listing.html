@@ -6,106 +6,248 @@
 <script src="{% static 'js/product_listing.js' %}"></script>
 
 <div class="container">
-    <div class="sidebar">
-        <h3>Filters</h3>
-        <form method="get" id="filterForm">
-            <div class="filter-section">
-                {% for categoria in categorias %}
-                    <ul>
-                        <button type="button"
-                            class="{% if categoria == request.GET.categoria %}selected{% endif %}"
-                            onclick="selectCategoria('{{ categoria }}')">
-                            {{ categoria }}
-                        </button>
-                    </ul>
-                {% endfor %}
-            </div>
-            <div class="filter-section">
-                <h4>Price</h4>
-                <div class="price-range">
-                    <span>$50</span>
-                    <input type="hidden" name="preco_max" id="priceFilter">
-                    <span>$1000</span>
-                </div>
-            </div>
-            <div class="filter-section">
-                <h4>Preço</h4>
-                <div class="price-range">
-                    <label>
-                        <input type="radio" name="faixa_preco" value="faixa1"
-                            {% if request.GET.faixa_preco == "faixa1" %}checked{% endif %}
-                            onchange="document.getElementById('filterForm').submit()">
-                        Até R$ {{ faixa_preco_1 }}
-                    </label>
-                    <label>
-                        <input type="radio" name="faixa_preco" value="faixa2"
-                            {% if request.GET.faixa_preco == "faixa2" %}checked{% endif %}
-                            onchange="document.getElementById('filterForm').submit()">
-                        R$ {{ faixa_preco_1 }} a R$ {{ faixa_preco_2 }}
-                    </label>
-                    <label>
-                        <input type="radio" name="faixa_preco" value="faixa3"
-                            {% if request.GET.faixa_preco == "faixa3" %}checked{% endif %}
-                            onchange="document.getElementById('filterForm').submit()">
-                        Mais de R$ {{ faixa_preco_2 }}
-                    </label>
-                </div>
-                <div class="price-custom">
-                    <input type="number" name="preco_min" placeholder="Mínimo"
-                        min="{{ preco_minimo }}" max="{{ preco_maximo }}"
-                        value="{{ request.GET.preco_min|default:preco_minimo }}">
-                    <span>–</span>
-                    <input type="number" name="preco_max" placeholder="Máximo"
-                        min="{{ preco_minimo }}" max="{{ preco_maximo }}"
-                        value="{{ request.GET.preco_max|default:preco_maximo }}">
-                    <button type="submit" class="apply-filter">→</button>
-                </div>
-            </div>
-            <div class="filter-section">
-                <h4>Colors</h4>
-                <div class="colors">
-                    {% for cor in cores_disponiveis %}
-                        <div 
-                            class="color-circle {% if cor in request.GET.cores.split|default:'' %}selected{% endif %} available"
-                            style="background-color: {{ cor }}; border: 1px solid #ccc;"
-                            onclick="toggleColorFilter('{{ cor }}')"
-                            title="{{ cor|capfirst }}">
-                        </div>
+
+    <div class="container-filters">
+        {# --- Seção de Filtros Ativos --- #}
+        {% if request.GET.categoria or request.GET.faixa_preco or request.GET.preco_min or request.GET.preco_max or request.GET.cores or request.GET.tamanhos or request.GET.marcas %}
+        <div class="active-filters-container">
+            <div class="active-filters-list">
+                {# Filtro de Categoria #}
+                {% if request.GET.categoria %}
+                    <span class="active-filter-tag">
+                        {{ request.GET.categoria }}
+                        <button type="button" onclick="removeFilter('categoria')" title="Remover filtro de categoria">×</button>
+                    </span>
+                {% endif %}
+
+                {# Filtro de Faixa de Preço #}
+                {% if request.GET.faixa_preco and request.GET.faixa_preco_label %}
+                    <span class="active-filter-tag">
+                        {{ request.GET.faixa_preco_label }}
+                        <button type="button" onclick="removeFilter('faixa_preco')" title="Remover filtro de faixa de preço">×</button>
+                    </span>
+                {% endif %}
+
+                {# Filtro de Preço Mínimo/Máximo Customizado #}
+                {% if request.GET.preco_min or request.GET.preco_max %}
+                     <span class="active-filter-tag">
+                        Preço:
+                        {% if request.GET.preco_min %}R$ {{ request.GET.preco_min }}{% else %}R$ {{ preco_minimo }}{% endif %}
+                        -
+                        {% if request.GET.preco_max %}R$ {{ request.GET.preco_max }}{% else %}R$ {{ preco_maximo }}{% endif %}
+                        <button type="button" onclick="removeFilter('preco_custom')" title="Remover filtro de preço customizado">×</button> {# Usa 'preco_custom' como chave especial #}
+                    </span>
+                {% endif %}
+
+                {# Filtro de Cores #}
+                {% if request.GET.cores %}
+                    {% for cor_selecionada in request.GET.cores.split|slice:"::" %} {# Itera sobre as cores #}
+                        {% if cor_selecionada %} {# Garante que não processe strings vazias #}
+                            <span class="active-filter-tag" style="background-color: {{ cor_selecionada }}; color: {% if cor_selecionada == 'white' or cor_selecionada == 'yellow' %}black{% else %}white{% endif %}; border: 1px solid #ccc;">
+                                {{ cor_selecionada|capfirst }}
+                                <button type="button" onclick="removeFilter('cores', '{{ cor_selecionada }}')" title="Remover filtro de cor {{ cor_selecionada|capfirst }}">×</button>
+                            </span>
+                        {% endif %}
                     {% endfor %}
-                </div>
-            </div>
-            <div class="filter-section">
-                <h4>Size</h4>
-                <div class="sizes">
-                    {% for tamanho in tamanhos %}
-                        <button type="button" 
-                            class="size-button {% if tamanho in request.GET.tamanhos.split|default:'' %}selected{% endif %}" 
-                            onclick="toggleSizeFilter('{{ tamanho }}')">
-                            {{ tamanho }}
-                        </button>
+                {% endif %}
+
+                {# Filtro de Tamanhos #}
+                {% if request.GET.tamanhos %}
+                     {% for tamanho_selecionado in request.GET.tamanhos.split|slice:"::" %} {# Itera sobre os tamanhos #}
+                        {% if tamanho_selecionado %} {# Garante que não processe strings vazias #}
+                            <span class="active-filter-tag">
+                                {{ tamanho_selecionado }}
+                                <button type="button" onclick="removeFilter('tamanhos', '{{ tamanho_selecionado }}')" title="Remover filtro de tamanho {{ tamanho_selecionado }}">×</button>
+                            </span>
+                        {% endif %}
                     {% endfor %}
+                {% endif %}
+
+                {# Filtro de Marcas #}
+                {% if request.GET.marcas %}
+                    {% for marca_selecionada in request.GET.marcas.split|slice:"::" %} {# Itera sobre as marcas #}
+                        {% if marca_selecionada %} {# Garante que não processe strings vazias #}
+                            <span class="active-filter-tag">
+                                {{ marca_selecionada }}
+                                <button type="button" onclick="removeFilter('marcas', '{{ marca_selecionada }}')" title="Remover filtro de marca {{ marca_selecionada }}">×</button>
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <a href="{% url 'product-listing' %}" class="clear-all-filters">Limpar Tudo</a>
+        </div>
+        {% endif %}
+        {# --- Fim da Seção de Filtros Ativos --- #}
+                    
+                    
+
+        <div class="sidebar">
+            <h3>Filters</h3>
+            <form method="get" id="filterForm">
+                <div class="filter-section ">
+                    <div class="filter-section-header" onclick="toggleFilterSection(this)">
+                        <h4>Categorias</h4>
+                        <span class="arrow">^</span> {# seta para baixo #}
+                    </div>
+                    <div class="filter-section-content">
+                        {% for categoria in categorias %}
+                            <ul>
+                                <button type="button"
+                                    class=" edit-btn {% if categoria == request.GET.categoria %}selected{% endif %}"
+                                    onclick="selectCategoria('{{ categoria }}')">
+                                    {{ categoria }}
+                                </button>
+                                <span id="btn-filter">></span>
+                            </ul>
+                        {% endfor %}
+                    </div>
+                </div>
+                <hr>
+                <div class="filter-section">
+                    <div class="filter-section-header" onclick="toggleFilterSection(this)">
+                        <h4>Marca</h4>
+                        <span class="arrow">^</span> {# seta para baixo #}
+                    </div>
+                    <div class="filter-section-content">
+                        {% for marca in marcas %}
+                                <button type="button" 
+                                class="size-button {% if marca in request.GET.marcas.split|default:'' %}selected{% endif %}" 
+                                onclick="toggleSizeFilter('{{ marca }}')">
+                                {{ marca }}
+                            </button>
+                        {% endfor %}
+                    </div> 
+                </div> 
+            
+                <div class="filter-section ">
+                    <div class="filter-section-header" onclick="toggleFilterSection(this)">
+                        <h4>Preços</h4>
+                        <span class="arrow">^</span> {# seta para baixo #}
+                    </div>
+                    <div class="filter-section-content">
+                    <div class="price-range-options"> 
+                        <label>
+                            <input type="radio" name="faixa_preco" value="faixa1"
+                                {% if request.GET.faixa_preco == "faixa1" %}checked{% endif %}
+                                onchange="clearCustomPriceAndSubmit()"> 
+                            Até R$ {{ faixa_preco_1 }}
+                        </label>
+                        <label>
+                            <input type="radio" name="faixa_preco" value="faixa2"
+                                {% if request.GET.faixa_preco == "faixa2" %}checked{% endif %}
+                                onchange="clearCustomPriceAndSubmit()">
+                            R$ {{ faixa_preco_1|add:"1" }} a R$ {{ faixa_preco_2 }} {# Ajuste +1 se necessário #}
+                        </label>
+                        <label>
+                            <input type="radio" name="faixa_preco" value="faixa3"
+                                {% if request.GET.faixa_preco == "faixa3" %}checked{% endif %}
+                                onchange="clearCustomPriceAndSubmit()">
+                            Mais de R$ {{ faixa_preco_2 }}
+                        </label>
+                    </div>
+                    {# Nova estrutura para inputs Mínimo e Máximo #}
+                    <div class="price-custom-inputs">
+                        <input type="number" name="preco_min" id="preco_min" placeholder="Mínimo"
+                            min="{{ preco_minimo }}" max="{{ preco_maximo }}"
+                            value="{{ request.GET.preco_min }}" 
+                            oninput="clearPriceRangeSelection()"> {# Limpa radio ao digitar #}
+                        <span class="price-separator"> – </span> {# Separador opcional #}
+                        <input type="number" name="preco_max" id="preco_max" placeholder="Máximo"
+                            min="{{ preco_minimo }}" max="{{ preco_maximo }}"
+                            value="{{ request.GET.preco_max }}"
+                            oninput="clearPriceRangeSelection()"> {# Limpa radio ao digitar #}
+                            <button type="submit" class="apply-price-filter-btn">→</button> 
+                    </div>
+                    {# Botão para aplicar filtro customizado #}
                 </div>
             </div>
-            <input type="hidden" name="categoria" id="categoriaFilter" value="{{ request.GET.categoria }}">
-            <input type="hidden" name="tamanhos" id="sizeFilters" value="{{ request.GET.tamanhos }}">
-            <input type="hidden" name="cores" id="colorFilters" value="{{ request.GET.cores }}">
-            <button type="submit" class="apply-filter">Apply Filter</button>
-        </form>
+                <hr>
+                <div class="filter-section ">
+                    <div class="filter-section-header" onclick="toggleFilterSection(this)">
+                        <h4>Cores</h4>
+                        <span class="arrow">^</span> {# seta para baixo #}
+                    </div>
+                    <div class="filter-section-content">
+                    <div class="colors">
+                        {% for cor in cores_disponiveis %}
+                            <div 
+                                class="color-circle {% if cor in request.GET.cores.split|default:'' %}selected{% endif %} available"
+                                style="background-color: {{ cor }}; border: 1px solid #ccc;"
+                                onclick="toggleColorFilter('{{ cor }}')"
+                                title="{{ cor|capfirst }}">
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+                <hr>
+                <div class="filter-section ">
+                    <div class="filter-section-header" onclick="toggleFilterSection(this)">
+                        <h4>Tamanhos</h4>
+                        <span class="arrow">^</span> {# seta para baixo #}
+                    </div>
+                    <div class="filter-section-content">
+                    <div class="sizes">
+                        {% for tamanho in tamanhos %}
+                            <button type="button" 
+                                class="size-button {% if tamanho in request.GET.tamanhos.split|default:'' %}selected{% endif %}" 
+                                onclick="toggleSizeFilter('{{ tamanho }}')">
+                                {{ tamanho }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                </div>
+                
+                <input type="hidden" name="categoria" id="categoriaFilter" value="{{ request.GET.categoria }}">
+                <input type="hidden" name="tamanhos" id="sizeFilters" value="{{ request.GET.tamanhos }}">
+                <input type="hidden" name="cores" id="colorFilters" value="{{ request.GET.cores }}">
+                <input type="hidden" name="faixa_preco_label" id="faixa_preco_label" value="{{ request.GET.faixa_preco_label }}">
+                <button type="submit" class="apply-filter">Apply Filter</button>
+            </form>
+            
+        </div>
+
     </div>
+
     <div class="main-content">
         <div class="breadcrumb">
-            <a href="#">Home</a> > <a href="#">Casual Clothing Collection</a>
+            <a href="{% url 'index' %}">Home</a>
+            {% if request.GET.categoria %}
+                &gt; <a href="{% url 'product-listing' %}?categoria={{ request.GET.categoria }}">{{ request.GET.categoria }}</a>
+            {% endif %}
         </div>
         <div class="header">
-            <h1>Casual Clothing Collection</h1>
+            <h1>
+                {% if request.GET.categoria %}
+                    {{ request.GET.categoria }}
+                {% else %}
+                    Todos os Produtos
+                {% endif %}
+            </h1>
             <div>
                 <button class="filter-btn" onclick="toggleBottomSheet()">Filters</button>
-                <span class="sort">Showing 1-10 of 100 Products | Sort by: Most Popular ▼</span>
+                <form method="get" id="sortForm" style="display:inline;">
+                    {# Mantém os outros filtros ao trocar o sort #}
+                    {% for key, value in request.GET.items %}
+                        {% if key != 'sort' %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+                    <label for="sortSelect">Sort by:</label>
+                    <select name="sort" id="sortSelect" onchange="document.getElementById('sortForm').submit()">
+                        <option value="popular" {% if request.GET.sort == "popular" or not request.GET.sort %}selected{% endif %}>Most Popular</option>
+                        <option value="price_asc" {% if request.GET.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+                        <option value="price_desc" {% if request.GET.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+                        <option value="newest" {% if request.GET.sort == "newest" %}selected{% endif %}>Newest</option>
+                    </select>
+                </form>
             </div>
         </div>
         <div class="products-grid">
             {% for produto in produtos %}
-                <div class="product-card" data-size="{{ produto.tamanho }}" data-color="{{ produto.cor }}">
+                <a href="{% url 'item-view' produto.pk %}" class="product-card" data-size="{{ produto.tamanho }}" data-color="{{ produto.cor }}">
                     <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}">
                     <h3>{{ produto.nome }}</h3>
                     <div class="rating">★★★★★ {{ produto.avaliacao|default:"0.0" }}/5</div>
@@ -116,18 +258,27 @@
                             <span class="discount">-{{ produto.desconto }}%</span>
                         {% endif %}
                     </div>
-                </div>
+                </a>
             {% endfor %}
         </div>
         <div class="pagination">
-            <button>Previous</button>
-            <span>1</span>
-            <span>2</span>
-            <span>3</span>
-            <span>...</span>
-            <span>9</span>
-            <span>10</span>
-            <button>Next</button>
+            {% if produtos.has_previous %}
+                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ produtos.previous_page_number }}">Anterior</a>
+            {% endif %}
+            {% for num in produtos.paginator.page_range %}
+                {% if produtos.number == num %}
+                    <span class="current">{{ num }}</span>
+                {% elif num > produtos.number|add:'-3' and num < produtos.number|add:'3' %}
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                {% elif num == 1 or num == produtos.paginator.num_pages %}
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                {% elif num == produtos.number|add:'-3' or num == produtos.number|add:'3' %}
+                    <span>...</span>
+                {% endif %}
+            {% endfor %}
+            {% if produtos.has_next %}
+                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ produtos.next_page_number }}">Próxima</a>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -178,4 +329,6 @@
         <button type="submit" class="apply-filter">Apply Filter</button>
     </form>
 </div>
+
+
 {% endblock main %}

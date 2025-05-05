@@ -4,6 +4,7 @@
 {% block main %}
 <link rel="stylesheet" href="{% static 'css/carrinho.css' %}">
 <script src="{% static 'js/remove.js' %}"></script>
+<script src="{% static 'js/frete.js' %}"></script>
 
 <div class="cart-container">
     <div class="breadcrumb">
@@ -77,15 +78,30 @@
             </div>
             <div class="summary-row">
                 <span>Taxa de Entrega</span>
-                <span>R$ 15.00</span>
+                <span id="frete-valor">
+                    {% if user.is_authenticated and cep_usuario %}
+                        <span id="frete-valor-span">Calculando...</span>
+                    {% else %}
+                        <span id="frete-valor-span">R$ --</span>
+                    {% endif %}
+                </span>
             </div>
             <div class="summary-total">
                 <span>Total</span>
-                <span>R$ {{ total_carrinho }}</span>
+                <span id="total-com-frete">R$ {{ total_carrinho }}</span>
             </div>
             <form method="get" action="{% url 'checkout:select_address' %}">
                 <button type="submit" class="checkout-btn">Finalizar Pedido</button>
             </form>
+            <div class="frete-box" style="margin-top: 24px; padding: 16px; border: 1px solid #eee; border-radius: 10px;">
+                <label for="cep-frete"><strong>Calcule o Frete</strong></label>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <input type="text" id="cep-frete" maxlength="9" placeholder="Digite o CEP" style="flex:1; padding:8px; border-radius:6px; border:1px solid #ccc;"
+                        value="{% if user.is_authenticated and cep_usuario %}{{ cep_usuario }}{% endif %}">
+                    <button type="button" id="btn-calcular-frete" style="padding:8px 18px; border-radius:6px; background:#1976d2; color:#fff; border:none; cursor:pointer;">Calcular</button>
+                </div>
+                <div id="frete-status" style="margin-top:8px; color:#1976d2; font-size:0.95rem;"></div>
+            </div>
         </div>
     </div>
 </div>

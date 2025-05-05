@@ -16,7 +16,42 @@ main {
 .checkout-steps {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin: 30px 0;
+    position: relative;
+}
+
+.checkout-steps::before {
+    content: '';
+    position: absolute;
+    top: 26px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #e0e0e0;
+    z-index: 1;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.step-number {
+    display: flex;
+    font-size: 1rem;
+}
+
+.step-name {
+    font-size: 12px;
+    color: #666;
+}
+
+.step.active .step-name {
+    color: #1A1F16;
+    font-weight: bold;
 }
 
 /* Layout */
@@ -248,6 +283,8 @@ main {
     margin-bottom: 10px;
     text-align: center;
 }
+
+
 
 /* Animations */
 @keyframes slideIn {

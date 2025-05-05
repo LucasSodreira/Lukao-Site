@@ -2,7 +2,7 @@ from django_seed import Seed
 from django.contrib.auth import get_user_model
 from .models import Categoria, Produto, Endereco, Pedido, ItemPedido
 # Adicione os imports dos novos models
-from .models import Cor, ProdutoCor
+from .models import Cor, ProdutoCor, ProdutoVariacao
 import random
 from decimal import Decimal
 import os
@@ -79,7 +79,6 @@ def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1
         largura = random.randint(10, 60)
         altura = random.randint(5, 40)
         profundidade = random.randint(1, 30)
-        dimensoes = f"{largura}x{altura}x{profundidade} cm"
 
         produto_data = {
             'nome': f"{seeder.faker.word().capitalize()} {seeder.faker.word().capitalize()}",
@@ -93,7 +92,9 @@ def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1
                 [t[0] for t in Produto.SIZE_CHOICES], k=min(random.randint(1, len(Produto.SIZE_CHOICES)), 5)
             )),
             'peso': peso,
-            'dimensoes': dimensoes,
+            'width': largura,
+            'height': altura,
+            'length': profundidade,
             'avaliacao': round(random.uniform(0, 5), 1),
         }
 
@@ -122,6 +123,18 @@ def seed_data(qtd_categorias=3, qtd_produtos=12, qtd_usuarios=0, qtd_enderecos=1
                 cor=cor,
                 estoque=random.randint(1, 30)
             )
+            # Cria variações para cada cor e tamanho disponível
+            for tamanho in produto.get_tamanhos_disponiveis():
+                ProdutoVariacao.objects.create(
+                    produto=produto,
+                    cor=cor,
+                    tamanho=tamanho,
+                    estoque=random.randint(1, 30),
+                    peso=Decimal(random.uniform(0.1, 5.0)).quantize(Decimal('0.001')),
+                    width=random.randint(10, 60),
+                    height=random.randint(5, 40),
+                    length=random.randint(1, 30),
+                )
     print(f"Criados {len(produtos)} produtos com cores")
 
     # 5. Criar Endereços

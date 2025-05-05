@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
@@ -60,6 +60,16 @@ class EnderecoEditView(UpdateView):
         messages.error(self.request, "Erro ao atualizar o endereço. Verifique os dados.")
         return super().form_invalid(form)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['from_index'] = self.request.GET.get('from_index') == '1'
+        return context
+
+    def get_success_url(self):
+        if self.request.GET.get('from_index') == '1':
+            return reverse_lazy('index')
+        return str(self.success_url)
+
 @method_decorator(login_required, name='dispatch')
 class EnderecoCreateView(CreateView):
     model = Endereco
@@ -75,6 +85,16 @@ class EnderecoCreateView(CreateView):
         messages.error(self.request, "Erro ao criar o endereço. Verifique os dados.")
         return super().form_invalid(form)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['from_index'] = self.request.GET.get('from_index') == '1'
+        return context
+
+    def get_success_url(self):
+        if self.request.GET.get('from_index') == '1':
+            return reverse_lazy('index')
+        return str(self.success_url)
+
 @method_decorator(login_required, name='dispatch')
 class DefinirEnderecoPrincipal(View):
     def post(self, request, pk):
@@ -82,6 +102,11 @@ class DefinirEnderecoPrincipal(View):
         Endereco.objects.filter(usuario=request.user, principal=True).update(principal=False)
         endereco.principal = True
         endereco.save()
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'sucesso': True, 'cep': endereco.cep})
+        # Redireciona para index se veio do index
+        if request.GET.get('from_index') == '1':
+            return HttpResponseRedirect(reverse_lazy('index'))
         return redirect('checkout:select_address')
 
 @method_decorator(login_required, name='dispatch')
@@ -89,6 +114,9 @@ class ExcluirEnderecoView(View):
     def post(self, request, pk):
         endereco = get_object_or_404(Endereco, pk=pk, usuario=request.user)
         endereco.delete()
+        # Redireciona para index se veio do index
+        if request.GET.get('from_index') == '1':
+            return HttpResponseRedirect(reverse_lazy('index'))
         return redirect('checkout:select_address')
 
 class AddressSelection(LoginRequiredMixin, TemplateView):
@@ -296,12 +324,62 @@ def stripe_create_payment_intent(request):
         frete_info = request.session.get('frete_escolhido')
         frete_valor = Decimal(str(frete_info.get('price'))) if frete_info else Decimal('0.00')
         total = subtotal + frete_valor
-        amount = int(total * 100)
+        amount = int(total * 100) # O valor deve ser em centavos
+
+        # Validação mínima do valor
+        if amount < 50: # Stripe geralmente tem um valor mínimo (ex: R$ 0.50)
+             return JsonResponse({'error': 'O valor total do pedido é muito baixo para processamento.'}, status=400)
+
+        # Obter ou criar o pedido pendente
+        endereco = Endereco.objects.filter(usuario=request.user, principal=True).first()
+        pedido, created = Pedido.objects.get_or_create(
+            usuario=request.user,
+            status='P',
+            defaults={
+                'endereco_entrega': endereco,
+                'total': total,
+                'metodo_pagamento': 'stripe' # Pré-define o método
+            }
+        )
+        # Se o pedido já existia, atualiza o total e itens se necessário (pode ser complexo, simplificando aqui)
+        if not created:
+            pedido.total = total
+            pedido.endereco_entrega = endereco
+            # Opcional: Limpar itens antigos e adicionar os atuais do carrinho
+            # pedido.itens.all().delete()
+            # ... (lógica para adicionar itens do carrinho ao pedido) ...
+            pedido.save()
+
+
         intent = stripe.PaymentIntent.create(
             amount=amount,
-            currency='brl',
-            metadata={'user_id': request.user.id}
+            currency='brl', # Moeda brasileira
+            automatic_payment_methods={'enabled': True}, # Habilita métodos automáticos (Pix, Cartão, etc.)
+            metadata={
+                'user_id': request.user.id,
+                'pedido_id': pedido.id # Adiciona o ID do pedido aos metadados
+                }
         )
         return JsonResponse({'clientSecret': intent.client_secret})
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        # Log do erro é recomendado aqui
+        return JsonResponse({'error': f'Erro ao criar intenção de pagamento: {str(e)}'}, status=400)
+
+@login_required
+def salvar_cep_usuario(request):
+    if request.method == 'POST':
+        cep = request.POST.get('cep', '').replace('-', '').strip()
+        if len(cep) == 8 and cep.isdigit():
+            # Salva no endereço principal, se existir
+            endereco = Endereco.objects.filter(usuario=request.user, principal=True).first()
+            if endereco:
+                if endereco.cep != cep:
+                    endereco.cep = cep
+                    endereco.save(update_fields=['cep'])
+            else:
+                # Ou salva no user, se preferir
+                request.user.cep = cep
+                request.user.save(update_fields=['cep'])
+            return JsonResponse({'sucesso': True, 'cep': cep})
+        return JsonResponse({'sucesso': False, 'erro': 'CEP inválido'})
+    return JsonResponse({'sucesso': False, 'erro': 'Requisição inválida'})

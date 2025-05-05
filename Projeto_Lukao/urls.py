@@ -20,6 +20,7 @@ from django.conf.urls.static import static
 from django.urls import path, include
 from core.views import *
 from user.views import *
+from checkout.views import *
 
 
 urlpatterns = [
@@ -31,6 +32,8 @@ urlpatterns = [
     path('carrinho/aumentar/<str:chave>/', AumentarItemView.as_view(), name='aumentar-item'),
     path('carrinho/diminuir/<str:chave>/', DiminuirItemView.as_view(), name='diminuir-item'),
     path('carrinho/remover/<str:chave>/', RemoverItemView.as_view(), name='remover-item'),
+    path('salvar-cep/', salvar_cep_usuario, name='salvar_cep_usuario'),
+    path('calcular-frete/', calcular_frete, name='calcular_frete'),
     
     path('checkout/', include('checkout.urls', namespace='checkout')),
     path('user/', include('user.urls', namespace='user')),

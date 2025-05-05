@@ -24,6 +24,12 @@ class Cor(models.Model):
     def __str__(self):
         return self.nome
 
+class Marca(models.Model):
+    nome = models.CharField(max_length=50, unique=True)
+    descricao = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.nome
 
 class Produto(models.Model):
     nome = models.CharField(max_length=255)
@@ -43,11 +49,14 @@ class Produto(models.Model):
         max_digits=6, decimal_places=3, null=True, blank=True,
         help_text="Peso do produto em kg"
     )
-    dimensoes = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        help_text="Dimensões do produto (ex: 30x20x10 cm)"
+    width = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Largura em cm"
+    )
+    height = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Altura em cm"
+    )
+    length = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Comprimento em cm"
     )
     estoque = models.PositiveIntegerField(default=0)
     imagem = models.ImageField(upload_to="produtos/", default="produtos/default.jpg")
@@ -56,6 +65,10 @@ class Produto(models.Model):
     codigo_barras = models.CharField(max_length=50, blank=True, null=True, help_text="Código de barras")
     seo_title = models.CharField(max_length=70, blank=True, null=True)
     seo_description = models.CharField(max_length=160, blank=True, null=True)
+    marca = models.ForeignKey(
+        Marca, on_delete=models.CASCADE, related_name='produtos', null=True, blank=True
+    )
+    tags = models.ManyToManyField('Tag', blank=True, related_name='produtos')
 
     CATEGORY_CHOICES = [
         ('T-Shirts', 'T-Shirts'),
@@ -92,11 +105,6 @@ class Produto(models.Model):
     def get_tamanhos_disponiveis(self):
         if self.tamanhos_disponiveis:
             return [t.strip() for t in self.tamanhos_disponiveis.split(",")]
-        return []
-
-    def get_dimensoes(self):
-        if self.dimensoes:
-            return [d.strip() for d in self.dimensoes.split("x")]
         return []
 
     def clean(self):
@@ -142,6 +150,19 @@ class ProdutoVariacao(models.Model):
     tamanho = models.CharField(max_length=20, choices=Produto.SIZE_CHOICES)
     estoque = models.PositiveIntegerField(default=0)
     sku = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    peso = models.DecimalField(
+        max_digits=6, decimal_places=3, null=True, blank=True,
+        help_text="Peso da variação em kg"
+    )
+    width = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Largura em cm"
+    )
+    height = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Altura em cm"
+    )
+    length = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Comprimento em cm"
+    )
 
     class Meta:
         unique_together = ('produto', 'cor', 'tamanho')
@@ -389,9 +410,6 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.nome
-
-
-Produto.tags = models.ManyToManyField(Tag, blank=True, related_name='produtos')
 
 
 class Favorito(models.Model):

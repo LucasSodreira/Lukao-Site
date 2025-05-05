@@ -1,5 +1,5 @@
 import requests
-from core.models import Produto, Carrinho, ItemCarrinho
+from core.models import Produto, Carrinho, ItemCarrinho, ProdutoVariacao
 
 
 # ==========================
@@ -233,14 +233,21 @@ def cotar_frete_melhor_envio(cep_destino, token, produtos, cep_origem='01001-000
 
 
 def preparar_produtos_para_frete(itens_carrinho):
-    """Prepara a lista de produtos para cálculo de frete."""
+    """Prepara a lista de produtos para cálculo de frete considerando variação."""
     produtos = []
     for item in itens_carrinho:
+        produto = item['produto']
+        tamanho = item.get('size')
+        variacao = ProdutoVariacao.objects.filter(produto=produto, tamanho=tamanho).first()
+        peso = float(variacao.peso) if variacao and hasattr(variacao, 'peso') and variacao.peso else float(produto.peso or 1)
+        width = getattr(variacao, 'width', 15) if variacao else 15
+        height = getattr(variacao, 'height', 10) if variacao else 10
+        length = getattr(variacao, 'length', 20) if variacao else 20
         produtos.append({
-            "weight": float(item['produto'].peso or 1),
-            "width": 15,
-            "height": 10,
-            "length": 20,
+            "weight": peso,
+            "width": width,
+            "height": height,
+            "length": length,
             "insurance_value": float(item['subtotal']),
             "quantity": item['quantidade']
         })
