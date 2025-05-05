@@ -136,67 +136,89 @@ class CartView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        carrinho = self.request.session.get('carrinho', {})
-        itens_carrinho = []
-
-        if any(isinstance(v, int) for v in carrinho.values()):
-            carrinho = migrar_carrinho_antigo(carrinho)
-            self.request.session['carrinho'] = carrinho
-            self.request.session.modified = True
-
-        produto_ids = []
-        for item in carrinho.values():
-            if isinstance(item, dict) and 'produto_id' in item:
-                produto_ids.append(item['produto_id'])
-
-        produtos = Produto.objects.filter(id__in=produto_ids)
-        produto_dict = {p.id: p for p in produtos}
-
-        for chave, item in carrinho.items():
-            if isinstance(item, dict) and 'produto_id' in item:
-                produto = produto_dict.get(item['produto_id'])
-                if produto:
-                    itens_carrinho.append({
-                        'chave': chave,
-                        'produto': produto,
-                        'quantidade': item['quantidade'],
-                        'size': item.get('size'),
-                        'subtotal': produto.preco * item['quantidade']
-                    })
-
-        total = sum(item['subtotal'] for item in itens_carrinho)
-
+        itens_carrinho, total = obter_itens_do_carrinho(self.request)
+        # Garante que cada item tenha uma chave única para manipulação no template
+        if self.request.user.is_authenticated:
+            # Para usuários autenticados, use o ID do ItemCarrinho como chave
+            from core.models import Carrinho, ItemCarrinho
+            carrinho = Carrinho.objects.filter(usuario=self.request.user).first()
+            if carrinho:
+                itens_db = ItemCarrinho.objects.filter(carrinho=carrinho)
+                # Cria um dict para mapear (produto_id, tamanho) -> id do item
+                chave_map = {}
+                for item in itens_db:
+                    chave_map[(item.produto.id, item.tamanho)] = item.id
+                for item in itens_carrinho:
+                    item['chave'] = chave_map.get((item['produto'].id, item.get('size')))
+            else:
+                for item in itens_carrinho:
+                    item['chave'] = ''
+        else:
+            # Para sessão, a chave já vem do dict da sessão
+            # (mas garantir que sempre exista)
+            for item in itens_carrinho:
+                if 'chave' not in item:
+                    item['chave'] = ''
         context['itens_carrinho'] = itens_carrinho
         context['total_carrinho'] = total
+        if self.request.user.is_authenticated:
+            endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
+            context['cep_usuario'] = endereco.cep if endereco else getattr(self.request.user, 'cep', None)
+        else:
+            context['cep_usuario'] = None
         return context
 
 class ManipularItemCarrinho(View):
     def post(self, request, *args, **kwargs):
         chave = kwargs.get('chave')
-        carrinho = request.session.get('carrinho', {})
-
-        if chave not in carrinho:
-            raise Http404("Item não encontrado no carrinho.")
-
-        self.manipular_quantidade(carrinho[chave])
-
-        if carrinho[chave]['quantidade'] <= 0:
-            del carrinho[chave]
-
-        request.session['carrinho'] = carrinho
-        request.session.modified = True
-
+        if request.user.is_authenticated:
+            # Manipula o ItemCarrinho no banco
+            from core.models import ItemCarrinho
+            try:
+                item = ItemCarrinho.objects.get(id=chave, carrinho__usuario=request.user)
+            except ItemCarrinho.DoesNotExist:
+                raise Http404("Item não encontrado no carrinho.")
+            self.manipular_quantidade_db(item)
+            # Remove se quantidade <= 0
+            if item.quantidade <= 0:
+                item.delete()
+            else:
+                item.save()
+        else:
+            # Manipula o carrinho na sessão
+            carrinho = request.session.get('carrinho', {})
+            if chave not in carrinho:
+                raise Http404("Item não encontrado no carrinho.")
+            self.manipular_quantidade(carrinho[chave])
+            if carrinho[chave]['quantidade'] <= 0:
+                del carrinho[chave]
+            request.session['carrinho'] = carrinho
+            request.session.modified = True
         return redirect('carrinho')
 
+    def manipular_quantidade_db(self, item):
+        # Para sobrescrever nas subclasses
+        pass
+
+    def manipular_quantidade(self, item):
+        # Para sobrescrever nas subclasses
+        pass
+
 class AumentarItemView(ManipularItemCarrinho):
+    def manipular_quantidade_db(self, item):
+        item.quantidade += 1
     def manipular_quantidade(self, item):
         item['quantidade'] += 1
 
 class DiminuirItemView(ManipularItemCarrinho):
+    def manipular_quantidade_db(self, item):
+        item.quantidade -= 1
     def manipular_quantidade(self, item):
         item['quantidade'] -= 1
 
 class RemoverItemView(ManipularItemCarrinho):
+    def manipular_quantidade_db(self, item):
+        item.quantidade = 0
     def manipular_quantidade(self, item):
         item['quantidade'] = 0
 
@@ -217,16 +239,26 @@ class AddToCartView(View):
 
 class RemoverItemCarrinho(View):
     def post(self, request, *args, **kwargs):
-        produto_id = request.POST.get('produto_id')
-
-        try:
-            Produto.objects.get(pk=produto_id)
-        except ObjectDoesNotExist:
-            raise Http404("Produto não encontrado.")
-
-        remover_do_carrinho(request, produto_id)
-
-        response_data = {'success': True, 'message': 'Item removido com sucesso!'}
+        chave = kwargs.get('chave')
+        if request.user.is_authenticated:
+            # Remove pelo banco
+            from core.models import ItemCarrinho
+            try:
+                item = ItemCarrinho.objects.get(id=chave, carrinho__usuario=request.user)
+                item.delete()
+                response_data = {'success': True, 'message': 'Item removido com sucesso!'}
+            except ItemCarrinho.DoesNotExist:
+                raise Http404("Item não encontrado no carrinho.")
+        else:
+            # Remove da sessão
+            carrinho = request.session.get('carrinho', {})
+            if chave in carrinho:
+                del carrinho[chave]
+                request.session['carrinho'] = carrinho
+                request.session.modified = True
+                response_data = {'success': True, 'message': 'Item removido com sucesso!'}
+            else:
+                raise Http404("Item não encontrado no carrinho.")
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse(response_data)

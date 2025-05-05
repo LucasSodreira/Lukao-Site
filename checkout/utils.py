@@ -67,9 +67,15 @@ def obter_itens_do_carrinho(request):
 
 
 def limpar_carrinho(request):
-    """Limpa completamente o carrinho da sessão."""
-    request.session['carrinho'] = {}
-    request.session.modified = True
+    """Limpa completamente o carrinho da sessão ou do banco."""
+    if request.user.is_authenticated:
+        from core.models import Carrinho, ItemCarrinho
+        carrinho = Carrinho.objects.filter(usuario=request.user).first()
+        if carrinho:
+            ItemCarrinho.objects.filter(carrinho=carrinho).delete()
+    else:
+        request.session['carrinho'] = {}
+        request.session.modified = True
 
 
 def adicionar_ao_carrinho(request, produto_id, size=None, quantidade=1):
@@ -133,6 +139,11 @@ def calcular_total_carrinho(request):
     """Calcula o total geral dos produtos no carrinho."""
     from ..core.models import Produto
     
+    if request.user.is_authenticated:
+        carrinho = obter_carrinho_usuario(request)
+        total = sum(item.produto.preco * item.quantidade for item in carrinho.itens.select_related('produto').all())
+        return total
+
     carrinho = request.session.get('carrinho', {})
     total = 0
     

@@ -134,12 +134,15 @@ class AddressSelection(LoginRequiredMixin, TemplateView):
 class OrderSummaryView(LoginRequiredMixin, TemplateView):
     template_name = 'order_summary.html'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def dispatch(self, request, *args, **kwargs):
         validation_errors = self.validate_order()
         if validation_errors:
             messages.error(self.request, validation_errors)
-            return redirect('review-cart')
+            return redirect('carrinho')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         itens_carrinho, subtotal = obter_itens_do_carrinho(self.request)
         frete_info = self.request.session.get('frete_escolhido')
         frete_valor = Decimal(str(frete_info.get('price'))) if frete_info else Decimal('0.00')
@@ -174,16 +177,13 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
 
     def validate_order(self):
         errors = []
-        carrinho = self.request.session.get('carrinho', {})
-        if not carrinho:
+        itens_carrinho, _ = obter_itens_do_carrinho(self.request)
+        if not itens_carrinho:
             return "Seu carrinho está vazio."
-        for item_id, item in carrinho.items():
-            try:
-                produto = Produto.objects.get(id=item['produto_id'])
-                if produto.estoque < item['quantidade']:
-                    errors.append(f"{produto.nome}: estoque insuficiente")
-            except Produto.DoesNotExist:
-                errors.append(f"Produto {item_id} não encontrado")
+        for item in itens_carrinho:
+            produto = item['produto']
+            if produto.estoque < item['quantidade']:
+                errors.append(f"{produto.nome}: estoque insuficiente")
         endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
         if not endereco:
             errors.append("Endereço principal não encontrado")
