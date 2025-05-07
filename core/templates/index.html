@@ -34,6 +34,7 @@
                             </p>
                             <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form">
                                 {% csrf_token %}
+                                <input type="hidden" name="variacao_id" value="{% if produto.variacoes.first %}{{ produto.variacoes.first.id }}{% endif %}" />
                                 <input type="hidden" name="quantity" value="1" />
                                 <button type="submit" class="cart-button">
                                     <img src="{% static 'images/cart.svg' %}" alt="Adicionar ao carrinho" id="cart-icon" />

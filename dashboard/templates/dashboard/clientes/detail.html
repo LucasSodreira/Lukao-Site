@@ -1,0 +1,137 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h1>Detalhes do Cliente #{{ cliente.id }}</h1>
+
+    <!-- Mensagens -->
+    {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Informações do Perfil -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Perfil</h5>
+            <p><strong>Nome:</strong> {{ cliente.get_full_name|default:cliente.username }}</p>
+            <p><strong>Email:</strong> {{ cliente.email }}</p>
+            <p><strong>Data de Cadastro:</strong> {{ cliente.date_joined|date:"d/m/Y H:i" }}</p>
+        </div>
+    </div>
+
+    <!-- Endereços -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Endereços</h5>
+            {% if enderecos %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Rua</th>
+                                <th>Número</th>
+                                <th>Complemento</th>
+                                <th>Bairro</th>
+                                <th>Cidade</th>
+                                <th>Estado</th>
+                                <th>CEP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for endereco in enderecos %}
+                                <tr>
+                                    <td>{{ endereco.rua }}</td>
+                                    <td>{{ endereco.numero }}</td>
+                                    <td>{{ endereco.complemento|default:"-" }}</td>
+                                    <td>{{ endereco.bairro }}</td>
+                                    <td>{{ endereco.cidade }}</td>
+                                    <td>{{ endereco.estado }}</td>
+                                    <td>{{ endereco.cep }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>Nenhum endereço cadastrado.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pedidos -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Pedidos</h5>
+            {% if pedidos %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Data</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pedido in pedidos %}
+                                <tr>
+                                    <td>{{ pedido.id }}</td>
+                                    <td>{{ pedido.data_criacao|date:"d/m/Y H:i" }}</td>
+                                    <td>R$ {{ pedido.total|floatformat:2 }}</td>
+                                    <td>{{ pedido.get_status_display }}</td>
+                                    <td>
+                                        <a href="{% url 'dashboard:pedido_detail' pedido.pk %}" class="btn btn-sm btn-primary"><i class="fas fa-eye"></i> Ver</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>Nenhum pedido encontrado.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Favoritos (Condicional) -->
+    {% if favoritos %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Favoritos</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Data Adicionado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for favorito in favoritos %}
+                                <tr>
+                                    <td>{{ favorito.produto.nome }}</td>
+                                    <td>{{ favorito.data_adicionado|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Ações -->
+    <div class="mb-4">
+        <a href="{% url 'dashboard:cliente_update' cliente.pk %}" class="btn btn-primary"><i class="fas fa-edit"></i> Editar Cliente</a>
+        <a href="{% url 'dashboard:cliente_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Voltar</a>
+    </div>
+</div>
+{% endblock %}

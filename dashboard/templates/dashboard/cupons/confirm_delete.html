@@ -1,0 +1,30 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h1>Excluir Cupom #{{ cupom.id }}</h1>
+
+    <!-- Mensagens -->
+    {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Confirmação -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <p>Tem certeza que deseja excluir o cupom <strong>{{ cupom.codigo }}</strong>? Esta ação não pode ser desfeita.</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Confirmar Exclusão</button>
+                <a href="{% url 'dashboard:cupom_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

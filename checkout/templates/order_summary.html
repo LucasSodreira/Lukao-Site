@@ -31,6 +31,14 @@
     <div class="order-summary-header">
         <div class="order-summary">
             <h2>Order Summary</h2>
+            {% if checkout_rapido %}
+                <form method="post" action="{% url 'checkout:usar_checkout_rapido' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success" style="margin-bottom: 16px;">
+                        Usar Checkout Rápido (Endereço: {{ endereco_rapido }}, Pagamento: {{ metodo_pagamento_rapido }})
+                    </button>
+                </form>
+            {% endif %}
             <div class="order-item">
                 {% if itens_carrinho %}
                 {% for item in itens_carrinho %}
@@ -42,8 +50,9 @@
                     {% endif %}
                     <div class="item-details">
                         <span class="product-name">{{ item.produto.nome }}</span>
-                        {% if item.size %}
-                        <span class="size">{{ item.size|upper }} X {{ item.quantidade }}</span>
+                        {% if item.variacao %}
+                        <span class="size">{{ item.variacao.tamanho|upper }} X {{ item.quantidade }}</span>
+                        <span class="color">Cor: {{ item.variacao.cor.nome }}</span>
                         {% endif %}
                     </div>
                     <span class="price">R$ {{ item.subtotal|floatformat:2 }}</span>
@@ -90,9 +99,15 @@
                     <span class="price">R$ {{ total|floatformat:2 }}</span>
                 </div>
             </div>
-            {% else %}
-            <p class="empty-cart">Seu carrinho está vazio.</p>
-            {% endif %}
+            <!-- Bloco de política de troca/devolução -->
+            <div class="exchange-policy" style="margin-top: 32px; padding: 18px; border: 1px solid #e0e0e0; border-radius: 10px; background: #f9f9f9;">
+                <h3 style="margin-bottom: 8px;">Política de Troca e Devolução</h3>
+                <p style="font-size: 15px; color: #444;">
+                    Você pode solicitar a troca ou devolução de produtos em até <strong>7 dias</strong> após o recebimento, conforme o Código de Defesa do Consumidor.
+                    O produto deve estar em perfeitas condições, sem sinais de uso, e com a embalagem original.
+                    Para iniciar o processo, entre em contato pelo nosso <a href="mailto:suporte@lukao.com" style="color: #1976d2;">suporte</a> ou consulte a <a href="{% url 'pagina_politica_troca' %}" style="color: #1976d2;">página de política completa</a>.
+                </p>
+            </div>
         </div>
         <div class="payment">
             <h2>Pagamento</h2>

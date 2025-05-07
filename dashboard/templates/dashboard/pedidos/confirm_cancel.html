@@ -1,0 +1,18 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h1>Confirmar Cancelamento do Pedido #{{ pedido.id }}</h1>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <p>Tem certeza que deseja cancelar o pedido #{{ pedido.id }}?</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Confirmar Cancelamento</button>
+                <a href="{% url 'dashboard:pedido_detail' pedido.pk %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Voltar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

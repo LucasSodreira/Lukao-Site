@@ -20,6 +20,7 @@ from django.conf.urls.static import static
 from django.urls import path, include
 from core.views import *
 from user.views import *
+from dashboard.views import *
 from checkout.views import *
 
 
@@ -38,6 +39,7 @@ urlpatterns = [
     path('checkout/', include('checkout.urls', namespace='checkout')),
     path('user/', include('user.urls', namespace='user')),
 
+    path('dashboard/', include('dashboard.urls', namespace='dashboard')),
     
     path('admin/', admin.site.urls),
 ]

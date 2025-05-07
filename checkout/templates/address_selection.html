@@ -45,10 +45,14 @@
             </div>
             <div class="address-actions-inline">
                 {% if not endereco.principal %}
-                <form action="{% url 'checkout:definir-endereco-principal' endereco.pk %}" method="post" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-mini">Definir como principal</button>
-                </form>
+                    {% if forloop.first and enderecos|length == 1 %}
+                        <button class="btn-mini" disabled>Definir como principal</button>
+                    {% else %}
+                        <form action="{% url 'checkout:definir-endereco-principal' endereco.pk %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-mini">Definir como principal</button>
+                        </form>
+                    {% endif %}
                 {% endif %}
                 <a href="{% url 'checkout:editar-endereco' endereco.pk %}" class="btn-mini">Editar</a>
                 <form action="{% url 'checkout:excluir-endereco' endereco.pk %}" method="post" style="display: inline;">

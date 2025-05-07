@@ -57,6 +57,7 @@ LOGOUT_REDIRECT_URL = 'user:login' # URL para redirecionar após o logout
 
 INSTALLED_APPS = [
     'jazzmin',
+    'django_filters',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -66,6 +67,7 @@ INSTALLED_APPS = [
     'core',
     'user',
     'checkout',
+    'dashboard',
 ]
 
 MIDDLEWARE = [
@@ -176,3 +178,12 @@ if DEBUG:
     urlpatterns = [
         # ... suas URLs existentes ...
     ] + static(MEDIA_URL, document_root=MEDIA_ROOT)
+    
+# # Configurações de E-mail
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'  # Exemplo: use seu provedor de e-mail
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'seu_email@gmail.com'  # Substitua pelo seu e-mail
+# EMAIL_HOST_PASSWORD = 'sua_senha'  # Substitua pela sua senha ou app password
+# DEFAULT_FROM_EMAIL = 'Loja de Roupas VSG <seu_email@gmail.com>'

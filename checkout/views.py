@@ -16,7 +16,8 @@ from django.views.generic import TemplateView, UpdateView, CreateView, FormView,
 
 from checkout.forms import EnderecoForm
 from checkout.utils import obter_itens_do_carrinho, cotar_frete_melhor_envio
-from core.models import Endereco, Produto, Pedido, ItemPedido
+from core.models import Endereco, Produto, Pedido, ItemPedido, LogAcao
+from user.models import Perfil
 
 # ==========================
 # Formulários auxiliares
@@ -60,6 +61,14 @@ class EnderecoEditView(UpdateView):
         messages.error(self.request, "Erro ao atualizar o endereço. Verifique os dados.")
         return super().form_invalid(form)
 
+    def form_valid(self, form):
+        LogAcao.objects.create(
+            usuario=self.request.user,
+            acao="Editou endereço",
+            detalhes=f"Endereço ID: {self.object.id}"
+        )
+        return super().form_valid(form)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['from_index'] = self.request.GET.get('from_index') == '1'
@@ -79,7 +88,13 @@ class EnderecoCreateView(CreateView):
 
     def form_valid(self, form):
         form.instance.usuario = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        LogAcao.objects.create(
+            usuario=self.request.user,
+            acao="Criou endereço",
+            detalhes=f"Endereço ID: {self.object.id}"
+        )
+        return response
 
     def form_invalid(self, form):
         messages.error(self.request, "Erro ao criar o endereço. Verifique os dados.")
@@ -102,6 +117,11 @@ class DefinirEnderecoPrincipal(View):
         Endereco.objects.filter(usuario=request.user, principal=True).update(principal=False)
         endereco.principal = True
         endereco.save()
+        LogAcao.objects.create(
+            usuario=request.user,
+            acao="Definiu endereço principal",
+            detalhes=f"Endereço ID: {endereco.id}"
+        )
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'sucesso': True, 'cep': endereco.cep})
         # Redireciona para index se veio do index
@@ -114,6 +134,11 @@ class ExcluirEnderecoView(View):
     def post(self, request, pk):
         endereco = get_object_or_404(Endereco, pk=pk, usuario=request.user)
         endereco.delete()
+        LogAcao.objects.create(
+            usuario=request.user,
+            acao="Excluiu endereço",
+            detalhes=f"Endereço ID: {endereco.id}"
+        )
         # Redireciona para index se veio do index
         if request.GET.get('from_index') == '1':
             return HttpResponseRedirect(reverse_lazy('index'))
@@ -144,9 +169,31 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         itens_carrinho, subtotal = obter_itens_do_carrinho(self.request)
+        # Use preço vigente do produto
+        subtotal = sum(item['produto'].preco_vigente() * item['quantidade'] for item in itens_carrinho)
         frete_info = self.request.session.get('frete_escolhido')
         frete_valor = Decimal(str(frete_info.get('price'))) if frete_info else Decimal('0.00')
         total = subtotal + frete_valor
+
+        # Aplicação de cupom usando método aplicar do modelo
+        cupom_codigo = self.request.session.get('cupom')
+        cupom = None
+        desconto = 0
+        if cupom_codigo:
+            try:
+                from core.models import Cupom
+                cupom = Cupom.objects.get(codigo__iexact=cupom_codigo)
+                if cupom.is_valido(self.request.user):
+                    total_com_cupom = cupom.aplicar(total)
+                    desconto = total - total_com_cupom
+                    total = total_com_cupom
+                else:
+                    self.request.session.pop('cupom', None)
+                    cupom = None
+            except Exception:
+                self.request.session.pop('cupom', None)
+                cupom = None
+
         endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
         pedido = Pedido.objects.filter(usuario=self.request.user, status='P').last()
         if not pedido:
@@ -156,13 +203,18 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
                 endereco_entrega=endereco,
                 total=total
             )
+            LogAcao.objects.create(
+                usuario=self.request.user,
+                acao="Criou pedido",
+                detalhes=f"Pedido ID: {pedido.id}"
+            )
             for item in itens_carrinho:
                 ItemPedido.objects.create(
                     pedido=pedido,
                     produto=item['produto'],
                     quantidade=item['quantidade'],
-                    preco_unitario=item['produto'].preco,
-                    tamanho=item.get('size')
+                    preco_unitario=item['produto'].preco_vigente(),
+                    variacao=item.get('variacao')
                 )
         context.update({
             'itens_carrinho': itens_carrinho,
@@ -171,8 +223,17 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
             'total': total,
             'frete_escolhido': frete_info,
             'endereco': endereco,
+            'cupom': cupom,
+            'desconto': desconto,
+            'total_com_cupom': total,
         })
         context['stripe_public_key'] = settings.STRIPE_PUBLIC_KEY
+        perfil = getattr(self.request.user, 'perfil', None)
+        context['checkout_rapido'] = False
+        if perfil and perfil.endereco_rapido and perfil.metodo_pagamento_rapido:
+            context['checkout_rapido'] = True
+            context['endereco_rapido'] = perfil.endereco_rapido
+            context['metodo_pagamento_rapido'] = perfil.metodo_pagamento_rapido
         return context
 
     def validate_order(self):
@@ -383,3 +444,20 @@ def salvar_cep_usuario(request):
             return JsonResponse({'sucesso': True, 'cep': cep})
         return JsonResponse({'sucesso': False, 'erro': 'CEP inválido'})
     return JsonResponse({'sucesso': False, 'erro': 'Requisição inválida'})
+
+@login_required
+def usar_checkout_rapido(request):
+    if not request.user.is_authenticated:
+        return redirect('user:login')
+    perfil = getattr(request.user, 'perfil', None)
+    if perfil and perfil.endereco_rapido:
+        request.session['endereco_rapido_id'] = perfil.endereco_rapido.id
+        LogAcao.objects.create(
+            usuario=request.user,
+            acao="Usou checkout rápido",
+            detalhes=f"Endereço rápido ID: {perfil.endereco_rapido.id}"
+        )
+        messages.success(request, "Checkout rápido ativado!")
+        return redirect('checkout:order-summary')
+    messages.error(request, "Configure um endereço e método de pagamento rápido no seu perfil.")
+    return redirect('checkout:order-summary')

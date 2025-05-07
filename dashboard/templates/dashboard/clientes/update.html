@@ -1,0 +1,81 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h1>Editar Cliente #{{ cliente.id }}</h1>
+
+    <!-- Mensagens -->
+    {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Formulário -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Nome</label>
+                    {{ form.first_name }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Sobrenome</label>
+                    {{ form.last_name }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    {{ form.email }}
+                </div>
+                <h5 class="mt-4">Endereços</h5>
+                {{ endereco_formset.management_form }}
+                {% for form in endereco_formset %}
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Rua</label>
+                            {{ form.rua }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Número</label>
+                            {{ form.numero }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Complemento</label>
+                            {{ form.complemento }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Bairro</label>
+                            {{ form.bairro }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Cidade</label>
+                            {{ form.cidade }}
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">Estado</label>
+                            {{ form.estado }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">CEP</label>
+                            {{ form.cidade }}
+                        </div>
+                        {% if form.instance.pk %}
+                            <div class="col-md-1">
+                                <label class="form-label">Excluir</label>
+                                {{ form.DELETE }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
+                <a href="{% url 'dashboard:cliente_detail' cliente.pk %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Voltar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

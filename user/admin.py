@@ -1,5 +1,5 @@
 from django.contrib import admin
-from user.models import Perfil
+from user.models import Perfil, LogAtividadeUsuario
 
 @admin.register(Perfil)
 class PerfilAdmin(admin.ModelAdmin):
@@ -8,3 +8,9 @@ class PerfilAdmin(admin.ModelAdmin):
     list_filter = ('sexo', 'newsletter', 'data_cadastro')
     autocomplete_fields = ['usuario', 'endereco_padrao']
     readonly_fields = ('data_cadastro', 'data_atualizacao')
+
+@admin.register(LogAtividadeUsuario)
+class LogAtividadeUsuarioAdmin(admin.ModelAdmin):
+    list_display = ('usuario', 'tipo', 'ip', 'data')
+    search_fields = ('usuario__username', 'ip', 'user_agent')
+    list_filter = ('tipo', 'data')

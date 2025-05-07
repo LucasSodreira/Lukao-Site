@@ -1,0 +1,92 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h1>Relatórios de Reembolsos</h1>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get">
+                <div class="row">
+                    {% for field in filter.form %}
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
+                        <a href="{% url 'dashboard:relatorios_reembolsos' %}" class="btn btn-secondary"><i class="fas fa-undo"></i> Limpar</a>
+                        <a href="?{{ request.GET.urlencode }}&export=csv" class="btn btn-success"><i class="fas fa-download"></i> Exportar CSV</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mensagens -->
+    {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Tabela de Reembolsos -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Pedido</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                            <th>Data</th>
+                            <th>Motivo</th>
+                            <th>Notas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reembolso in reembolsos %}
+                            <tr>
+                                <td>{{ reembolso.id }}</td>
+                                <td>#{{ reembolso.pedido.id }}</td>
+                                <td>R$ {{ reembolso.valor|floatformat:2 }}</td>
+                                <td>{{ reembolso.get_status_display }}</td>
+                                <td>{{ reembolso.data_criacao|date:"d/m/Y H:i" }}</td>
+                                <td>{{ reembolso.motivo|default:"Não informado" }}</td>
+                                <td>{{ reembolso.notas|default:"Nenhuma" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">Nenhum reembolso encontrado.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Total Reembolsado por Mês</h5>
+            <canvas id="reembolsosChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Passar dados para JavaScript -->
+    <script>
+        const reembolsosLabels = {{ reembolsos_labels|safe }};
+        const reembolsosValues = {{ reembolsos_values|safe }};
+    </script>
+    <script src="/static/dashboard/js/reembolsos.js"></script>
+</div>
+{% endblock %}

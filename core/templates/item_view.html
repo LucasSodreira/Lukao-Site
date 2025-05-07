@@ -30,44 +30,111 @@
         <div class="product-info">
             <h1 class="product-title">{{ produto.nome }}</h1>
             <div class="product-price">
-                <span class="current-price">${{ produto.preco }}</span>
+                <span class="current-price">
+                    R$ {{ produto.preco_vigente|default:produto.preco|floatformat:2 }}
+                </span>
+                {% if produto.preco_original and produto.preco_original > produto.preco_vigente %}
+                    <span class="old-price">R$ {{ produto.preco_original|floatformat:2 }}</span>
+                    <span class="discount">
+                        -{{ produto.desconto|default:produto.calcular_desconto|floatformat:0 }}%
+                    </span>
+                {% endif %}
             </div>
             <div class="product-description">
                 <p>{{ produto.descricao }}</p>
             </div>
-            <!-- Tamanhos -->
+            <!-- Validações e mensagens -->
+            <div id="validation-messages">
+                {% if not produto.ativo %}
+                    <div class="alert alert-danger">Produto indisponível para compra.</div>
+                {% elif produto.estoque <= 0 %}
+                    <div class="alert alert-warning">Produto sem estoque.</div>
+                {% endif %}
+                {% if messages %}
+                    <ul class="messages">
+                        {% for message in messages %}
+                            <li class="{{ message.tags }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div id="js-validation" style="color: #c00; font-weight: bold;"></div>
+            </div>
+            
+            <!-- Seleção de Cor  -->
             <div class="size-selection">
-                <h3>Choose Size</h3>
-                <div class="size-options">
-                    <input type="radio" id="size-small" name="size" value="small" class="size-radio" checked>
-                    <label for="size-small" class="size-label">Small</label>
-                    <input type="radio" id="size-medium" name="size" value="medium" class="size-radio">
-                    <label for="size-medium" class="size-label">Medium</label>
-                    <input type="radio" id="size-large" name="size" value="large" class="size-radio">
-                    <label for="size-large" class="size-label">Large</label>
-                    <input type="radio" id="size-xlarge" name="size" value="xlarge" class="size-radio">
-                    <label for="size-xlarge" class="size-label">X-Large</label>
+                <hr>
+                <div class="color-container">
+                    <h3>Escolha a Cor</h3>
+                        <div class="color-options">
+                            {% for cor in cores_unicas %}
+                            <button type="button"
+                                class="color-circle color-btn {% if cor.valor_css in request.GET.cores.split|default:'' %}selected{% endif %} available"
+                                style="background-color: {{ cor.valor_css }}; border: 1px solid #ccc;"
+                                data-cor-id="{{ cor.id }}"
+                                onclick="selectColor({{ cor.id }})"
+                                title="{{ cor.nome|capfirst }}">
+                            </button>
+                        {% endfor %}
+                        </div>
+                </div>
+                <hr>
+                    <div class="size-container">
+                        <h3>Escolha o Tamanho</h3>
+                        <div class="size-options">
+                            {% for variacao in produto.variacoes.all %}
+                            <button type="button"
+                            class="size-btn {% if variacao.estoque == 0 %}disabled{% endif %}"
+                            data-cor-id="{{ variacao.cor.id }}"
+                            data-tamanho="{{ variacao.tamanho }}"
+                            data-variacao-id="{{ variacao.id }}"
+                            data-estoque="{{ variacao.estoque }}"
+                            {% if variacao.estoque == 0 %}disabled aria-disabled="true"{% endif %}
+                            onclick="selectSize(this)">
+                            {{ variacao.tamanho }}
+                            {% if variacao.estoque == 0 %}<span class="sem-estoque">(Indisponível)</span>{% endif %}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <div id="estoque-info" style="margin-top:10px;"></div>
                 </div>
             </div>
+            <hr>
             <div class="container-actions">
                 <div class="quantity-container">
-                    <button type="button" class="quantity-btn" onclick="decreaseQuantity()">-</button>
+                    <button type="button" class="quantity-btn" onclick="decreaseQuantity()" aria-label="Diminuir quantidade">-</button>
                     <span id="quantity">1</span>
-                    <button type="button" class="quantity-btn" onclick="increaseQuantity()">+</button>
+                    <button type="button" class="quantity-btn" onclick="increaseQuantity()" aria-label="Aumentar quantidade">+</button>
                 </div>
+                <hr>
                 <!-- Botões de ação -->
                 <div class="action-buttons">
-                    <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form">
+                    <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form" id="add-to-cart-form" autocomplete="off" onsubmit="return validateAddToCart();">
                         {% csrf_token %}
-                        <input type="hidden" name="size" id="selected-size" value="small">
+                        <input type="hidden" name="variacao_id" id="selected-variacao" value="">
                         <input type="hidden" name="quantity" id="selected-quantity" value="1">
-                        <button type="submit" class="action-btn cart-btn">
+                        <button type="submit" class="action-btn cart-btn" id="add-to-cart-btn" 
+                            {% if not produto.ativo or produto.estoque <= 0 %}disabled{% endif %}>
                             <img src="{% static 'images/cart.svg' %}" alt="Cart">
                             Add to Cart
                         </button>
                     </form>
-                    <button type="button" class="action-btn buy-now-btn">Buy Now</button>
+                    <button type="button" class="action-btn buy-now-btn" onclick="validateBuyNow()" 
+                        {% if not produto.ativo or produto.estoque <= 0 %}disabled{% endif %}>
+                        Buy Now
+                    </button>
                 </div>
+            </div>
+            <!-- Outras validações possíveis -->
+            <div class="extra-validations" style="margin-top: 10px;">
+                {% if produto.destaque %}
+                    <span class="badge badge-success" style="background: #28a745; color: #fff; padding: 4px 10px; border-radius: 8px;">Produto em destaque</span>
+                {% endif %}
+                {% if produto.estoque <= 5 and produto.estoque > 0 %}
+                    <span class="badge badge-warning" style="background: #ffc107; color: #222; padding: 4px 10px; border-radius: 8px;">Últimas unidades!</span>
+                {% endif %}
+                {% if produto.preco_vigente and produto.preco_vigente < 20 %}
+                    <span class="badge badge-info" style="background: #17a2b8; color: #fff; padding: 4px 10px; border-radius: 8px;">Preço especial!</span>
+                {% endif %}
             </div>
         </div>
     </div>

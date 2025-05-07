@@ -1,0 +1,38 @@
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 1000;
+}
+.sidebar .nav-link.active {
+    background-color: #0d6efd;
+    border-radius: 5px;
+}
+main {
+    margin-left: 250px;
+}
+.card {
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: translateY(-5px);
+}
+.list-group-item-danger, .list-group-item-warning {
+    font-size: 0.9rem;
+}
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+.form-label {
+    font-weight: 500;
+}
+.form-control, .form-select {
+    border-radius: 5px;
+}
+.table th, .table td {
+    vertical-align: middle;
+}
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+}

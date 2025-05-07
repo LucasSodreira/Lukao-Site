@@ -1,0 +1,112 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <!-- Card: Total de Vendas -->
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-dollar-sign me-2"></i> Total de Vendas</h5>
+                <p class="card-text fs-4">R$ {{ total_vendas|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+    <!-- Card: Pedidos Pendentes -->
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-shopping-cart me-2"></i> Pedidos Pendentes</h5>
+                <p class="card-text fs-4">{{ pedidos_pendentes }}</p>
+            </div>
+        </div>
+    </div>
+    <!-- Card: Estoque Baixo -->
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-exclamation-triangle me-2"></i> Estoque Baixo</h5>
+                <p class="card-text fs-4">{{ produtos_estoque_baixo }}</p>
+            </div>
+        </div>
+    </div>
+    <!-- Card: Total de Clientes -->
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-users me-2"></i> Total de Clientes</h5>
+                <p class="card-text fs-4">{{ total_clientes }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Gráfico: Vendas por Dia -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Vendas por Dia (Últimos 30 Dias)</h5>
+                <canvas id="vendasChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Gráfico: Produtos Mais Vendidos -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Produtos Mais Vendidos</h5>
+                <canvas id="produtosChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Gráfico: Estoque por Categoria -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Estoque por Categoria</h5>
+                <canvas id="estoqueChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Alertas -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Alertas</h5>
+                {% if produtos_estoque_zerado or promocoes_fim %}
+                    <ul class="list-group">
+                        {% for produto in produtos_estoque_zerado %}
+                            <li class="list-group-item list-group-item-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                Produto "{{ produto.nome }}" está com estoque zerado.
+                            </li>
+                        {% endfor %}
+                        {% for produto in promocoes_fim %}
+                            <li class="list-group-item list-group-item-warning">
+                                <i class="fas fa-clock me-2"></i>
+                                Promoção de "{{ produto.nome }}" termina em {{ produto.promocao_fim|date:"d/m/Y" }}.
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">Nenhum alerta no momento.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Passar dados para JavaScript -->
+<script>
+    const vendasLabels = {{ vendas_labels|safe }};
+    const vendasValues = {{ vendas_values|safe }};
+    const produtosLabels = {{ produtos_labels|safe }};
+    const produtosValues = {{ produtos_values|safe }};
+    const estoqueLabels = {{ estoque_labels|safe }};
+    const estoqueValues = {{ estoque_values|safe }};
+</script>
+<script src="/static/dashboard/js/overview.js"></script>
+{% endblock %}

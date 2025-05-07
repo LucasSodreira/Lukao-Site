@@ -32,10 +32,15 @@
                     <p>{{ endereco.telefone }}</p>
                     <div class="actions">
                         {% if not endereco.principal %}
-                        <form action="{% url 'user:definir-endereco-principal' endereco.pk %}" method="post" style="display: inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn-mini">Definir como principal</button>
-                        </form>
+                            {% if forloop.first and enderecos|length == 1 %}
+                                <!-- Primeiro e único endereço: já é principal, botão desabilitado -->
+                                <button class="btn-mini" disabled>Definir como principal</button>
+                            {% else %}
+                                <form action="{% url 'user:definir-endereco-principal' endereco.pk %}" method="post" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-mini">Definir como principal</button>
+                                </form>
+                            {% endif %}
                         {% endif %}
                         <a href="{% url 'user:editar-endereco' endereco.pk %}" class="btn-mini">Editar</a>
                         <form action="{% url 'user:excluir-endereco' endereco.pk %}" method="post" style="display: inline;">

@@ -29,10 +29,18 @@
                         <div class="item-details">
                             <div class="item-info">
                                 <h3 class="item-name">{{ item.produto.nome }}</h3>
-                                {% if item.size %}
-                                    <p class="item-attribute">Tamanho: {{ item.size|upper }}</p>
+                                {# Sempre mostra cor/tamanho, mesmo se não houver variacao #}
+                                {% if item.variacao %}
+                                    <p class="item-attribute">Tamanho: {{ item.variacao.tamanho|upper }}</p>
+                                    <p class="item-attribute">Cor: {{ item.variacao.cor.nome }}</p>
+                                {% else %}
+                                    {% if item.tamanho %}
+                                        <p class="item-attribute">Tamanho: {{ item.tamanho|upper }}</p>
+                                    {% endif %}
+                                    {% if item.cor %}
+                                        <p class="item-attribute">Cor: {{ item.cor }}</p>
+                                    {% endif %}
                                 {% endif %}
-                                <p class="item-attribute">Cor: -</p>
                             </div>
                             <div class="item-price-info">
                                 <p class="item-price">Preço Unitário: R$ {{ item.produto.preco }}</p>
@@ -40,21 +48,22 @@
                             </div>
                         </div>
                         <div class="action-center">
-                            <form action="{% url 'remover-item' item.chave %}" method="post">
+                            {# Sempre mostra os botões, mas se item.chave não existir, desabilita/remover funcionalidade #}
+                            <form action="{% if item.chave %}{% url 'remover-item' item.chave %}{% else %}#{% endif %}" method="post">
                                 {% csrf_token %}
-                                <button type="submit" class="remove-btn">
+                                <button type="submit" class="remove-btn" {% if not item.chave %}disabled title="Ação não disponível para este item"{% endif %}>
                                     <img src="{% static 'images/delete.svg' %}" alt="delete">
                                 </button>
                             </form>
                             <div class="quantity-control">
-                                <form action="{% url 'diminuir-item' item.chave %}" method="post" id="quantity-btn">
+                                <form action="{% if item.chave %}{% url 'diminuir-item' item.chave %}{% else %}#{% endif %}" method="post" id="quantity-btn">
                                     {% csrf_token %}
-                                    <button type="submit">-</button>
+                                    <button type="submit" {% if not item.chave %}disabled title="Ação não disponível para este item"{% endif %}>-</button>
                                 </form>
                                 <span>{{ item.quantidade }}</span>
-                                <form action="{% url 'aumentar-item' item.chave %}" method="post" id="quantity-btn">
+                                <form action="{% if item.chave %}{% url 'aumentar-item' item.chave %}{% else %}#{% endif %}" method="post" id="quantity-btn">
                                     {% csrf_token %}
-                                    <button type="submit">+</button>
+                                    <button type="submit" {% if not item.chave %}disabled title="Ação não disponível para este item"{% endif %}>+</button>
                                 </form>
                             </div>
                         </div>
@@ -68,14 +77,24 @@
 
         <div class="order-summary">
             <h3 class="summary-title">Resumo do Pedido</h3>
+            <form method="post" style="margin-bottom: 10px;">
+                {% csrf_token %}
+                <input type="text" name="cupom" placeholder="Cupom de desconto" value="{{ cupom.codigo|default_if_none:'' }}">
+                <button type="submit" class="checkout-btn" style="margin-bottom: 8px;">Aplicar Cupom</button>
+                {% if cupom %}
+                    <button type="submit" name="remover_cupom" value="1" class="checkout-btn" style="background:#ccc; color:#222; margin-left:8px;">Remover Cupom</button>
+                {% endif %}
+            </form>
             <div class="summary-row">
                 <span>Subtotal</span>
                 <span>R$ {{ total_carrinho }}</span>
             </div>
+            {% if desconto and desconto > 0 %}
             <div class="summary-row discount">
-                <span>Desconto (-20%)</span>
-                <span>-R$ {{ total_carrinho }}</span>
+                <span>Desconto</span>
+                <span>-R$ {{ desconto|floatformat:2 }}</span>
             </div>
+            {% endif %}
             <div class="summary-row">
                 <span>Taxa de Entrega</span>
                 <span id="frete-valor">
@@ -88,7 +107,7 @@
             </div>
             <div class="summary-total">
                 <span>Total</span>
-                <span id="total-com-frete">R$ {{ total_carrinho }}</span>
+                <span id="total-com-frete">R$ {{ total_carrinho_com_cupom|default:total_carrinho|floatformat:2 }}</span>
             </div>
             <form method="get" action="{% url 'checkout:select_address' %}">
                 <button type="submit" class="checkout-btn">Finalizar Pedido</button>

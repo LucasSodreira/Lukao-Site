@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Loja de Roupas VSG</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        body {
+            background-color: #f4f6f9;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            min-height: 100vh;
+            background-color: #343a40;
+            z-index: 1000;
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar .nav-link {
+            color: #adb5bd;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: #ffffff;
+            background-color: #495057;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-250px);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar d-flex flex-column p-3">
+        <a href="{% url 'dashboard:dashboard_home' %}" class="d-flex align-items-center mb-3 text-white text-decoration-none">
+            <span class="fs-4">Dashboard VSG</span>
+        </a>
+        <hr class="text-white">
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a href="{% url 'dashboard:dashboard_home' %}" class="nav-link"><i class="fas fa-home me-2"></i> Visão Geral</a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'dashboard:produto_list' %}" class="nav-link"><i class="fas fa-box me-2"></i> Produtos</a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'dashboard:pedido_list' %}" class="nav-link"><i class="fas fa-shopping-cart me-2"></i> Pedidos</a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'dashboard:reembolso_list' %}" class="nav-link"><i class="fas fa-undo me-2"></i> Reembolsos</a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'dashboard:relatorios_reembolsos' %}" class="nav-link"><i class="fas fa-chart-bar me-2"></i> Relatórios</a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'dashboard:notificacoes_list' %}" class="nav-link">
+                    <i class="fas fa-bell me-2"></i> Notificações
+                    {% if request.user.notifications.unread.count %}
+                        <span class="badge bg-danger">{{ request.user.notifications.unread.count }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'dashboard:cliente_list' %}" class="nav-link"><i class="fas fa-users me-2"></i> Clientes</a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'dashboard:estoque_list' %}" class="nav-link"><i class="fas fa-warehouse me-2"></i> Estoque</a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'dashboard:cupom_list' %}" class="nav-link"><i class="fas fa-ticket-alt me-2"></i> Cupons</a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'btn btn-dark d-md-none position-fixed top-0 start-0 m-2';
+            toggleBtn.style.zIndex = '1001';
+            toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+            document.body.appendChild(toggleBtn);
+
+            toggleBtn.addEventListener('click', function () {
+                sidebar.classList.toggle('active');
+            });
+        });
+    </script>
+</body>
+</html>

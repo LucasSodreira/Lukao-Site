@@ -1,0 +1,108 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h1>Gestão de Produtos</h1>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get">
+                <div class="row">
+                    {% for field in filter.form %}
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
+                        <a href="{% url 'dashboard:produto_list' %}" class="btn btn-secondary"><i class="fas fa-undo"></i> Limpar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Botão para Novo Produto -->
+    <a href="{% url 'dashboard:produto_create' %}" class="btn btn-success mb-3"><i class="fas fa-plus"></i> Novo Produto</a>
+
+    <!-- Tabela de Produtos -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Categoria</th>
+                            <th>Marca</th>
+                            <th>Preço</th>
+                            <th>Estoque</th>
+                            <th>Ativo</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for produto in produtos %}
+                            <tr>
+                                <td>{{ produto.nome }}</td>
+                                <td>{{ produto.categoria.nome }}</td>
+                                <td>{{ produto.marca.nome|default:"-" }}</td>
+                                <td>R$ {{ produto.preco_vigente|floatformat:2 }}</td>
+                                <td>{{ produto.estoque }}</td>
+                                <td>
+                                    {% if produto.ativo %}
+                                        <i class="fas fa-check text-success"></i>
+                                    {% else %}
+                                        <i class="fas fa-times text-danger"></i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'dashboard:produto_update' produto.pk %}" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
+                                    <a href="{% url 'dashboard:produto_delete' produto.pk %}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">Nenhum produto encontrado.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row">
+        <!-- Estoque por Categoria -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Estoque por Categoria</h5>
+                    <canvas id="estoqueChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- Produtos Mais Avaliados -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Produtos Mais Avaliados</h5>
+                    <canvas id="avaliacoesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Passar dados para JavaScript -->
+    <script>
+        const estoqueLabels = {{ estoque_labels|safe }};
+        const estoqueValues = {{ estoque_values|safe }};
+        const avaliacoesLabels = {{ avaliacoes_labels|safe }};
+        const avaliacoesValues = {{ avaliacoes_values|safe }};
+    </script>
+    <script src="/static/dashboard/js/produtos.js"></script>
+</div>
+{% endblock %}

@@ -34,6 +34,33 @@
                 <button class="edit-btn">Edit</button>
             </a>
         </div>
+        <div class="info-section">
+            <h2>Preferências de Checkout Rápido</h2>
+            <form method="post" action="{% url 'user:salvar_checkout_rapido' %}">
+                {% csrf_token %}
+                <div class="info-item">
+                    <label>Endereço rápido</label>
+                    <select name="endereco_rapido">
+                        <option value="">Selecione...</option>
+                        {% for endereco in user.enderecos.all %}
+                            <option value="{{ endereco.id }}" {% if user.perfil.endereco_rapido and endereco.id == user.perfil.endereco_rapido.id %}selected{% endif %}>
+                                {{ endereco }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="info-item">
+                    <label>Método de pagamento rápido</label>
+                    <select name="metodo_pagamento_rapido">
+                        <option value="">Selecione...</option>
+                        <option value="stripe_card" {% if user.perfil.metodo_pagamento_rapido == "stripe_card" %}selected{% endif %}>Cartão de Crédito</option>
+                        <option value="stripe_pix" {% if user.perfil.metodo_pagamento_rapido == "stripe_pix" %}selected{% endif %}>Pix</option>
+                        <!-- Adicione outros métodos conforme necessário -->
+                    </select>
+                </div>
+                <button type="submit" class="edit-btn">Salvar Preferências</button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock main %}

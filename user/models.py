@@ -31,3 +31,13 @@ class Notificacao(models.Model):
 
     def __str__(self):
         return f"{self.usuario.username}: {self.mensagem[:30]}"
+
+class LogAtividadeUsuario(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    tipo = models.CharField(max_length=20, choices=[('login', 'Login'), ('logout', 'Logout')])
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    data = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.usuario} - {self.tipo} em {self.data:%d/%m/%Y %H:%M}"

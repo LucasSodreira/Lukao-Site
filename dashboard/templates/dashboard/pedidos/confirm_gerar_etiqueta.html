@@ -1,0 +1,29 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h1>Gerar Etiqueta para Pedido #{{ pedido.id }}</h1>
+
+    <!-- Mensagens -->
+    {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <p>Tem certeza que deseja gerar uma etiqueta para o pedido #{{ pedido.id }} via Melhor Envio?</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary"><i class="fas fa-tag"></i> Gerar Etiqueta</button>
+                <a href="{% url 'dashboard:pedido_detail' pedido.pk %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Voltar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

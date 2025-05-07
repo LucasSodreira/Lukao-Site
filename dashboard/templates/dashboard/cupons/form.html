@@ -1,0 +1,78 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h1>{{ title }}</h1>
+
+    <!-- Mensagens -->
+    {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Formulário -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Código</label>
+                    {{ form.codigo }}
+                    {% if form.codigo.errors %}
+                        <div class="text-danger">{{ form.codigo.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    {{ form.descricao }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Desconto Percentual (%)</label>
+                    {{ form.desconto_percentual }}
+                    {% if form.desconto_percentual.errors %}
+                        <div class="text-danger">{{ form.desconto_percentual.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Desconto em Valor (R$)</label>
+                    {{ form.desconto_valor }}
+                    {% if form.desconto_valor.errors %}
+                        <div class="text-danger">{{ form.desconto_valor.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Ativo</label>
+                    {{ form.ativo }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Validade</label>
+                    {{ form.validade }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Uso Único</label>
+                    {{ form.uso_unico }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Máximo de Usos</label>
+                    {{ form.max_usos }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Usos Atuais</label>
+                    {{ form.usos }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Usuário</label>
+                    {{ form.usuario }}
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
+                <a href="{% url 'dashboard:cupom_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Voltar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

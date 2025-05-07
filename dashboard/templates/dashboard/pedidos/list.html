@@ -1,0 +1,133 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h1>Gestão de Pedidos</h1>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get">
+                <div class="row">
+                    {% for field in filter.form %}
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
+                        <a href="{% url 'dashboard:pedido_list' %}" class="btn btn-secondary"><i class="fas fa-undo"></i> Limpar</a>
+                        <a href="{% url 'dashboard:pedido_export_csv' %}?{{ request.GET.urlencode }}" class="btn btn-success"><i class="fas fa-download"></i> Exportar CSV</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mensagens -->
+    {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Tabela de Pedidos -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuário</th>
+                            <th>Data</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pedido in pedidos %}
+                            <tr>
+                                <td>{{ pedido.id }}</td>
+                                <td>{{ pedido.usuario.username }}</td>
+                                <td>{{ pedido.data_criacao|date:"d/m/Y H:i" }}</td>
+                                <td>R$ {{ pedido.total|floatformat:2 }}</td>
+                                <td>{{ pedido.get_status_display }}</td>
+                                <td>
+                                    <a href="{% url 'dashboard:pedido_detail' pedido.pk %}" class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></a>
+                                    <a href="{% url 'dashboard:pedido_update' pedido.pk %}" class="btn btn-sm btn-success"><i class="fas fa-edit"></i></a>
+                                    {% if pedido.status == 'P' or pedido.status == 'PR' %}
+                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal{{ pedido.id }}"><i class="fas fa-trash"></i></button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <!-- Modal de Confirmação -->
+                            <div class="modal fade" id="cancelModal{{ pedido.id }}" tabindex="-1" aria-labelledby="cancelModalLabel{{ pedido.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="cancelModalLabel{{ pedido.id }}">Confirmar Cancelamento</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            Tem certeza que deseja cancelar o pedido #{{ pedido.id }}?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                            <form method="post" action="{% url 'pedido_cancel' pedido.pk %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger">Confirmar Cancelamento</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center">Nenhum pedido encontrado.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row">
+        <!-- Pedidos por Status -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Pedidos por Status</h5>
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- Evolução de Pedidos -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Evolução de Pedidos (Últimos 30 Dias)</h5>
+                    <canvas id="pedidosChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Passar dados para JavaScript -->
+    <script>
+        const statusLabels = {{ status_labels|safe }};
+        const statusValues = {{ status_values|safe }};
+        const pedidosLabels = {{ pedidos_labels|safe }};
+        const pedidosValues = {{ pedidos_values|safe }};
+    </script>
+    <script src="/static/dashboard/js/pedidos.js"></script>
+</div>
+{% endblock %}

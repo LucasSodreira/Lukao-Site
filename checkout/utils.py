@@ -16,16 +16,17 @@ def obter_itens_do_carrinho(request):
     """Obtém os itens do carrinho e calcula o subtotal."""
     if request.user.is_authenticated:
         carrinho = obter_carrinho_usuario(request)
-        itens = carrinho.itens.select_related('produto').all()
+        itens = carrinho.itens.select_related('produto', 'variacao').all()
         itens_carrinho = []
         subtotal = 0
         for item in itens:
-            subtotal_item = item.produto.preco * item.quantidade
+            preco_vigente = item.produto.preco_vigente()
+            subtotal_item = preco_vigente * item.quantidade
             subtotal += subtotal_item
             itens_carrinho.append({
                 'produto': item.produto,
                 'quantidade': item.quantidade,
-                'size': item.tamanho,
+                'variacao': item.variacao,
                 'subtotal': subtotal_item,
             })
         return itens_carrinho, subtotal
@@ -35,31 +36,32 @@ def obter_itens_do_carrinho(request):
         itens_carrinho = []
         subtotal = 0
 
-        # Coletar todos os IDs de produtos usados no carrinho
         produto_ids = []
+        variacao_ids = []
         for item in carrinho.values():
             if isinstance(item, dict) and 'produto_id' in item:
-                # Verifica se o item tem 'produto_id' e adiciona ao produto_ids
                 produto_ids.append(item['produto_id'])
-                
+            if isinstance(item, dict) and 'variacao_id' in item:
+                variacao_ids.append(item['variacao_id'])
 
         produtos = Produto.objects.filter(id__in=produto_ids)
-        produto_dict = {p.id: p for p in produtos}  
-        
-        
+        produto_dict = {p.id: p for p in produtos}
+        variacoes = ProdutoVariacao.objects.filter(id__in=variacao_ids)
+        variacao_dict = {v.id: v for v in variacoes}
 
         for chave, item in carrinho.items():
             produto = produto_dict.get(item['produto_id'])
+            variacao = variacao_dict.get(item.get('variacao_id'))
             if produto:
                 quantidade = item['quantidade']
-                tamanho = item.get('size')
-                subtotal_item = produto.preco * quantidade
+                preco_vigente = produto.preco_vigente()
+                subtotal_item = preco_vigente * quantidade
                 subtotal += subtotal_item
 
                 itens_carrinho.append({
                     'produto': produto,
                     'quantidade': quantidade,
-                    'size': tamanho,
+                    'variacao': variacao,
                     'subtotal': subtotal_item,
                 })
 
@@ -78,7 +80,7 @@ def limpar_carrinho(request):
         request.session.modified = True
 
 
-def adicionar_ao_carrinho(request, produto_id, size=None, quantidade=1):
+def adicionar_ao_carrinho(request, produto_id, variacao_id=None, quantidade=1):
     """Adiciona um produto ao carrinho."""
     if not request.user.is_authenticated:
         # fallback para sessão se não logado
@@ -88,8 +90,8 @@ def adicionar_ao_carrinho(request, produto_id, size=None, quantidade=1):
         if any(isinstance(v, int) for v in carrinho.values()):
             carrinho = migrar_carrinho_antigo(carrinho)
         
-        # Cria uma chave única combinando ID e tamanho
-        chave_item = f"{produto_id}-{size}" if size else str(produto_id)
+        # Cria uma chave única combinando ID e variação
+        chave_item = f"{produto_id}-{variacao_id}" if variacao_id else str(produto_id)
         
         if chave_item in carrinho:
             carrinho[chave_item]['quantidade'] += quantidade
@@ -97,7 +99,7 @@ def adicionar_ao_carrinho(request, produto_id, size=None, quantidade=1):
             carrinho[chave_item] = {
                 'produto_id': produto_id,
                 'quantidade': quantidade,
-                'size': size
+                'variacao_id': variacao_id
             }
         
         request.session['carrinho'] = carrinho
@@ -107,7 +109,7 @@ def adicionar_ao_carrinho(request, produto_id, size=None, quantidade=1):
     item, created = ItemCarrinho.objects.get_or_create(
         carrinho=carrinho,
         produto_id=produto_id,
-        tamanho=size
+        variacao_id=variacao_id
     )
     if not created:
         item.quantidade += quantidade
@@ -179,7 +181,7 @@ def migrar_carrinho_antigo(carrinho):
             novo_carrinho[chave] = {
                 'produto_id': int(chave),
                 'quantidade': valor,
-                'size': None
+                'variacao_id': None
             }
         else:  # Já está no formato novo
             novo_carrinho[chave] = valor
@@ -195,12 +197,13 @@ def migrar_carrinho_sessao_para_banco(request):
     carrinho, _ = Carrinho.objects.get_or_create(usuario=request.user)
     for item_id, item in carrinho_sessao.items():
         produto = Produto.objects.filter(id=item['produto_id']).first()
+        variacao = ProdutoVariacao.objects.filter(id=item.get('variacao_id')).first()
         if not produto:
             continue
         item_carrinho, created = ItemCarrinho.objects.get_or_create(
             carrinho=carrinho,
             produto=produto,
-            tamanho=item.get('size')
+            variacao=variacao
         )
         if not created:
             item_carrinho.quantidade += item['quantidade']
@@ -248,8 +251,7 @@ def preparar_produtos_para_frete(itens_carrinho):
     produtos = []
     for item in itens_carrinho:
         produto = item['produto']
-        tamanho = item.get('size')
-        variacao = ProdutoVariacao.objects.filter(produto=produto, tamanho=tamanho).first()
+        variacao = item.get('variacao')
         peso = float(variacao.peso) if variacao and hasattr(variacao, 'peso') and variacao.peso else float(produto.peso or 1)
         width = getattr(variacao, 'width', 15) if variacao else 15
         height = getattr(variacao, 'height', 10) if variacao else 10

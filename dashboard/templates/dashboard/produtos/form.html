@@ -1,0 +1,55 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h1>{{ title }}</h1>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row">
+                    {% for field in form %}
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="text-danger">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Formset de Variações -->
+                <h4 class="mt-4">Variações</h4>
+                {{ variacao_formset.management_form }}
+                {% for form in variacao_formset %}
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <div class="row">
+                                {% for field in form %}
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.errors %}
+                                            <div class="text-danger">{{ field.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                                {% if form.instance.pk %}
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Excluir</label><br>
+                                        {{ form.DELETE }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
+                <a href="{% url 'dashboard:produto_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

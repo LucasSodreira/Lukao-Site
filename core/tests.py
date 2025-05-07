@@ -1,48 +1,94 @@
-from django.test import TestCase, RequestFactory
-from django.contrib.auth import get_user_model
-from core.models import Produto, Carrinho, ItemCarrinho, Categoria
-from checkout.utils import migrar_carrinho_sessao_para_banco
+from django.test import TestCase
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from .models import Produto, Categoria, Marca
 
-User = get_user_model()
-
-class CarrinhoMigracaoTest(TestCase):
+class ProdutoModelTest(TestCase):
     def setUp(self):
-        self.usuario = User.objects.create_user(username='testeuser', email='teste@teste.com', password='123456')
-        self.categoria = Categoria.objects.create(nome='Categoria Teste')
-        self.produto = Produto.objects.create(
-            nome='Produto Teste',
-            preco=50.0,
-            peso=1,
-            categoria=self.categoria
+        self.categoria = Categoria.objects.create(nome="Roupas")
+        self.marca = Marca.objects.create(nome="Marca Teste")
+
+    def test_criacao_produto_sem_preco_original(self):
+        produto = Produto.objects.create(
+            nome="Camiseta",
+            preco=100,
+            categoria=self.categoria,
+            marca=self.marca
         )
-        self.factory = RequestFactory()
+        self.assertEqual(produto.preco_original, produto.preco)
+        self.assertEqual(produto.desconto, 0)
 
-    def test_migrar_carrinho_sessao_para_banco(self):
-        # Simula login do usuário
-        self.client.force_login(self.usuario)
-        session = self.client.session
-        session['carrinho'] = {
-            str(self.produto.id): {
-                'produto_id': self.produto.id,
-                'quantidade': 2,
-                'size': None
-            }
-        }
-        session.save()
+    def test_produto_com_preco_original_maior(self):
+        produto = Produto.objects.create(
+            nome="Camiseta",
+            preco=80,
+            preco_original=100,
+            categoria=self.categoria,
+            marca=self.marca
+        )
+        self.assertEqual(produto.desconto, 20)
 
-        # Cria uma request real com sessão
-        request = self.factory.get('/')
-        request.user = self.usuario
-        request.session = self.client.session  # Usa a sessão real do client
+    def test_produto_com_preco_original_menor_erro(self):
+        produto = Produto(
+            nome="Camiseta",
+            preco=100,
+            preco_original=90,
+            categoria=self.categoria,
+            marca=self.marca
+        )
+        with self.assertRaises(ValidationError):
+            produto.full_clean()
 
-        # Executa a migração
-        migrar_carrinho_sessao_para_banco(request)
+    def test_produto_com_preco_promocional(self):
+        agora = timezone.now()
+        produto = Produto.objects.create(
+            nome="Camiseta",
+            preco=100,
+            preco_original=120,
+            preco_promocional=80,
+            promocao_inicio=agora,
+            promocao_fim=agora + timezone.timedelta(days=1),
+            categoria=self.categoria,
+            marca=self.marca
+        )
+        self.assertEqual(produto.preco_vigente(), 80)
+        self.assertEqual(produto.calcular_desconto(), 33)  # 120 -> 80 = 33%
 
-        # Verifica se o item foi migrado
-        carrinho = Carrinho.objects.get(usuario=self.usuario)
-        itens = ItemCarrinho.objects.filter(carrinho=carrinho)
-        self.assertEqual(itens.count(), 1)
-        item = itens.first()
-        self.assertEqual(item.produto, self.produto)
-        self.assertEqual(item.quantidade, 2)
-        self.assertIsNone(item.tamanho)
+    def test_preco_promocional_maior_erro(self):
+        produto = Produto(
+            nome="Camiseta",
+            preco=100,
+            preco_promocional=120,
+            categoria=self.categoria,
+            marca=self.marca
+        )
+        with self.assertRaises(ValidationError):
+            produto.full_clean()
+
+    def test_diminuir_e_aumentar_estoque(self):
+        produto = Produto.objects.create(
+            nome="Camiseta",
+            preco=100,
+            categoria=self.categoria,
+            marca=self.marca,
+            estoque=10
+        )
+        produto.diminuir_estoque(2)
+        self.assertEqual(produto.estoque, 8)
+        produto.aumentar_estoque(5)
+        self.assertEqual(produto.estoque, 13)
+        with self.assertRaises(ValueError):
+            produto.diminuir_estoque(0)
+        with self.assertRaises(ValueError):
+            produto.diminuir_estoque(100)
+
+    def test_estoque_negativo_erro(self):
+        produto = Produto(
+            nome="Camiseta",
+            preco=100,
+            categoria=self.categoria,
+            marca=self.marca,
+            estoque=-1
+        )
+        with self.assertRaises(ValidationError):
+            produto.full_clean()
