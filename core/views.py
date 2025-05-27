@@ -1,13 +1,16 @@
 from django.shortcuts import redirect 
+from django.conf import settings
 from django.http import JsonResponse, Http404
 from django.views.generic import TemplateView, ListView, DetailView, View
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import models
-from core.models import Produto, Cor, Endereco, Tag, ProdutoVariacao, Cupom, LogAcao
+from core.models import (
+    Produto, Endereco, Tag, ProdutoVariacao, Cupom, LogAcao, 
+    AtributoTipo, AtributoValor, ItemCarrinho, Carrinho
+)
 from checkout.utils import adicionar_ao_carrinho, cotar_frete_melhor_envio, obter_itens_do_carrinho
 from decimal import Decimal
-from core.models import ProdutoVariacao, ItemCarrinho, Carrinho
 from django.views.decorators.http import require_GET
 from django.core.exceptions import ValidationError
 
@@ -21,6 +24,17 @@ class IndexView(ListView):
     template_name = 'index.html'
     context_object_name = 'produtos'
 
+def cart_count(request):
+    count = 0
+    if request.user.is_authenticated:
+        carrinho = getattr(request.user, 'carrinho', None)
+        if carrinho:
+            count = carrinho.itens.count()
+    else:
+        cart = request.session.get('carrinho', {})
+        count = sum(item.get('quantidade', 0) for item in cart.values())
+    return JsonResponse({'count': count})
+
 class ItemView(DetailView):
     model = Produto
     template_name = 'item_view.html'
@@ -29,19 +43,35 @@ class ItemView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         produto = self.object
+        
+        # Dados básicos do produto
         context['preco_vigente'] = produto.preco_vigente()
         context['desconto'] = produto.calcular_desconto()
         context['media_avaliacoes'] = produto.media_avaliacoes()
-        try:
-            context['tamanhos_disponiveis'] = produto.get_tamanhos_disponiveis()
-        except AttributeError:
-            context['tamanhos_disponiveis'] = []
-        # Adiciona cores únicas para o template
-        cores_unicas = []
-        for v in produto.variacoes.all():
-            if v.cor not in cores_unicas:
-                cores_unicas.append(v.cor)
-        context['cores_unicas'] = cores_unicas
+        
+        # NOVA ESTRUTURA: Buscar cores disponíveis usando AtributoValor
+        cores_disponiveis = AtributoValor.objects.filter(
+            tipo__nome="Cor",
+            variacoes__produto=produto,
+            variacoes__estoque__gt=0
+        ).distinct().order_by('ordem', 'valor')
+        
+        # NOVA ESTRUTURA: Buscar tamanhos disponíveis usando AtributoValor
+        tamanhos_disponiveis = AtributoValor.objects.filter(
+            tipo__nome="Tamanho",
+            variacoes__produto=produto,
+            variacoes__estoque__gt=0
+        ).distinct().order_by('ordem', 'valor')
+        
+        # Buscar todas as variações com estoque
+        variacoes = produto.variacoes.filter(estoque__gt=0).prefetch_related('atributos__tipo')
+        
+        context.update({
+            'cores_disponiveis': cores_disponiveis,
+            'tamanhos_disponiveis': tamanhos_disponiveis,
+            'variacoes': variacoes,
+        })
+        
         return context
 
 class Product_Listing(ListView):
@@ -53,18 +83,33 @@ class Product_Listing(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         produtos = context['produtos']
+        
         # Adiciona preço vigente e desconto para cada produto
         for produto in produtos:
             produto.preco_vigente_valor = produto.preco_vigente()
             produto.desconto_valor = produto.calcular_desconto()
+            
         queryset = self.get_queryset()
+        
+        # NOVA ESTRUTURA: Usar AtributoValor para cores e tamanhos
         context['categorias'] = Produto.objects.values_list('categoria__nome', flat=True).distinct()
         context['marcas'] = Produto.objects.values_list('marca__nome', flat=True).distinct()
-        context['cores_disponiveis'] = list(Cor.objects.values_list('valor_css', flat=True))
-        context['cores'] = context['cores_disponiveis']
-        context['tamanhos'] = ProdutoVariacao.objects.values_list('tamanho', flat=True).distinct()
+        
+        # Cores disponíveis usando novo sistema de atributos
+        context['cores_disponiveis'] = AtributoValor.objects.filter(
+            tipo__nome="Cor",
+            variacoes__produto__in=queryset
+        ).distinct().values('id', 'valor', 'codigo_cor').order_by('ordem', 'valor')
+        
+        # Tamanhos disponíveis usando novo sistema de atributos
+        context['tamanhos_disponiveis'] = AtributoValor.objects.filter(
+            tipo__nome="Tamanho",
+            variacoes__produto__in=queryset
+        ).distinct().values('id', 'valor').order_by('ordem', 'valor')
+        
         context['tags'] = Tag.objects.values_list('nome', flat=True).distinct()
 
+        # Cálculo de faixas de preço
         if queryset.exists():
             preco_min = queryset.order_by('preco').first().preco
             preco_max = queryset.order_by('-preco').first().preco
@@ -84,18 +129,21 @@ class Product_Listing(ListView):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().filter(ativo=True)
+        
+        # Parâmetros de busca
         q = self.request.GET.get('q', '').strip()
         categoria = self.request.GET.get('categoria')
         tag = self.request.GET.get('tag')
         faixa_preco = self.request.GET.get('faixa_preco')
         preco_min = self.request.GET.get('preco_min')
         preco_max = self.request.GET.get('preco_max')
-        tamanhos_raw = self.request.GET.get('tamanhos', '')
-        tamanhos = [t for t in set(tamanhos_raw.split(',')) if t.strip()]
-        cores_raw = self.request.GET.get('cores', '')
-        cores = [c.strip().lower() for c in set(cores_raw.split(',')) if c.strip()]
+        
+        # NOVA ESTRUTURA: Cores e tamanhos por ID dos AtributoValor
+        cores_ids = self.request.GET.getlist('cores')  # Lista de IDs
+        tamanhos_ids = self.request.GET.getlist('tamanhos')  # Lista de IDs
 
+        # Filtro de busca textual
         if q:
             queryset = queryset.filter(
                 models.Q(nome__icontains=q) |
@@ -105,12 +153,13 @@ class Product_Listing(ListView):
                 models.Q(tags__nome__icontains=q)
             ).distinct()
 
+        # Filtros básicos
         if categoria:
             queryset = queryset.filter(categoria__nome__icontains=categoria)
-
         if tag:
             queryset = queryset.filter(tags__nome__iexact=tag)
 
+        # Filtros de preço
         if queryset.exists():
             preco_min_qs = queryset.order_by('preco').first().preco
             preco_max_qs = queryset.order_by('-preco').first().preco
@@ -134,21 +183,29 @@ class Product_Listing(ListView):
             if preco_max:
                 queryset = queryset.filter(preco__lte=preco_max)
 
-        if cores:
-            queryset = queryset.filter(variacoes__cor__valor_css__in=cores).distinct()
-        if tamanhos:
-            queryset = queryset.filter(variacoes__tamanho__in=tamanhos).distinct()
+        # NOVA ESTRUTURA: Filtros por atributos
+        if cores_ids:
+            queryset = queryset.filter(
+                variacoes__atributos__id__in=cores_ids,
+                variacoes__atributos__tipo__nome="Cor"
+            ).distinct()
+            
+        if tamanhos_ids:
+            queryset = queryset.filter(
+                variacoes__atributos__id__in=tamanhos_ids,
+                variacoes__atributos__tipo__nome="Tamanho"
+            ).distinct()
 
+        # Ordenação
         sort = self.request.GET.get('sort')
         if sort == 'price_asc':
             queryset = queryset.order_by('preco')
         elif sort == 'price_desc':
             queryset = queryset.order_by('-preco')
         elif sort == 'newest':
-            queryset = queryset.order_by('-id')  # ou '-data_criacao' se tiver
-        else:  # popular ou padrão
-            # Corrigido: ordena por id desc (novos primeiro) se não houver campo 'avaliacao'
-            queryset = queryset.order_by('-id')
+            queryset = queryset.order_by('-created_at')
+        else:
+            queryset = queryset.order_by('-created_at')
 
         return queryset
 
@@ -162,46 +219,57 @@ class CartView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         itens_carrinho, total = obter_itens_do_carrinho(self.request)
-        # Garante que cada item tenha uma chave única para manipulação no template
+        
+        # Atualizar para nova estrutura de atributos
         if self.request.user.is_authenticated:
-            # Para usuários autenticados, use o ID do ItemCarrinho como chave
-
             carrinho = Carrinho.objects.filter(usuario=self.request.user).first()
             if carrinho:
-                itens_db = ItemCarrinho.objects.filter(carrinho=carrinho)
-                # Corrigido: usa item.variacao.tamanho e item.variacao.cor.id
+                itens_db = ItemCarrinho.objects.filter(carrinho=carrinho).select_related('variacao__produto')
                 chave_map = {}
+                
                 for item in itens_db:
-                    tamanho = item.variacao.tamanho if item.variacao else None
-                    cor_id = item.variacao.cor.id if item.variacao and item.variacao.cor else None
-                    chave_map[(item.produto.id, tamanho, cor_id)] = item.id
+                    # NOVA ESTRUTURA: Criar chave baseada nos atributos da variação
+                    atributos_str = "-".join([
+                        f"{attr.tipo.nome}:{attr.valor}" 
+                        for attr in item.variacao.atributos.all().order_by('tipo__nome')
+                    ])
+                    chave = f"{item.produto.id}-{atributos_str}"
+                    chave_map[chave] = item.id
+                
                 for item in itens_carrinho:
                     variacao = item.get('variacao')
-                    tamanho = variacao.tamanho if variacao else None
-                    cor_id = variacao.cor.id if variacao and variacao.cor else None
-                    item['chave'] = chave_map.get((item['produto'].id, tamanho, cor_id), '')
+                    if variacao:
+                        atributos_str = "-".join([
+                            f"{attr.tipo.nome}:{attr.valor}" 
+                            for attr in variacao.atributos.all().order_by('tipo__nome')
+                        ])
+                        chave = f"{item['produto'].id}-{atributos_str}"
+                        item['chave'] = chave_map.get(chave, '')
+                    else:
+                        item['chave'] = ''
             else:
                 for item in itens_carrinho:
                     item['chave'] = ''
         else:
-            # Para sessão, a chave já vem do dict da sessão
-            # (mas garantir que sempre exista)
             for item in itens_carrinho:
                 if 'chave' not in item:
                     item['chave'] = ''
-        # Ajuste: garantir que cada item tenha 'variacao' (objeto ProdutoVariacao)
+
+        # Garantir que cada item tenha variação
         for item in itens_carrinho:
             if not item.get('variacao') and 'variacao_id' in item:
                 try:
                     item['variacao'] = ProdutoVariacao.objects.get(id=item['variacao_id'])
                 except ProdutoVariacao.DoesNotExist:
                     item['variacao'] = None
-        # Validação extra: remove itens com quantidade inválida
+
+        # Validação: remover itens inválidos
         itens_carrinho = [item for item in itens_carrinho if item['quantidade'] > 0]
+        
         context['itens_carrinho'] = itens_carrinho
         context['total_carrinho'] = total
 
-        # Lógica do cupom
+        # Lógica do cupom (mantida igual)
         cupom_codigo = self.request.session.get('cupom')
         cupom = None
         desconto = 0
@@ -209,7 +277,7 @@ class CartView(TemplateView):
             try:
                 cupom = Cupom.objects.get(codigo__iexact=cupom_codigo)
                 if cupom.is_valido(self.request.user):
-                    total_com_cupom = cupom.aplicar(total)  # Usando método aplicar do modelo
+                    total_com_cupom = cupom.aplicar(total)
                     desconto = total - total_com_cupom
                     total = total_com_cupom
                 else:
@@ -218,19 +286,24 @@ class CartView(TemplateView):
             except Cupom.DoesNotExist:
                 self.request.session.pop('cupom', None)
                 cupom = None
-        context['cupom'] = cupom
-        context['desconto'] = desconto
-        context['total_carrinho_com_cupom'] = total
+                
+        context.update({
+            'cupom': cupom,
+            'desconto': desconto,
+            'total_carrinho_com_cupom': total
+        })
 
+        # CEP do usuário
         if self.request.user.is_authenticated:
             endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
-            context['cep_usuario'] = endereco.cep if endereco else getattr(self.request.user, 'cep', None)
+            context['cep_usuario'] = endereco.cep if endereco else None
         else:
             context['cep_usuario'] = None
+            
         return context
 
     def post(self, request, *args, **kwargs):
-        # Lógica para aplicar cupom via POST
+        # Lógica do cupom (mantida igual)
         cupom_codigo = request.POST.get('cupom', '').strip()
         if cupom_codigo:
             try:
@@ -260,27 +333,25 @@ class CartView(TemplateView):
             )
         return redirect('carrinho')
 
+# Classes de manipulação do carrinho (mantidas iguais)
 class ManipularItemCarrinho(View):
     def post(self, request, *args, **kwargs):
         chave = kwargs.get('chave')
         if not chave:
             messages.error(request, "Chave do item não informada.")
             return redirect('carrinho')
+            
         if request.user.is_authenticated:
-            # Manipula o ItemCarrinho no banco
-            from core.models import ItemCarrinho
             try:
                 item = ItemCarrinho.objects.get(id=chave, carrinho__usuario=request.user)
             except ItemCarrinho.DoesNotExist:
                 raise Http404("Item não encontrado no carrinho.")
             self.manipular_quantidade_db(item)
-            # Remove se quantidade <= 0
             if item.quantidade <= 0:
                 item.delete()
             else:
                 item.save()
         else:
-            # Manipula o carrinho na sessão
             carrinho = request.session.get('carrinho', {})
             if chave not in carrinho:
                 raise Http404("Item não encontrado no carrinho.")
@@ -292,11 +363,9 @@ class ManipularItemCarrinho(View):
         return redirect('carrinho')
 
     def manipular_quantidade_db(self, item):
-        # Para sobrescrever nas subclasses
         pass
 
     def manipular_quantidade(self, item):
-        # Para sobrescrever nas subclasses
         pass
 
 class AumentarItemView(ManipularItemCarrinho):
@@ -319,9 +388,9 @@ class RemoverItemView(ManipularItemCarrinho):
 
 class AddToCartView(View):
     def post(self, request, *args, **kwargs):
-        # Troca: agora espera variacao_id ao invés de size/tamanho
         variacao_id = request.POST.get('variacao_id')
         quantity = request.POST.get('quantity')
+        
         try:
             quantity = int(quantity)
             if quantity < 1:
@@ -329,28 +398,36 @@ class AddToCartView(View):
         except (TypeError, ValueError):
             messages.error(request, "Quantidade inválida.")
             return redirect('carrinho')
+            
         try:
             variacao = ProdutoVariacao.objects.get(pk=variacao_id)
         except ProdutoVariacao.DoesNotExist:
             messages.error(request, "Variação do produto não encontrada.")
             return redirect('carrinho')
+            
+        # Verificar estoque
+        if variacao.estoque < quantity:
+            messages.error(request, f"Estoque insuficiente. Disponível: {variacao.estoque}")
+            return redirect('carrinho')
+            
         produto_id = variacao.produto.id
 
-        # Ajuste: passa variacao_id para a função utilitária
         adicionar_ao_carrinho(request, produto_id, variacao_id=variacao_id, quantidade=quantity)
+        
         LogAcao.objects.create(
             usuario=request.user if request.user.is_authenticated else None,
             acao="Adicionou ao carrinho",
             detalhes=f"Produto: {produto_id}, Variação: {variacao_id}, Quantidade: {quantity}"
         )
+        
         messages.success(request, "Produto adicionado ao carrinho!")
         return redirect('carrinho')
 
 class RemoverItemCarrinho(View):
     def post(self, request, *args, **kwargs):
         chave = kwargs.get('chave')
+        
         if request.user.is_authenticated:
-            # Remove pelo banco
             try:
                 item = ItemCarrinho.objects.get(id=chave, carrinho__usuario=request.user)
                 item.delete()
@@ -358,7 +435,6 @@ class RemoverItemCarrinho(View):
             except ItemCarrinho.DoesNotExist:
                 raise Http404("Item não encontrado no carrinho.")
         else:
-            # Remove da sessão
             carrinho = request.session.get('carrinho', {})
             if chave in carrinho:
                 del carrinho[chave]
@@ -384,6 +460,9 @@ class RemoverItemCarrinho(View):
             messages.success(request, response_data['message'])
             return redirect('carrinho')
 
+
+
+# Funções mantidas iguais
 @login_required
 def salvar_cep_usuario(request):
     if request.method == 'POST':
@@ -395,8 +474,12 @@ def salvar_cep_usuario(request):
                     endereco.cep = cep
                     endereco.save(update_fields=['cep'])
             else:
-                request.user.cep = cep
-                request.user.save(update_fields=['cep'])
+                # Criar novo endereço principal se não existir
+                Endereco.objects.create(
+                    usuario=request.user,
+                    cep=cep,
+                    principal=True
+                )
             return JsonResponse({'sucesso': True, 'cep': cep})
         return JsonResponse({'sucesso': False, 'erro': 'CEP inválido'})
     return JsonResponse({'sucesso': False, 'erro': 'Requisição inválida'})
@@ -406,22 +489,24 @@ def calcular_frete(request):
     cep = request.GET.get('cep', '').replace('-', '').strip()
     if len(cep) != 8 or not cep.isdigit():
         return JsonResponse({'sucesso': False, 'erro': 'CEP inválido'})
+        
     try:
         itens_carrinho, subtotal = obter_itens_do_carrinho(request)
         if not itens_carrinho:
             return JsonResponse({'sucesso': False, 'erro': 'Carrinho vazio'})
-        from django.conf import settings
+            
         produtos = []
+        
         for item in itens_carrinho:
+            variacao = item.get('variacao')
             produto = item['produto']
-            tamanho = item.get('size')
-            # Busca a variação correta pelo produto e tamanho
-            variacao = ProdutoVariacao.objects.filter(produto=produto, tamanho=tamanho).first()
-            peso = float(variacao.peso) if variacao and hasattr(variacao, 'peso') and variacao.peso else float(produto.peso or 1)
-            # Se você tiver campos width, height, length na variação, use-os aqui
+            
+            # Usar dados da variação se disponível, senão do produto
+            peso = float(variacao.peso) if variacao and variacao.peso else float(produto.peso or 1)
             width = getattr(variacao, 'width', 15) if variacao else 15
             height = getattr(variacao, 'height', 10) if variacao else 10
             length = getattr(variacao, 'length', 20) if variacao else 20
+            
             produtos.append({
                 "weight": peso,
                 "width": width,
@@ -430,18 +515,24 @@ def calcular_frete(request):
                 "insurance_value": float(item['subtotal']),
                 "quantity": item['quantidade']
             })
+            
         token = getattr(settings, 'MELHOR_ENVIO_TOKEN', '')
         fretes = cotar_frete_melhor_envio(cep, token, produtos)
+        
         if isinstance(fretes, dict) and 'error' in fretes:
             return JsonResponse({'sucesso': False, 'erro': 'Erro ao consultar frete'})
+            
         if not fretes:
             return JsonResponse({'sucesso': False, 'erro': 'Nenhum frete encontrado'})
+            
         melhor = min(fretes, key=lambda f: float(f.get('price', 9999)))
+        
         return JsonResponse({
             'sucesso': True,
             'valor': float(melhor['price']),
             'descricao': f"{melhor['company']['name']} - {melhor['name']} ({melhor['delivery_time']} dias úteis)"
         })
+        
     except Exception as e:
         return JsonResponse({'sucesso': False, 'erro': 'Erro ao calcular frete'})
 

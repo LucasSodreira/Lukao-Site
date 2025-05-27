@@ -1,4 +1,205 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Theme Toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+    
+    // Check for saved theme preference
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    html.setAttribute('data-theme', savedTheme);
+    
+    // // Função para trocar ícones SVG conforme o tema
+    // function trocarSVGsPorTema(theme) {
+    //     // Logo
+    //     const logoImg = document.getElementById('logo-img');
+    //     if (logoImg) {
+    //         logoImg.src = theme === 'dark' ? '/static/images/logo.svg' : '/static/images/logo-dark.svg';
+    //     }
+    
+    // }
+
+    // Troca inicial ao carregar
+    // trocarSVGsPorTema(savedTheme);
+
+    
+
+    // Category Dropdown
+    const categoryBtn = document.getElementById('categoryBtn');
+    const categoryMenu = document.getElementById('categoryMenu');
+    const categoriaInput = document.getElementById('categoriaInput');
+
+    if (categoryBtn && categoryMenu) {
+        categoryBtn.addEventListener('click', () => {
+            const isExpanded = categoryBtn.getAttribute('aria-expanded') === 'true';
+            categoryBtn.setAttribute('aria-expanded', !isExpanded);
+            categoryMenu.style.display = isExpanded ? 'none' : 'block';
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!categoryBtn.contains(e.target) && !categoryMenu.contains(e.target)) {
+                categoryMenu.style.display = 'none';
+                categoryBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // Handle menu items
+        categoryMenu.querySelectorAll('a').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const value = item.getAttribute('data-value');
+                categoriaInput.value = value;
+                categoryBtn.textContent = value || 'Categorias';
+                categoryMenu.style.display = 'none';
+                categoryBtn.setAttribute('aria-expanded', 'false');
+            });
+        });
+    }
+
+    // User Menu
+    const userDropdown = document.querySelector('.infos-dropdown');
+    const userMenu = document.querySelector('.infos-menu');
+
+    if (userDropdown && userMenu) {
+        userDropdown.addEventListener('click', () => {
+            const isExpanded = userDropdown.getAttribute('aria-expanded') === 'true';
+            userDropdown.setAttribute('aria-expanded', !isExpanded);
+            userMenu.style.display = isExpanded ? 'none' : 'block';
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!userDropdown.contains(e.target) && !userMenu.contains(e.target)) {
+                userMenu.style.display = 'none';
+                userDropdown.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    // Loading Overlay
+    const loadingOverlay = document.getElementById('loading-overlay');
+    
+    function showLoading() {
+        loadingOverlay.style.display = 'flex';
+        loadingOverlay.setAttribute('aria-hidden', 'false');
+    }
+    
+    function hideLoading() {
+        loadingOverlay.style.display = 'none';
+        loadingOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    // Add loading state to all forms
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', () => {
+            showLoading();
+        });
+    });
+
+    // Add loading state to all links that might trigger a page load
+    document.querySelectorAll('a:not([target="_blank"])').forEach(link => {
+        link.addEventListener('click', (e) => {
+            if (!link.getAttribute('href').startsWith('#')) {
+                showLoading();
+            }
+        });
+    });
+
+    // Handle browser back/forward
+    window.addEventListener('pageshow', (e) => {
+        if (e.persisted) {
+            hideLoading();
+        }
+    });
+
+    // Cart Count Update
+    function updateCartCount() {
+        const cartCount = document.querySelector('.cart-count');
+        if (cartCount) {
+            fetch('/api/cart/count/')
+                .then(response => response.json())
+                .then(data => {
+                    cartCount.textContent = data.count;
+                    cartCount.setAttribute('aria-label', `${data.count} itens no carrinho`);
+                })
+                .catch(error => console.error('Erro ao atualizar contador do carrinho:', error));
+        }
+    }
+
+    // Update cart count every 30 seconds
+    setInterval(updateCartCount, 30000);
+    updateCartCount();
+
+    // Keyboard Navigation
+    document.addEventListener('keydown', (e) => {
+        // Skip to main content
+        if (e.key === 'Tab' && e.shiftKey) {
+            const skipLink = document.querySelector('.skip-link');
+            if (skipLink) {
+                skipLink.focus();
+            }
+        }
+    });
+
+    // Notifications
+    const notifications = document.querySelectorAll('.alert');
+    notifications.forEach(notification => {
+        // Auto-hide notifications after 5 seconds
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 5000);
+    });
+
+    // Form Validation
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
+
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    isValid = false;
+                    field.classList.add('error');
+                    
+                    // Create error message if it doesn't exist
+                    let errorMessage = field.nextElementSibling;
+                    if (!errorMessage || !errorMessage.classList.contains('error-message')) {
+                        errorMessage = document.createElement('div');
+                        errorMessage.classList.add('error-message');
+                        field.parentNode.insertBefore(errorMessage, field.nextSibling);
+                    }
+                    errorMessage.textContent = 'Este campo é obrigatório';
+                } else {
+                    field.classList.remove('error');
+                    const errorMessage = field.nextElementSibling;
+                    if (errorMessage && errorMessage.classList.contains('error-message')) {
+                        errorMessage.remove();
+                    }
+                }
+            });
+
+            if (!isValid) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    // Smooth Scrolling
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
     // Modal universal de entrega
     var deliveryInfoTrigger = document.getElementById('deliveryInfoTrigger');
     var deliveryModal = document.getElementById('deliveryModal');
@@ -124,39 +325,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Barra de pesquisa: dropdown de categoria sem submit automático
-    var categoryBtn = document.getElementById('categoryBtn');
-    var categoryMenu = document.getElementById('categoryMenu');
-    var categoriaInput = document.getElementById('categoriaInput');
-    var searchForm = document.getElementById('searchForm');
-
-    if (categoryBtn && categoryMenu && categoriaInput) {
-        // Toggle menu
-        categoryBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            categoryMenu.style.display = (categoryMenu.style.display === 'block') ? 'none' : 'block';
-        });
-
-        // Seleciona categoria sem submeter o form
-        categoryMenu.querySelectorAll('a').forEach(function(link) {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                var value = link.getAttribute('data-value');
-                categoriaInput.value = value;
-                categoryBtn.textContent = value ? value : 'Categorias';
-                categoryMenu.style.display = 'none';
-            });
-        });
-
-        // Fecha menu ao clicar fora
-        document.addEventListener('click', function(e) {
-            if (!categoryMenu.contains(e.target) && e.target !== categoryBtn) {
-                categoryMenu.style.display = 'none';
-            }
-        });
-    }
-
     // Não envia campos vazios no submit do searchForm
+    var searchForm = document.getElementById('searchForm');
     if (searchForm) {
         searchForm.addEventListener('submit', function(e) {
             Array.from(searchForm.elements).forEach(function(el) {

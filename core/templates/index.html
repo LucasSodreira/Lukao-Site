@@ -37,7 +37,7 @@
                                 <input type="hidden" name="variacao_id" value="{% if produto.variacoes.first %}{{ produto.variacoes.first.id }}{% endif %}" />
                                 <input type="hidden" name="quantity" value="1" />
                                 <button type="submit" class="cart-button">
-                                    <img src="{% static 'images/cart.svg' %}" alt="Adicionar ao carrinho" id="cart-icon" />
+                                    <img src="{% static 'images/cart.svg' %}" alt="Adicionar ao carrinho" id="cart-icon"/>
                                 </button>
                             </form>
                         </div>
@@ -50,4 +50,27 @@
         <a href="{% url 'product-listing' %}" id="view-all">Ver Todos</a>
     </div>
 </div>
+
+<!-- Seção Explorar por Estilo -->
+<section class="explorar-estilo-container">
+    <h2 class="explorar-estilo-titulo">Explorar por Estilo</h2>
+    <div class="explorar-estilo-grid">
+        <div class="estilo-card">
+            <img src="{% static 'images/11.png' %}" alt="Casual" class="estilo-img" />
+            <span class="estilo-label">Casual</span>
+        </div>
+        <div class="estilo-card">
+            <img src="{% static 'images/13.png' %}" alt="Formal" class="estilo-img" />
+            <span class="estilo-label">Formal</span>
+        </div>
+        <div class="estilo-card">
+            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=facearea&w=400&h=400&q=80" alt="Festa" class="estilo-img" />
+            <span class="estilo-label">Festa</span>
+        </div>
+        <div class="estilo-card">
+            <img src="{% static 'images/14.png' %}" alt="Academia" class="estilo-img" />
+            <span class="estilo-label">Academia</span>
+        </div>
+    </div>
+</section>
 {% endblock %}

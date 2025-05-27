@@ -1,12 +1,21 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" data-theme="dark">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Lukao MultiMarcas - Sua loja online de produtos diversos" />
+    <meta name="keywords" content="loja online, produtos, compras, Lukao" />
+    <meta name="author" content="Lukao MultiMarcas" />
+    <meta property="og:title" content="Lukao MultiMarcas" />
+    <meta property="og:description" content="Sua loja online de produtos diversos" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ request.build_absolute_uri }}" />
+    <meta property="og:image" content="{% static 'images/logo.svg' %}" />
     <title>Lukao MultiMarcas</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}" />
     <link rel="stylesheet" href="{% static 'css/base.css' %}" />
-    <script src="{% static 'js/base.js' %}"></script>
+    <script src="{% static 'js/base.js' %}" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet" />
@@ -14,18 +23,17 @@
 </head>
 <body>
     <header>
-        <!-- Navbar -->
-        <div class="navbar">
+        <div class="lukao-header">
             <!-- Logo -->
-            <div class="logo-container">
-                <a href="{% url 'index' %}">
-                    <img src="{% static 'images/logo.svg' %}" alt="Logo Lukão" class="logo-img" />
+            <div class="header-logo">
+                <a href="{% url 'index' %}" aria-label="Página inicial">
+                    <img src="{% static 'images/logo.svg' %}" alt="Logo Lukão" class="logo-img" id="logo-img" />
                 </a>
             </div>
 
             <!-- Informação de Entrega -->
-            <div class="delivery-info" id="deliveryInfoTrigger" style="cursor:pointer;">
-                <img src="{% static 'images/marker.svg' %}" alt="Localização" class="delivery-icon" />
+            <div class="header-delivery" id="deliveryInfoTrigger" role="button" tabindex="0" aria-label="Informações de entrega" aria-expanded="false">
+                <img src="{% static 'images/marker.svg' %}" alt="" class="delivery-icon" aria-hidden="true" id="marker-icon" />
                 <div class="delivery-container">
                     {% if user.is_authenticated %}
                         <span class="delivery-text">Enviar para {{ nome_usuario }}</span>
@@ -43,138 +51,113 @@
                 </div>
             </div>
 
-            <!-- Novo Modal Universal de Entrega -->
-            <div id="deliveryModal" class="delivery-modal">
-                <div class="delivery-modal-content">
-                    <button class="delivery-modal-close" onclick="closeDeliveryModal()">×</button>
-                    {% if user.is_authenticated %}
-                        <h2>Meus Endereços</h2>
-                        <div class="enderecos-lista">
-                            {% if enderecos %}
-                                {% for endereco in enderecos %}
-                                    <div class="endereco-card{% if endereco.principal %} principal{% endif %}">
-                                        <div>
-                                            <strong>{{ endereco.nome_completo }}</strong>
-                                            <div>{{ endereco.rua }}, {{ endereco.numero }}{% if endereco.complemento %} - {{ endereco.complemento }}{% endif %}</div>
-                                            <div>{{ endereco.bairro }} - {{ endereco.cidade }}/{{ endereco.estado }}</div>
-                                            <div>CEP: {{ endereco.cep }}</div>
-                                            <div>Telefone: {{ endereco.telefone }}</div>
-                                        </div>
-                                        <div class="endereco-acoes">
-                                            {% if not endereco.principal %}
-                                                <form method="post" action="{% url 'checkout:definir-endereco-principal' endereco.pk %}?from_index=1">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn-endereco-principal">Usar este</button>
-                                                </form>
-                                            {% else %}
-                                                <span class="endereco-principal-label">Principal</span>
-                                            {% endif %}
-                                            <a href="{% url 'checkout:editar-endereco' endereco.pk %}?from_index=1" class="btn-endereco-editar">Editar</a>
-                                            <form method="post" action="{% url 'checkout:excluir-endereco' endereco.pk %}?from_index=1" style="display:inline;">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn-endereco-excluir">Excluir</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            {% else %}
-                                <p>Nenhum endereço cadastrado.</p>
-                            {% endif %}
-                            <a href="{% url 'checkout:endereco' %}?from_index=1" class="btn-endereco-adicionar">Adicionar novo endereço</a>
-                        </div>
-                    {% else %}
-                        <h2>Informe seu CEP</h2>
-                        <p>Você poderá ver custos e prazos de entrega precisos em tudo que procurar.</p>
-                        <div class="cep-box">
-                            <label for="cepInputModal" class="cep-label">CEP</label>
-                            <div class="cep-input-group">
-                                <input type="text" id="cepInputModal" class="cep-input" placeholder="Informar um CEP" maxlength="9" pattern="\d{5}-?\d{3}" required>
-                                <button type="button" id="cepUsarBtnModal" class="cep-btn">Usar</button>
-                            </div>
-                            <div class="cep-links">
-                                <a href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" class="cep-link">Não sei o meu CEP</a>
-                            </div>
-                            <div id="cepStatusModal" class="cep-status"></div>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Barra de Pesquisa + Filtros -->
-            <form class="search-bar" action="{% url 'product-listing' %}" method="get" style="margin:0; gap: 10px;" id="searchForm">
-                <div class="category-dropdown" id="categoryDropdown">
-                    <button class="category-button" type="button" id="categoryBtn">
-                        {% if request.GET.categoria %}
-                            {{ request.GET.categoria }}
-                        {% else %}
-                            Categorias
-                        {% endif %}
-                    </button>
-                    <div class="category-menu" id="categoryMenu">
-                        <a href="#" data-value="">Todas</a>
+            <!-- Barra de Pesquisa estilo Amazon -->
+            <form class="header-search-bar" action="{% url 'product-listing' %}" method="get" role="search" aria-label="Buscar produtos" id="searchForm">
+                <div class="search-categories">
+                    <select name="categoria" id="categoriaInput" class="search-categories-select">
+                        <option value="">Todas</option>
                         {% for categoria in categorias %}
-                            <a href="#" data-value="{{ categoria }}">{{ categoria }}</a>
+                            <option value="{{ categoria }}" {% if request.GET.categoria == categoria %}selected{% endif %}>{{ categoria }}</option>
                         {% endfor %}
-                    </div>
+                    </select>
                 </div>
-                <input type="hidden" name="categoria" id="categoriaInput" value="{{ request.GET.categoria|default_if_none:'' }}">
-                <input type="text" class="search-input" name="q" placeholder="Buscar produtos..." value="{{ request.GET.q|default_if_none:'' }}" />
-                <button class="search-button" type="submit">
+                <input type="text" class="search-input" name="q" placeholder="Buscar produtos..." value="{{ request.GET.q|default_if_none:'' }}" aria-label="Termo de busca" />
+                <button class="search-button" type="submit" aria-label="Buscar">
                     <img src="{% static 'images/search-icon.svg' %}" alt="Buscar" class="search-icon" />
                 </button>
             </form>
 
-            <!-- Ícone de Usuário -->
-            <div class="user-icon-container">
-                {% if user.is_authenticated %}
-                    <div class="infos-dropdown">
-                        <img src="{% static 'images/perfil.svg' %}" alt="Usuário" class="user-icon" />
-                        <p>{{ nome_usuario }}</p>
-                    </div>
-                    <div class="infos-menu">
-                        <a href="{% url 'user:profile' %}">Informações Pessoais</a>
-                        <a href="{% url 'user:address_management' %}">Gerenciar Endereços</a>
-                        <a href="{% url 'user:purchase_history' %}">Histórico de Compras</a>
-                        <form action="{% url 'user:logout' %}" method="post" style="display: inline;">
-                            {% csrf_token %}
-                            <button type="submit" id="btn-logout">Sair</button>
-                        </form>
-                    </div>
-                {% else %}
-                    <a href="{% url 'user:login' %}" id="login-link">
-                        <img src="{% static 'images/perfil.svg' %}" alt="Usuário" class="user-icon" /> Entrar
-                    </a>
-                {% endif %}
-            </div>
-
-            <!-- Ícone de Compras -->
-            <div class="shopping-icon-container">
-                <a href="{% url 'user:purchase_history' %}" id="buy-info">Compras</a>
-            </div>
-
-            {% if user.is_authenticated %}
-                <div class="notificacoes">
-                    <div class="notificacoes">
-                        {% for notificacao in notificacoes_nao_lidas %}
-                            <div class="alert alert-info">
-                                {{ notificacao.mensagem }}
-                                <a href="{% url 'user:marcar_notificacao_lida' notificacao.id %}">Marcar como lida</a>
-                            </div>
-                        {% empty %}
-                            <!-- Sem notificações -->
-                        {% endfor %}
-                    </div>
+            <!-- Usuário e Compras -->
+            <div class="header-actions">
+                <div class="user-icon-container">
+                    {% if user.is_authenticated %}
+                        <div class="infos-dropdown" role="button" tabindex="0" aria-label="Menu do usuário" aria-expanded="false">
+                            <img src="{% static 'images/perfil.svg' %}" alt="" class="user-icon" aria-hidden="true" id="perfil-icon" />
+                            <p>{{ nome_usuario }}</p>
+                        </div>
+                        <div class="infos-menu" role="menu">
+                            <a href="{% url 'user:profile' %}" role="menuitem">Informações Pessoais</a>
+                            <a href="{% url 'user:address_management' %}" role="menuitem">Gerenciar Endereços</a>
+                            <a href="{% url 'user:purchase_history' %}" role="menuitem">Histórico de Compras</a>
+                            <form action="{% url 'user:logout' %}" method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" id="btn-logout" role="menuitem">Sair</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'user:login' %}" id="login-link" aria-label="Fazer login">
+                            <img src="{% static 'images/perfil.svg' %}" alt="" class="user-icon" aria-hidden="true" id="perfil-icon" /> Entrar
+                        </a>
+                    {% endif %}
                 </div>
-            {% endif %}
+                <a href="{% url 'user:purchase_history' %}" id="buy-info" aria-label="Histórico de compras">
+                    <div class="shopping-icon-container">Compras</div>
+                </a>
 
-            <!-- Ícone de Carrinho de Compras -->
-            <div class="cart-icon-container">
-                <a href="{% url 'carrinho' %}">
-                    <img src="{% static 'images/carrinho.svg' %}" alt="Carrinho" class="cart-icon" />
+                <a href="{% url 'carrinho' %}" aria-label="Carrinho de compras">
+                    <div class="cart-icon-container">
+                        <img src="{% static 'images/carrinho.svg' %}" alt="" class="carrinho-icon" aria-hidden="true" />
+                        <span class="cart-count" aria-live="polite">0</span>
+                    </div>
                 </a>
             </div>
         </div>
     </header>
+
+    <!-- Modal Universal de Entrega -->
+    <div id="deliveryModal" class="delivery-modal">
+        <div class="delivery-modal-content">
+            <button class="delivery-modal-close" onclick="closeDeliveryModal()">×</button>
+            {% if user.is_authenticated %}
+                <h2>Meus Endereços</h2>
+                <form id="enderecosForm">
+                    <div class="enderecos-lista">
+                        {% if enderecos %}
+                            {% for endereco in enderecos %}
+                                <label class="endereco-card{% if endereco.principal %} principal{% endif %}">
+                                    <input type="radio" name="endereco_principal" value="{{ endereco.pk }}" {% if endereco.principal %}checked{% endif %} />
+                                    <div>
+                                        <strong>{{ endereco.nome_completo }}</strong>
+                                        <div>{{ endereco.rua }}, {{ endereco.numero }}{% if endereco.complemento %} - {{ endereco.complemento }}{% endif %}</div>
+                                        <div>{{ endereco.bairro }} - {{ endereco.cidade }}/{{ endereco.estado }}</div>
+                                        <div>CEP: {{ endereco.cep }}</div>
+                                        <div>Telefone: {{ endereco.telefone }}</div>
+                                    </div>
+                                    {% if endereco.principal %}
+                                        <span class="endereco-principal-label">Principal</span>
+                                    {% endif %}
+                                </label>
+                            {% endfor %}
+                        {% else %}
+                            <p>Nenhum endereço cadastrado.</p>
+                        {% endif %}
+                    </div>
+                    <div class="enderecos-acoes-modal">
+                        <button type="submit" class="btn-endereco-principal">Definir como principal</button>
+                        <a href="{% url 'user:address_management' %}" class="btn-endereco-editar">Gerenciar endereços</a>
+                        <a href="{% url 'checkout:endereco' %}" class="btn-endereco-adicionar">Adicionar novo endereço</a>
+                    </div>
+                </form>
+            {% else %}
+                <h2>Informe seu CEP</h2>
+                <p>Você poderá ver custos e prazos de entrega precisos em tudo que procurar.</p>
+                <div class="cep-box">
+                    <label for="cepInputModal" class="cep-label">CEP</label>
+                    <div class="cep-input-group">
+                        <input type="text" id="cepInputModal" class="cep-input" placeholder="Informar um CEP" maxlength="9" pattern="\d{5}-?\d{3}" required>
+                        <button type="button" id="cepUsarBtnModal" class="cep-btn">Usar</button>
+                    </div>
+                    <div class="cep-links">
+                        <a href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" class="cep-link">Não sei o meu CEP</a>
+                    </div>
+                    <div id="cepStatusModal" class="cep-status"></div>
+                </div>
+                <div class="enderecos-acoes-modal">
+                    <a href="{% url 'user:login' %}" class="btn-endereco-editar">Fazer login para gerenciar endereços</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 
     <!-- Banner Section -->
     {% block banner %}{% endblock %}
@@ -182,6 +165,11 @@
     <main>
         {% block main %}{% endblock %}
     </main>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" aria-hidden="true">
+        <div class="loading-spinner"></div>
+    </div>
 
 </body>
 </html>

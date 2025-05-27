@@ -22,29 +22,24 @@ def atualizar_avaliacao_produto(sender, instance, **kwargs):
 @receiver(post_save, sender=ItemPedido)
 def diminuir_estoque_variacao(sender, instance, created, **kwargs):
     if created:
-        try:
-            variacao = ProdutoVariacao.objects.get(
-                produto=instance.produto,
-                tamanho=instance.tamanho
-            )
-            variacao.diminuir_estoque(instance.quantidade)
-        except ProdutoVariacao.DoesNotExist:
-            pass
-        except ValueError as e:
-            # Log do erro pode ser adicionado aqui
-            pass
+        variacao = getattr(instance, 'variacao', None)
+        if variacao:
+            try:
+                if variacao.estoque < instance.quantidade:
+                    raise ValueError("Estoque insuficiente para a variação selecionada.")
+                variacao.estoque -= instance.quantidade
+                variacao.save(update_fields=["estoque"])
+            except Exception as e:
+                # Log do erro pode ser adicionado aqui
+                pass
 
 # Devolve o estoque da variação ao remover um item de pedido
 @receiver(post_delete, sender=ItemPedido)
 def devolver_estoque_variacao(sender, instance, **kwargs):
-    try:
-        variacao = ProdutoVariacao.objects.get(
-            produto=instance.produto,
-            tamanho=instance.tamanho
-        )
-        variacao.aumentar_estoque(instance.quantidade)
-    except ProdutoVariacao.DoesNotExist:
-        pass
+    variacao = getattr(instance, 'variacao', None)
+    if variacao:
+        variacao.estoque += instance.quantidade
+        variacao.save(update_fields=["estoque"])
 
 # Atualiza o estoque total do produto sempre que uma variação é salva
 @receiver(post_save, sender=ProdutoVariacao)
@@ -54,11 +49,11 @@ def atualizar_estoque_produto(sender, instance, **kwargs):
     produto.estoque = estoque_total
     produto.save(update_fields=['estoque'])
 
-# Gera SKU automaticamente para variações sem SKU
+# Gera SKU automaticamente para variações sem SKU (usa lógica do model)
 @receiver(pre_save, sender=ProdutoVariacao)
 def gerar_sku_variacao(sender, instance, **kwargs):
     if not instance.sku:
-        instance.sku = f"{instance.produto.id}-{instance.cor.id}-{instance.tamanho}-{uuid4().hex[:6].upper()}"
+        instance.gerar_sku_automatico()
 
 # Notifica usuário por e-mail e cria notificação ao mudar status do pedido
 @receiver(pre_save, sender=Pedido)

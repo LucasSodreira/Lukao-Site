@@ -1,0 +1,66 @@
+Estou trabalhando em um projeto Django de e-commerce focado em roupas e acessórios masculinos. O objetivo é refatorar e aprimorar o projeto para máxima escalabilidade, segurança, performance, flexibilidade de atributos, consistência de dados, robustez de regras de negócio, auditoria/logs, validação e segurança do carrinho/checkout/pagamento.
+
+O que já foi feito:
+
+Refatoração de models para atributos dinâmicos, constraints, índices, logs e limpeza de imagens.
+Refatoração de views e utils para uso seguro de atributos dinâmicos, validação de estoque/preço, atomicidade, logging detalhado, feedback ao usuário e performance.
+Refatoração de signals para uso de item.variacao, select_related, logging de falha, compatibilidade com atributos dinâmicos.
+OrderSummaryView otimizada: queries otimizadas, revalidação, logging, atomicidade pontual, não cria pedido automaticamente.
+Views de endereço (definir principal, excluir) com atomicidade, logging, feedback, segurança e performance.
+Views de pagamento Stripe centralizadas em criar_payment_intent_stripe (utils.py), com revalidação, logging e segurança.
+Template order_summary.html revisado para integração segura com Stripe PaymentElement.
+Logging detalhado de todas as ações críticas e falhas para auditoria.
+Docstrings e comentários para manutenção futura.
+Pendências/Opcionais:
+
+Revisar e otimizar webhooks do Stripe para garantir atualização correta do status do pedido após pagamento.
+Implementar envio de e-mail assíncrono (Celery) para produção.
+Revisar e otimizar testes automatizados para todos os fluxos críticos.
+Revisar templates para internacionalização e garantir não exposição de dados sensíveis.
+Revisar dashboard/ para garantir aderência às novas práticas.
+Exemplo de código relevante (views de endereço):
+
+@method_decorator(login_required, name='dispatch')
+class DefinirEnderecoPrincipal(View):
+    def post(self, request, pk):
+        try:
+            with transaction.atomic():
+                endereco = get_object_or_404(Endereco, pk=pk, usuario=request.user)
+                if endereco.principal:
+                    # Já é principal, não faz update desnecessário
+                    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                        return JsonResponse({'sucesso': True, 'cep': endereco.cep})
+                    if request.GET.get('from_index') == '1':
+                        return HttpResponseRedirect(reverse_lazy('index'))
+                    return redirect('checkout:select_address')
+                Endereco.objects.filter(usuario=request.user, principal=True).update(principal=False)
+                endereco.principal = True
+                endereco.save()
+                LogAcao.objects.create(
+                    usuario=request.user,
+                    acao="Definiu endereço principal",
+                    detalhes=f"Endereço ID: {endereco.id} | IP: {request.META.get('REMOTE_ADDR')}"
+                )
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'sucesso': True, 'cep': endereco.cep})
+            if request.GET.get('from_index') == '1':
+                return HttpResponseRedirect(reverse_lazy('index'))
+            return redirect('checkout:select_address')
+        except Exception as e:
+            LogAcao.objects.create(
+                usuario=request.user,
+                acao="Falha ao definir endereço principal",
+                detalhes=f"Erro: {str(e)} | IP: {request.META.get('REMOTE_ADDR')}"
+            )
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'sucesso': False, 'erro': 'Erro ao definir principal'}, status=500)
+            messages.error(request, "Erro ao definir endereço principal.")
+            return redirect('checkout:select_address')
+
+
+Como prosseguir:
+
+Se quiser, continue revisando webhooks do Stripe, implemente e-mails assíncronos, revise testes automatizados, melhore templates para internacionalização ou revise o dashboard.
+Sempre priorize segurança, performance, logging detalhado e feedback ao usuário.
+Resumo do objetivo:
+Quero que você atue como um revisor e refatorador crítico, sugerindo e implementando melhorias para garantir um e-commerce Django robusto, seguro, escalável e pronto para produção.

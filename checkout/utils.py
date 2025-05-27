@@ -1,6 +1,17 @@
 import requests
 from core.models import Produto, Carrinho, ItemCarrinho, ProdutoVariacao
+from core.models import Carrinho, ItemCarrinho
+from django.db import transaction
+from core.models import LogAcao
+import stripe
+from django.db.models import F, Sum
+from django.conf import settings
+from decimal import Decimal
+from core.models import LogAcao
+import logging
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # ==========================
 # Funções relacionadas ao carrinho
@@ -13,13 +24,20 @@ def obter_carrinho_usuario(request):
     return carrinho
 
 def obter_itens_do_carrinho(request):
-    """Obtém os itens do carrinho e calcula o subtotal."""
+    """Obtém os itens do carrinho e calcula o subtotal, validando produtos/variações ativos e estoque."""
     if request.user.is_authenticated:
         carrinho = obter_carrinho_usuario(request)
         itens = carrinho.itens.select_related('produto', 'variacao').all()
         itens_carrinho = []
         subtotal = 0
         for item in itens:
+            # Segurança: só considera produtos/variações ativos
+            if not item.produto.ativo:
+                continue
+            if item.variacao and not (item.variacao.ativo and item.variacao.estoque >= item.quantidade):
+                continue
+            if not item.variacao and hasattr(item.produto, 'variacoes') and item.produto.variacoes.exists():
+                continue
             preco_vigente = item.produto.preco_vigente()
             subtotal_item = preco_vigente * item.quantidade
             subtotal += subtotal_item
@@ -35,7 +53,6 @@ def obter_itens_do_carrinho(request):
         carrinho = request.session.get('carrinho', {})
         itens_carrinho = []
         subtotal = 0
-
         produto_ids = []
         variacao_ids = []
         for item in carrinho.values():
@@ -43,65 +60,78 @@ def obter_itens_do_carrinho(request):
                 produto_ids.append(item['produto_id'])
             if isinstance(item, dict) and 'variacao_id' in item:
                 variacao_ids.append(item['variacao_id'])
-
-        produtos = Produto.objects.filter(id__in=produto_ids)
+        produtos = Produto.objects.filter(id__in=produto_ids, ativo=True)
         produto_dict = {p.id: p for p in produtos}
-        variacoes = ProdutoVariacao.objects.filter(id__in=variacao_ids)
+        variacoes = ProdutoVariacao.objects.filter(id__in=variacao_ids, ativo=True)
         variacao_dict = {v.id: v for v in variacoes}
-
         for chave, item in carrinho.items():
             produto = produto_dict.get(item['produto_id'])
             variacao = variacao_dict.get(item.get('variacao_id'))
-            if produto:
-                quantidade = item['quantidade']
-                preco_vigente = produto.preco_vigente()
-                subtotal_item = preco_vigente * quantidade
-                subtotal += subtotal_item
-
-                itens_carrinho.append({
-                    'produto': produto,
-                    'quantidade': quantidade,
-                    'variacao': variacao,
-                    'subtotal': subtotal_item,
-                })
-
+            if not produto:
+                continue
+            quantidade = item['quantidade']
+            # Segurança: só permite variação se for válida e com estoque
+            if variacao:
+                if not (variacao.estoque >= quantidade and variacao.produto_id == produto.id):
+                    continue
+            else:
+                if hasattr(produto, 'variacoes') and produto.variacoes.exists():
+                    continue
+            preco_vigente = produto.preco_vigente()
+            subtotal_item = preco_vigente * quantidade
+            subtotal += subtotal_item
+            itens_carrinho.append({
+                'produto': produto,
+                'quantidade': quantidade,
+                'variacao': variacao,
+                'subtotal': subtotal_item,
+            })
         return itens_carrinho, subtotal
 
 
 def limpar_carrinho(request):
-    """Limpa completamente o carrinho da sessão ou do banco."""
+    """Limpa completamente o carrinho da sessão ou do banco, com logging de auditoria."""
     if request.user.is_authenticated:
-        from core.models import Carrinho, ItemCarrinho
         carrinho = Carrinho.objects.filter(usuario=request.user).first()
         if carrinho:
             ItemCarrinho.objects.filter(carrinho=carrinho).delete()
+            LogAcao.objects.create(
+                usuario=request.user,
+                acao="Limpou carrinho",
+                detalhes=f"Carrinho ID: {carrinho.id} | IP: {getattr(request.META, 'REMOTE_ADDR', '')}"
+            )
     else:
         request.session['carrinho'] = {}
         request.session.modified = True
-
+        # Não loga usuário anônimo
 
 def adicionar_ao_carrinho(request, produto_id, variacao_id=None, quantidade=1):
-    """Adiciona um produto ao carrinho."""
+    """Adiciona um produto ao carrinho, validando estoque e status ativo."""
+    quantidade = min(int(quantidade), 10)
+    produto = Produto.objects.filter(id=produto_id, ativo=True).first()
+    if not produto:
+        return None  # Produto inativo ou inexistente
+    variacao = None
+    if variacao_id:
+        variacao = ProdutoVariacao.objects.filter(id=variacao_id, produto=produto, ativo=True).first()
+        if not variacao or variacao.estoque < quantidade:
+            return None  # Variação inválida ou sem estoque
+    else:
+        if hasattr(produto, 'variacoes') and produto.variacoes.exists():
+            return None  # Produto exige variação
     if not request.user.is_authenticated:
         # fallback para sessão se não logado
         carrinho = request.session.get('carrinho', {})
-        
-        # Migra carrinho antigo para novo formato se necessário
-        if any(isinstance(v, int) for v in carrinho.values()):
-            carrinho = migrar_carrinho_antigo(carrinho)
-        
-        # Cria uma chave única combinando ID e variação
         chave_item = f"{produto_id}-{variacao_id}" if variacao_id else str(produto_id)
-        
         if chave_item in carrinho:
-            carrinho[chave_item]['quantidade'] += quantidade
+            nova_qtd = min(carrinho[chave_item]['quantidade'] + quantidade, 10)
+            carrinho[chave_item]['quantidade'] = nova_qtd
         else:
             carrinho[chave_item] = {
                 'produto_id': produto_id,
                 'quantidade': quantidade,
                 'variacao_id': variacao_id
             }
-        
         request.session['carrinho'] = carrinho
         request.session.modified = True
         return carrinho
@@ -112,7 +142,7 @@ def adicionar_ao_carrinho(request, produto_id, variacao_id=None, quantidade=1):
         variacao_id=variacao_id
     )
     if not created:
-        item.quantidade += quantidade
+        item.quantidade = min(item.quantidade + quantidade, 10)
     else:
         item.quantidade = quantidade
     item.save()
@@ -120,154 +150,188 @@ def adicionar_ao_carrinho(request, produto_id, variacao_id=None, quantidade=1):
 
 
 def remover_do_carrinho(request, produto_key):
-    """Remove um item do carrinho."""
-    carrinho = request.session.get('carrinho', {})
-    
-    # Migra carrinho antigo para novo formato se necessário
-    if any(isinstance(v, int) for v in carrinho.values()):
-        carrinho = migrar_carrinho_antigo(carrinho)
-        request.session['carrinho'] = carrinho
-        request.session.modified = True
-    
-    if produto_key in carrinho:
-        del carrinho[produto_key]
-        request.session['carrinho'] = carrinho
-        request.session.modified = True
-    
-    return len(carrinho)
-
-
-def calcular_total_carrinho(request):
-    """Calcula o total geral dos produtos no carrinho."""
-    from ..core.models import Produto
-    
+    """Remove um item do carrinho, com logging de auditoria."""
     if request.user.is_authenticated:
         carrinho = obter_carrinho_usuario(request)
-        total = sum(item.produto.preco * item.quantidade for item in carrinho.itens.select_related('produto').all())
-        return total
+        item = carrinho.itens.filter(id=produto_key).first()
+        if item:
+            item.delete()
+            LogAcao.objects.create(
+                usuario=request.user,
+                acao="Removeu item do carrinho",
+                detalhes=f"ItemCarrinho ID: {produto_key} | Carrinho ID: {carrinho.id} | IP: {getattr(request.META, 'REMOTE_ADDR', '')}"
+            )
+        return carrinho.itens.count()
+    else:
+        carrinho_sessao = request.session.get('carrinho', {})
+        if produto_key in carrinho_sessao:
+            del carrinho_sessao[produto_key]
+            request.session['carrinho'] = carrinho_sessao
+            request.session.modified = True
+        return len(carrinho_sessao)
 
+def calcular_total_carrinho(request):
+    """Calcula o total geral dos produtos no carrinho, usando aggregate para performance."""
+    if request.user.is_authenticated:
+        carrinho = obter_carrinho_usuario(request)
+        total = carrinho.itens.filter(produto__ativo=True).aggregate(
+            total=Sum(F('produto__preco') * F('quantidade'))
+        )['total'] or 0
+        return total
     carrinho = request.session.get('carrinho', {})
     total = 0
-    
-    # Migra carrinho antigo para novo formato se necessário
-    if any(isinstance(v, int) for v in carrinho.values()):
-        carrinho = migrar_carrinho_antigo(carrinho)
-        request.session['carrinho'] = carrinho
-        request.session.modified = True
-    
-    # Obtém todos os IDs de produtos únicos
     produto_ids = []
     for item in carrinho.values():
         if isinstance(item, dict) and 'produto_id' in item:
             produto_ids.append(item['produto_id'])
-    
-    produtos = Produto.objects.filter(id__in=produto_ids)
+    produtos = Produto.objects.filter(id__in=produto_ids, ativo=True)
     produto_dict = {p.id: p for p in produtos}
-    
     for item in carrinho.values():
         if isinstance(item, dict) and 'produto_id' in item:
             produto = produto_dict.get(item['produto_id'])
             if produto:
                 total += produto.preco * item['quantidade']
-    
     return total
 
 
-def migrar_carrinho_antigo(carrinho):
-    """Migra carrinho do formato antigo para o novo formato."""
-    novo_carrinho = {}
-    for chave, valor in carrinho.items():
-        if isinstance(valor, int):  # Formato antigo
-            novo_carrinho[chave] = {
-                'produto_id': int(chave),
-                'quantidade': valor,
-                'variacao_id': None
-            }
-        else:  # Já está no formato novo
-            novo_carrinho[chave] = valor
-    return novo_carrinho
-
-
 def migrar_carrinho_sessao_para_banco(request):
+    """
+    Migra o carrinho do visitante (sessão/localStorage) para o banco de dados do usuário autenticado,
+    garantindo segurança, validação de estoque, produto e variação, atomicidade e logging.
+    """
     if not request.user.is_authenticated:
         return
     carrinho_sessao = request.session.get('carrinho', {})
     if not carrinho_sessao:
         return
-    carrinho, _ = Carrinho.objects.get_or_create(usuario=request.user)
-    for item_id, item in carrinho_sessao.items():
-        produto = Produto.objects.filter(id=item['produto_id']).first()
-        variacao = ProdutoVariacao.objects.filter(id=item.get('variacao_id')).first()
-        if not produto:
-            continue
-        item_carrinho, created = ItemCarrinho.objects.get_or_create(
-            carrinho=carrinho,
-            produto=produto,
-            variacao=variacao
+    try:
+        with transaction.atomic():
+            carrinho, _ = Carrinho.objects.get_or_create(usuario=request.user)
+            for item_id, item in carrinho_sessao.items():
+                try:
+                    produto_id = int(item['produto_id'])
+                    quantidade = int(item['quantidade'])
+                    if quantidade < 1:
+                        continue
+                except (KeyError, ValueError, TypeError):
+                    continue
+                quantidade = min(quantidade, 10)
+                produto = Produto.objects.filter(id=produto_id, ativo=True).first()
+                if not produto:
+                    continue
+                variacao = None
+                if item.get('variacao_id'):
+                    try:
+                        variacao_id = int(item['variacao_id'])
+                        variacao = ProdutoVariacao.objects.filter(
+                            id=variacao_id, produto=produto, estoque__gte=quantidade, ativo=True
+                        ).first()
+                    except (ValueError, TypeError):
+                        continue
+                    if not variacao:
+                        continue
+                else:
+                    if hasattr(produto, 'variacoes') and produto.variacoes.exists():
+                        continue
+                # Sempre use o preço do banco, nunca do visitante
+                item_carrinho, created = ItemCarrinho.objects.get_or_create(
+                    carrinho=carrinho,
+                    produto=produto,
+                    variacao=variacao
+                )
+                if not created:
+                    item_carrinho.quantidade = min(item_carrinho.quantidade + quantidade, 10)
+                else:
+                    item_carrinho.quantidade = quantidade
+                item_carrinho.save()
+            LogAcao.objects.create(
+                usuario=request.user,
+                acao="Migrou carrinho da sessão para banco",
+                detalhes=f"Itens migrados: {len(carrinho_sessao)} | IP: {request.META.get('REMOTE_ADDR', '')}"
+            )
+    except Exception as e:
+        LogAcao.objects.create(
+            usuario=request.user,
+            acao="Falha ao migrar carrinho da sessão para banco",
+            detalhes=f"Erro: {str(e)} | IP: {request.META.get('REMOTE_ADDR', '')}"
         )
-        if not created:
-            item_carrinho.quantidade += item['quantidade']
-        else:
-            item_carrinho.quantidade = item['quantidade']
-        item_carrinho.save()
-    # Limpa o carrinho da sessão após migrar
-    del request.session['carrinho']
-    request.session.modified = True
+    finally:
+        if 'carrinho' in request.session:
+            del request.session['carrinho']
+            request.session.modified = True
 
 # ==========================
 # Funções relacionadas ao frete
 # ==========================
 
 def cotar_frete_melhor_envio(cep_destino, token, produtos, cep_origem='01001-000'):
+    """Cota frete via Melhor Envio, com tratamento de exceções e logging de falha."""
+    import logging
     url = "https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate"
-
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}"
     }
-
     payload = {
         "from": {"postal_code": cep_origem},
         "to": {"postal_code": cep_destino},
-        "products": produtos,  # Lista de produtos com peso, dimensões, quantidade
+        "products": produtos,
         "options": {
             "receipt": False,
             "own_hand": False,
-            "insurance_value": sum(p['insurance_value'] for p in produtos),
+            "insurance_value": sum(p.get('insurance_value', 0) for p in produtos),
             "reverse": False,
             "non_commercial": True
         }
     }
-
-    response = requests.post(url, headers=headers, json=payload)
-    if response.status_code == 200:
-        return response.json()
-    return []
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        if response.status_code == 200:
+            try:
+                return response.json()
+            except Exception as e:
+                logging.error(f"Erro ao decodificar resposta do Melhor Envio: {e}")
+                return []
+        else:
+            logging.warning(f"Falha ao cotar frete: status {response.status_code} | retorno: {response.text}")
+            return []
+    except Exception as e:
+        logging.error(f"Erro de conexão ao cotar frete: {e}")
+        return []
 
 
 def preparar_produtos_para_frete(itens_carrinho):
-    """Prepara a lista de produtos para cálculo de frete considerando variação."""
+    """Prepara a lista de produtos para cálculo de frete considerando variação, validando dados."""
     produtos = []
     for item in itens_carrinho:
         produto = item['produto']
         variacao = item.get('variacao')
-        peso = float(variacao.peso) if variacao and hasattr(variacao, 'peso') and variacao.peso else float(produto.peso or 1)
-        width = getattr(variacao, 'width', 15) if variacao else 15
-        height = getattr(variacao, 'height', 10) if variacao else 10
-        length = getattr(variacao, 'length', 20) if variacao else 20
-        produtos.append({
-            "weight": peso,
-            "width": width,
-            "height": height,
-            "length": length,
-            "insurance_value": float(item['subtotal']),
-            "quantity": item['quantidade']
-        })
+        try:
+            peso = float(variacao.peso) if variacao and hasattr(variacao, 'peso') and variacao.peso else float(produto.peso or 1)
+            width = getattr(variacao, 'width', 15) if variacao else 15
+            height = getattr(variacao, 'height', 10) if variacao else 10
+            length = getattr(variacao, 'length', 20) if variacao else 20
+            insurance_value = float(item['subtotal'])
+            quantidade = int(item['quantidade'])
+            produtos.append({
+                "weight": peso,
+                "width": width,
+                "height": height,
+                "length": length,
+                "insurance_value": insurance_value,
+                "quantity": quantidade
+            })
+        except Exception as e:
+            import logging
+            logging.warning(f"Item ignorado no cálculo de frete por dados inválidos: {e}")
+            continue
     return produtos
 
 
 def criar_envio_melhor_envio(pedido, token):
+    """Cria envio no Melhor Envio, com tratamento de exceções e logging de falha."""
+    import logging
     url = "https://sandbox.melhorenvio.com.br/api/v2/me/shipment"
     headers = {
         "Authorization": f"Bearer {token}",
@@ -275,12 +339,27 @@ def criar_envio_melhor_envio(pedido, token):
         "Accept": "application/json"
     }
     payload = montar_payload_envio(pedido)
-    response = requests.post(url, headers=headers, json=payload)
-    return response.json()
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=15)
+        if response.status_code == 200:
+            try:
+                return response.json()
+            except Exception as e:
+                logging.error(f"Erro ao decodificar resposta do Melhor Envio (envio): {e}")
+                return None
+        else:
+            logging.warning(f"Falha ao criar envio: status {response.status_code} | retorno: {response.text}")
+            return None
+    except Exception as e:
+        logging.error(f"Erro de conexão ao criar envio: {e}")
+        return None
 
 def montar_payload_envio(pedido):
+    """Monta payload do envio, sanitizando campos obrigatórios."""
+    def safe_str(val):
+        return str(val) if val is not None else ''
     return {
-        "service": pedido.frete_id,  # ID do frete escolhido
+        "service": safe_str(getattr(pedido, 'frete_id', '')),
         "from": {
             "name": "Lukao MultiMarcas",
             "phone": "(83)99381-0707",
@@ -298,23 +377,23 @@ def montar_payload_envio(pedido):
             "postal_code": "01001-000"
         },
         "to": {
-            "name": pedido.endereco.nome_completo,
-            "phone": pedido.endereco.telefone,
-            "email": pedido.usuario.email,
-            "document": "15306069428",  # CPF do cliente, se tiver
-            "address": pedido.endereco.rua,
-            "complement": pedido.endereco.complemento,
-            "number": pedido.endereco.numero,
-            "district": pedido.endereco.bairro,
-            "city": pedido.endereco.cidade,
-            "state_abbr": pedido.endereco.estado,
+            "name": safe_str(getattr(pedido.endereco, 'nome_completo', '')),
+            "phone": safe_str(getattr(pedido.endereco, 'telefone', '')),
+            "email": safe_str(getattr(pedido.usuario, 'email', '')),
+            "document": safe_str(getattr(pedido.endereco, 'cpf', '15306069428')),
+            "address": safe_str(getattr(pedido.endereco, 'rua', '')),
+            "complement": safe_str(getattr(pedido.endereco, 'complemento', '')),
+            "number": safe_str(getattr(pedido.endereco, 'numero', '')),
+            "district": safe_str(getattr(pedido.endereco, 'bairro', '')),
+            "city": safe_str(getattr(pedido.endereco, 'cidade', '')),
+            "state_abbr": safe_str(getattr(pedido.endereco, 'estado', '')),
             "country_id": "BR",
-            "postal_code": pedido.endereco.cep
+            "postal_code": safe_str(getattr(pedido.endereco, 'cep', ''))
         },
         "products": [
             {
-                "name": item.produto.nome,
-                "quantity": item.quantidade,
+                "name": safe_str(item.produto.nome),
+                "quantity": int(item.quantidade),
                 "unitary_value": float(item.preco_unitario)
             } for item in pedido.itens.all()
         ],
@@ -330,4 +409,60 @@ def montar_payload_envio(pedido):
 # ==========================
 # Funções relacionadas ao pagamento
 # ==========================
+
+def criar_payment_intent_stripe(user, pedido, itens_carrinho, frete_valor, cupom=None):
+    """
+    Cria um PaymentIntent Stripe de forma segura, recalculando valores e validando estoque/preço.
+    Retorna o client_secret ou lança exceção.
+    """
+    try:
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        # Recalcula total
+        subtotal = sum(item['produto'].preco_vigente() * item['quantidade'] for item in itens_carrinho)
+        total = subtotal + Decimal(str(frete_valor or 0))
+        desconto = Decimal('0.00')
+        if cupom and hasattr(cupom, 'is_valido') and cupom.is_valido(user):
+            total_com_cupom = cupom.aplicar(total)
+            desconto = total - total_com_cupom
+            total = total_com_cupom
+        # Validação de estoque/preço
+        for item in itens_carrinho:
+            produto = item['produto']
+            variacao = item.get('variacao')
+            quantidade = item['quantidade']
+            if variacao:
+                if not (variacao.ativo and variacao.estoque >= quantidade):
+                    raise Exception(f"{produto.nome} - Estoque insuficiente para a variação selecionada.")
+            else:
+                if hasattr(produto, 'variacoes') and produto.variacoes.exists():
+                    raise Exception(f"{produto.nome} exige seleção de variação.")
+                elif hasattr(produto, 'estoque') and produto.estoque < quantidade:
+                    raise Exception(f"{produto.nome}: estoque insuficiente")
+        amount = int(total * 100)
+        if amount < 50:
+            raise Exception("O valor total do pedido é muito baixo para processamento.")
+        # Cria PaymentIntent
+        intent = stripe.PaymentIntent.create(
+            amount=amount,
+            currency='brl',
+            automatic_payment_methods={'enabled': True},
+            metadata={
+                'user_id': user.id,
+                'pedido_id': pedido.id if pedido else '',
+            }
+        )
+        LogAcao.objects.create(
+            usuario=user,
+            acao="Criou PaymentIntent Stripe (utils)",
+            detalhes=f"Intent ID: {intent.id} | Pedido ID: {pedido.id if pedido else ''}"
+        )
+        return intent.client_secret
+    except Exception as e:
+        logging.error(f"Erro ao criar PaymentIntent Stripe: {e}")
+        LogAcao.objects.create(
+            usuario=user,
+            acao="Falha ao criar PaymentIntent Stripe (utils)",
+            detalhes=f"Erro: {str(e)} | Pedido ID: {pedido.id if pedido else ''}"
+        )
+        raise
 
