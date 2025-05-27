@@ -1,7 +1,4 @@
-import stripe
-import json
 from decimal import Decimal
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -10,15 +7,18 @@ from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, UpdateView, CreateView, FormView, View
 from django.db import transaction
 
 from checkout.forms import EnderecoForm
-from checkout.utils import obter_itens_do_carrinho, cotar_frete_melhor_envio, criar_payment_intent_stripe
+from .utils import (
+    obter_itens_do_carrinho, 
+    cotar_frete_melhor_envio, 
+    criar_payment_intent_stripe,
+    preparar_produtos_para_frete
+)
 from core.models import Endereco, Produto, Pedido, ItemPedido, LogAcao, ProdutoVariacao
-from user.models import Perfil
 
 # ==========================
 # Formulários auxiliares
@@ -220,23 +220,32 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
             return redirect('carrinho')
         return super().dispatch(request, *args, **kwargs)
 
+    def get_endereco_para_pedido(self):
+        """Determina qual endereço usar: checkout rápido ou principal"""
+        endereco_rapido_id = self.request.session.get('endereco_rapido_id')
+        if endereco_rapido_id:
+            endereco = Endereco.objects.filter(
+                id=endereco_rapido_id, 
+                usuario=self.request.user
+            ).first()
+            if endereco:
+                return endereco
+            # Se endereço rápido não existe mais, remove da sessão
+            self.request.session.pop('endereco_rapido_id', None)
+        
+        # Fallback para endereço principal
+        return Endereco.objects.filter(
+            usuario=self.request.user, 
+            principal=True
+        ).first()
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Busca otimizada
-        itens_carrinho, _ = obter_itens_do_carrinho(self.request)
-        produto_ids = [item['produto'].id for item in itens_carrinho]
-        variacao_ids = [item['variacao'].id for item in itens_carrinho if item.get('variacao')]
-        produtos_map = {p.id: p for p in Produto.objects.filter(id__in=produto_ids).select_related()}
-        variacoes_map = {v.id: v for v in ProdutoVariacao.objects.filter(id__in=variacao_ids).select_related()}
-        subtotal = Decimal('0.00')
-        for item in itens_carrinho:
-            produto = produtos_map.get(item['produto'].id)
-            variacao = variacoes_map.get(item['variacao'].id) if item.get('variacao') else None
-            preco = variacao.preco_final() if variacao else produto.preco_vigente()
-            subtotal += preco * item['quantidade']
-            item['produto'] = produto
-            item['variacao'] = variacao
-            item['preco_unitario'] = preco
+        
+        # Obtém itens do carrinho (já com produtos/variações populados)
+        itens_carrinho, subtotal = obter_itens_do_carrinho(self.request)
+        
+        # Informações de frete
         frete_info = self.request.session.get('frete_escolhido')
         frete_valor = Decimal(str(frete_info.get('price'))) if frete_info else Decimal('0.00')
         total = subtotal + frete_valor
@@ -265,22 +274,27 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
                 self.request.session.pop('cupom', None)
                 cupom = None
 
-        endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).select_related().first()
+        # Endereço (considerando checkout rápido)
+        endereco = self.get_endereco_para_pedido()
         if not endereco:
             messages.error(self.request, "Cadastre um endereço principal para finalizar a compra.")
             return context
 
-        # Busca pedido pendente sem criar novo
-        pedido = Pedido.objects.filter(usuario=self.request.user, status='P').select_related('endereco_entrega').prefetch_related('itens').last()
+        # Busca ou cria pedido pendente
+        pedido = Pedido.objects.filter(
+            usuario=self.request.user, 
+            status='P'
+        ).select_related('endereco_entrega').prefetch_related('itens').last()
+        
         if pedido:
-            # Atualiza total e endereço se necessário
+            # Atualiza pedido existente se necessário
             if pedido.total != total or pedido.endereco_entrega_id != endereco.id:
                 with transaction.atomic():
                     pedido.total = total
                     pedido.endereco_entrega = endereco
                     pedido.save(update_fields=['total', 'endereco_entrega'])
         else:
-            # Cria pedido apenas se não existir
+            # Cria novo pedido
             with transaction.atomic():
                 pedido = Pedido.objects.create(
                     usuario=self.request.user,
@@ -293,12 +307,15 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
                     acao="Criou pedido",
                     detalhes=f"Pedido ID: {pedido.id} | IP: {self.request.META.get('REMOTE_ADDR')}"
                 )
+                
+                # Cria itens do pedido usando dados já validados do carrinho
                 for item in itens_carrinho:
-                    produto = produtos_map.get(item['produto'].id)
-                    variacao = variacoes_map.get(item['variacao'].id) if item.get('variacao') else None
+                    produto = item['produto']
+                    variacao = item.get('variacao')
                     quantidade = item['quantidade']
-                    preco_unitario = variacao.preco_final() if variacao else produto.preco_vigente()
-                    # Revalida estoque
+                    preco_unitario = item['subtotal'] / quantidade  # Usa preço já calculado
+                    
+                    # Revalida estoque antes de criar
                     if variacao:
                         if variacao.estoque < quantidade:
                             messages.error(self.request, f"{produto.nome} - Estoque insuficiente para a variação selecionada.")
@@ -310,6 +327,7 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
                         if hasattr(produto, 'estoque') and produto.estoque < quantidade:
                             messages.error(self.request, f"{produto.nome} - Estoque insuficiente.")
                             continue
+                    
                     ItemPedido.objects.create(
                         pedido=pedido,
                         produto=produto,
@@ -317,6 +335,11 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
                         preco_unitario=preco_unitario,
                         variacao=variacao
                     )
+
+        # Configurações do checkout rápido
+        perfil = getattr(self.request.user, 'perfil', None)
+        checkout_rapido_ativo = bool(self.request.session.get('endereco_rapido_id'))
+        
         context.update({
             'itens_carrinho': itens_carrinho,
             'subtotal': subtotal,
@@ -327,14 +350,13 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
             'cupom': cupom,
             'desconto': desconto,
             'total_com_cupom': total,
+            'stripe_public_key': settings.STRIPE_PUBLIC_KEY,
+            'checkout_rapido': bool(perfil and perfil.endereco_rapido and perfil.metodo_pagamento_rapido),
+            'checkout_rapido_ativo': checkout_rapido_ativo,
+            'endereco_rapido': perfil.endereco_rapido if perfil else None,
+            'metodo_pagamento_rapido': perfil.metodo_pagamento_rapido if perfil else None,
         })
-        context['stripe_public_key'] = settings.STRIPE_PUBLIC_KEY
-        perfil = getattr(self.request.user, 'perfil', None)
-        context['checkout_rapido'] = False
-        if perfil and perfil.endereco_rapido and perfil.metodo_pagamento_rapido:
-            context['checkout_rapido'] = True
-            context['endereco_rapido'] = perfil.endereco_rapido
-            context['metodo_pagamento_rapido'] = perfil.metodo_pagamento_rapido
+        
         return context
 
     def validate_order(self):
@@ -342,6 +364,7 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
         itens_carrinho, _ = obter_itens_do_carrinho(self.request)
         if not itens_carrinho:
             return "Seu carrinho está vazio."
+        
         for item in itens_carrinho:
             produto = item['produto']
             variacao = item.get('variacao')
@@ -354,13 +377,16 @@ class OrderSummaryView(LoginRequiredMixin, TemplateView):
                     errors.append(f"{produto.nome}: selecione uma variação")
                 elif hasattr(produto, 'estoque') and produto.estoque < quantidade:
                     errors.append(f"{produto.nome}: estoque insuficiente")
-        endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
+        
+        endereco = self.get_endereco_para_pedido()
         if not endereco:
             errors.append("Endereço principal não encontrado")
         else:
             errors.extend(self.validate_address(endereco))
+        
         if not self.request.session.get('frete_escolhido'):
             errors.append("Método de envio não selecionado")
+        
         return "\n".join(errors) if errors else None
 
     def validate_address(self, endereco):
@@ -385,25 +411,21 @@ class ShipmentMethodView(LoginRequiredMixin, FormView):
         return kwargs
 
     def get_fretes(self):
+        """Obtém cotações de frete usando a função centralizada de utils.py"""
         try:
             endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
             if not endereco:
                 messages.error(self.request, "Cadastre um endereço principal para cotar o frete.")
                 return []
+            
             itens_carrinho, _ = obter_itens_do_carrinho(self.request)
             if not itens_carrinho:
                 messages.error(self.request, "Seu carrinho está vazio.")
                 return []
-            produtos = []
-            for item in itens_carrinho:
-                produtos.append({
-                    "weight": float(item['produto'].peso or 1),
-                    "width": 15,
-                    "height": 10,
-                    "length": 20,
-                    "insurance_value": float(item.get('subtotal', 0)),
-                    "quantity": item['quantidade']
-                })
+            
+            # Usa a função centralizada de preparação de produtos
+            produtos = preparar_produtos_para_frete(itens_carrinho)
+            
             return cotar_frete_melhor_envio(
                 endereco.cep,
                 settings.MELHOR_ENVIO_TOKEN,
@@ -413,7 +435,7 @@ class ShipmentMethodView(LoginRequiredMixin, FormView):
             LogAcao.objects.create(
                 usuario=self.request.user,
                 acao="Falha ao cotar frete",
-                detalhes=f"Erro: {str(e)} | IP: {request.META.get('REMOTE_ADDR')}"
+                detalhes=f"Erro: {str(e)} | IP: {self.request.META.get('REMOTE_ADDR')}"
             )
             messages.error(self.request, "Erro ao cotar frete. Tente novamente mais tarde.")
             return []
@@ -466,55 +488,16 @@ class ThanksView(LoginRequiredMixin, TemplateView):
 # Stripe Payment
 # ==========================
 
-@login_required
-def checkout_stripe(request):
-    try:
-        itens_carrinho, _ = obter_itens_do_carrinho(request)
-        if not itens_carrinho:
-            messages.error(request, "Seu carrinho está vazio.")
-            return redirect('checkout:order-summary')
-        frete_info = request.session.get('frete_escolhido')
-        frete_valor = Decimal(str(frete_info.get('price'))) if frete_info else Decimal('0.00')
-        # Busca pedido pendente
-        pedido = Pedido.objects.filter(usuario=request.user, status='P').last()
-        # Busca cupom se houver
-        cupom = None
-        cupom_codigo = request.session.get('cupom')
-        if cupom_codigo:
-            try:
-                from core.models import Cupom
-                cupom = Cupom.objects.get(codigo__iexact=cupom_codigo)
-            except Exception:
-                cupom = None
-        # Cria PaymentIntent seguro
-        client_secret = criar_payment_intent_stripe(
-            user=request.user,
-            pedido=pedido,
-            itens_carrinho=itens_carrinho,
-            frete_valor=frete_valor,
-            cupom=cupom
-        )
-        # Redireciona para página de pagamento Stripe (exemplo: PaymentElement ou Checkout Session)
-        # Aqui, para manter o fluxo, você pode criar uma Session se quiser, mas sempre usando os dados validados
-        messages.success(request, "Pagamento iniciado com sucesso. Finalize no Stripe.")
-        return redirect('checkout:order-summary')
-    except Exception as e:
-        LogAcao.objects.create(
-            usuario=request.user,
-            acao="Falha no checkout Stripe",
-            detalhes=f"Erro: {str(e)} | IP: {request.META.get('REMOTE_ADDR')}"
-        )
-        messages.error(request, f"Erro ao processar pagamento: {str(e)}")
-        return redirect('checkout:order-summary')
-
 @require_POST
 @login_required
 def stripe_create_payment_intent(request):
+    """Cria PaymentIntent do Stripe via AJAX"""
     try:
         itens_carrinho, _ = obter_itens_do_carrinho(request)
         frete_info = request.session.get('frete_escolhido')
         frete_valor = Decimal(str(frete_info.get('price'))) if frete_info else Decimal('0.00')
         pedido = Pedido.objects.filter(usuario=request.user, status='P').last()
+        
         cupom = None
         cupom_codigo = request.session.get('cupom')
         if cupom_codigo:
@@ -523,6 +506,7 @@ def stripe_create_payment_intent(request):
                 cupom = Cupom.objects.get(codigo__iexact=cupom_codigo)
             except Exception:
                 cupom = None
+        
         client_secret = criar_payment_intent_stripe(
             user=request.user,
             pedido=pedido,
@@ -541,6 +525,7 @@ def stripe_create_payment_intent(request):
 
 @login_required
 def salvar_cep_usuario(request):
+    """Salva CEP no perfil do usuário ou endereço principal"""
     if request.method == 'POST':
         cep = request.POST.get('cep', '').replace('-', '').strip()
         if len(cep) == 8 and cep.isdigit():
@@ -556,13 +541,26 @@ def salvar_cep_usuario(request):
                             detalhes=f"Novo CEP: {cep} | Endereço ID: {endereco.id} | IP: {request.META.get('REMOTE_ADDR')}"
                         )
                 else:
-                    request.user.cep = cep
-                    request.user.save(update_fields=['cep'])
-                    LogAcao.objects.create(
-                        usuario=request.user,
-                        acao="Atualizou CEP do perfil",
-                        detalhes=f"Novo CEP: {cep} | IP: {request.META.get('REMOTE_ADDR')}"
-                    )
+                    # Tenta salvar no perfil do usuário
+                    perfil = getattr(request.user, 'perfil', None)
+                    if perfil and hasattr(perfil, 'cep'):
+                        perfil.cep = cep
+                        perfil.save(update_fields=['cep'])
+                        LogAcao.objects.create(
+                            usuario=request.user,
+                            acao="Atualizou CEP do perfil",
+                            detalhes=f"Novo CEP: {cep} | IP: {request.META.get('REMOTE_ADDR')}"
+                        )
+                    else:
+                        # Se não existe perfil com campo CEP, salva na sessão temporariamente
+                        request.session['cep_temporario'] = cep
+                        request.session.modified = True
+                        LogAcao.objects.create(
+                            usuario=request.user,
+                            acao="Salvou CEP temporário na sessão",
+                            detalhes=f"CEP: {cep} | IP: {request.META.get('REMOTE_ADDR')}"
+                        )
+                
                 return JsonResponse({'sucesso': True, 'cep': cep})
             except Exception as e:
                 LogAcao.objects.create(
@@ -576,19 +574,25 @@ def salvar_cep_usuario(request):
 
 @login_required
 def usar_checkout_rapido(request):
+    """Ativa o checkout rápido usando endereço e método de pagamento salvos"""
     try:
         if not request.user.is_authenticated:
             return redirect('user:login')
+        
         perfil = getattr(request.user, 'perfil', None)
         if perfil and perfil.endereco_rapido:
+            # Ativa o checkout rápido salvando o ID do endereço na sessão
             request.session['endereco_rapido_id'] = perfil.endereco_rapido.id
+            request.session.modified = True
+            
             LogAcao.objects.create(
                 usuario=request.user,
-                acao="Usou checkout rápido",
+                acao="Ativou checkout rápido",
                 detalhes=f"Endereço rápido ID: {perfil.endereco_rapido.id} | IP: {request.META.get('REMOTE_ADDR')}"
             )
-            messages.success(request, "Checkout rápido ativado!")
+            messages.success(request, "Checkout rápido ativado! Usando seu endereço salvo.")
             return redirect('checkout:order-summary')
+        
         messages.error(request, "Configure um endereço e método de pagamento rápido no seu perfil.")
         return redirect('checkout:order-summary')
     except Exception as e:
@@ -598,4 +602,29 @@ def usar_checkout_rapido(request):
             detalhes=f"Erro: {str(e)} | IP: {request.META.get('REMOTE_ADDR')}"
         )
         messages.error(request, "Erro ao ativar checkout rápido.")
+        return redirect('checkout:order-summary')
+
+@login_required
+def desativar_checkout_rapido(request):
+    """Desativa o checkout rápido, voltando ao endereço principal"""
+    try:
+        if 'endereco_rapido_id' in request.session:
+            request.session.pop('endereco_rapido_id')
+            request.session.modified = True
+            
+            LogAcao.objects.create(
+                usuario=request.user,
+                acao="Desativou checkout rápido",
+                detalhes=f"IP: {request.META.get('REMOTE_ADDR')}"
+            )
+            messages.success(request, "Checkout rápido desativado. Usando endereço principal.")
+        
+        return redirect('checkout:order-summary')
+    except Exception as e:
+        LogAcao.objects.create(
+            usuario=request.user,
+            acao="Falha ao desativar checkout rápido",
+            detalhes=f"Erro: {str(e)} | IP: {request.META.get('REMOTE_ADDR')}"
+        )
+        messages.error(request, "Erro ao desativar checkout rápido.")
         return redirect('checkout:order-summary')

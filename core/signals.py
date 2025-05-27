@@ -1,22 +1,9 @@
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
-from django.db import models
-from django.db.models import Sum
-from core.models import AvaliacaoProduto, ItemPedido, ProdutoVariacao, Pedido
-from uuid import uuid4
+from core.models import ItemPedido, ProdutoVariacao, Pedido
 from django.core.mail import send_mail, BadHeaderError
 from django.contrib.auth.signals import user_logged_in
 from user.models import Notificacao
-
-# Atualiza a média de avaliações do produto sempre que uma avaliação é criada, alterada ou removida
-@receiver([post_save, post_delete], sender=AvaliacaoProduto)
-def atualizar_avaliacao_produto(sender, instance, **kwargs):
-    produto = instance.produto
-    avaliacoes = produto.avaliacoes.all()
-    media = avaliacoes.aggregate(media=Sum('nota'))['media'] or 0
-    total = avaliacoes.count()
-    produto.avaliacao = round(media / total, 2) if total > 0 else 0
-    produto.save(update_fields=['avaliacao'])
 
 # Diminui o estoque da variação ao criar um item de pedido
 @receiver(post_save, sender=ItemPedido)
@@ -41,18 +28,11 @@ def devolver_estoque_variacao(sender, instance, **kwargs):
         variacao.estoque += instance.quantidade
         variacao.save(update_fields=["estoque"])
 
-# Atualiza o estoque total do produto sempre que uma variação é salva
-@receiver(post_save, sender=ProdutoVariacao)
-def atualizar_estoque_produto(sender, instance, **kwargs):
-    produto = instance.produto
-    estoque_total = produto.variacoes.aggregate(total=Sum('estoque'))['total'] or 0
-    produto.estoque = estoque_total
-    produto.save(update_fields=['estoque'])
-
 # Gera SKU automaticamente para variações sem SKU (usa lógica do model)
 @receiver(pre_save, sender=ProdutoVariacao)
 def gerar_sku_variacao(sender, instance, **kwargs):
-    if not instance.sku:
+    # Só tenta gerar SKU se a variação já tem ID (foi salva antes) e tem atributos
+    if not instance.sku and instance.pk and instance.atributos.exists():
         instance.gerar_sku_automatico()
 
 # Notifica usuário por e-mail e cria notificação ao mudar status do pedido

@@ -40,7 +40,7 @@ urlpatterns = [
     path('checkout/', include('checkout.urls', namespace='checkout')),
     path('user/', include('user.urls', namespace='user')),
 
-    path('dashboard/', include('dashboard.urls', namespace='dashboard')),
+    # path('dashboard/', include('dashboard.urls', namespace='dashboard')),
     
     path('admin/', admin.site.urls),
 ]

@@ -1,9 +1,9 @@
 from django.contrib import admin
 from .models import (
     Categoria, Produto, Endereco, Pedido, ItemPedido, Marca, ProdutoVariacao,
-    ImagemProduto, AvaliacaoProduto, Cupom, HistoricoPreco, Tag, Favorito,
-    LogStatusPedido, LogAcao, Carrinho, ItemCarrinho, Perfil, Reembolso,
-    HistoricoPedido, Notification, AtributoTipo, AtributoValor
+    ImagemProduto, AvaliacaoProduto, Cupom, HistoricoPreco, Tag,
+    LogStatusPedido, LogAcao, Carrinho, ItemCarrinho, Reembolso,
+    Notification, AtributoTipo, AtributoValor
 )
 
 @admin.register(Categoria)
@@ -112,9 +112,6 @@ class TagAdmin(admin.ModelAdmin):
     list_display = ('id', 'nome')
     search_fields = ('nome',)
 
-@admin.register(Favorito)
-class FavoritoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'usuario', 'produto', 'criado_em')
 
 @admin.register(LogStatusPedido)
 class LogStatusPedidoAdmin(admin.ModelAdmin):
@@ -132,17 +129,11 @@ class CarrinhoAdmin(admin.ModelAdmin):
 class ItemCarrinhoAdmin(admin.ModelAdmin):
     list_display = ('id', 'carrinho', 'produto', 'quantidade', 'variacao')
 
-@admin.register(Perfil)
-class PerfilAdmin(admin.ModelAdmin):
-    list_display = ('id', 'endereco_rapido', 'metodo_pagamento_rapido')
 
 @admin.register(Reembolso)
 class ReembolsoAdmin(admin.ModelAdmin):
     list_display = ('id', 'pedido', 'valor', 'data_criacao', 'status')
 
-@admin.register(HistoricoPedido)
-class HistoricoPedidoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'pedido', 'status_antigo', 'status_novo', 'data', 'usuario')
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):

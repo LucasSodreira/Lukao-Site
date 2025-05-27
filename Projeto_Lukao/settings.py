@@ -38,13 +38,101 @@ STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
 # Adicione esta linha - Obtenha o valor no Dashboard Stripe -> Developers -> Webhooks -> Seu Endpoint
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+
+# ==========================
+# Configurações de Logging
+# ==========================
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose' if DEBUG else 'simple',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'] if DEBUG else ['file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'checkout': {
+            'handlers': ['console', 'file'] if DEBUG else ['file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# Cria diretório de logs se não existir
+os.makedirs(os.path.join(BASE_DIR, 'logs'), exist_ok=True)
+
+# ==========================
+# Configurações do Melhor Envio
+# ==========================
+MELHOR_ENVIO_BASE_URL = 'https://sandbox.melhorenvio.com.br/api/v2'  # Use 'https://melhorenvio.com.br/api/v2' em produção
+MELHOR_ENVIO_CEP_ORIGEM = '59900-000'  # CEP da sua loja/origem
+
+# Configurações do remetente para envios
+REMETENTE_CONFIG = {
+    'name': 'Lukao MultiMarcas',
+    'phone': '(83)99381-0707',
+    'email': 'lucas.sobreira@academico.ifpb.edu.br',
+    'document': '00000000000',
+    'company_document': '00000000000000',
+    'state_register': '',
+    'address': 'Rua Hipólito Cassiano',
+    'complement': '',
+    'number': '123',
+    'district': 'Centro',
+    'city': 'Pau dos Ferros',
+    'state_abbr': 'RN',
+    'country_id': 'BR',
+    'postal_code': '59900-000'
+}
+
+# ==========================
+# Configurações do Carrinho
+# ==========================
+CARRINHO_MAX_QUANTIDADE = 10  # Quantidade máxima por item no carrinho
+
+# Configurações padrão para cálculo de frete
+FRETE_DEFAULTS = {
+    'peso_padrao': 1.0,  # kg
+    'largura_padrao': 15,  # cm
+    'altura_padrao': 10,  # cm
+    'comprimento_padrao': 20,  # cm
+}
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-
 # SECURITY WARNING: don't run with debug turned on in production!
+# Already defined above
+# DEBUG = True
+
+ALLOWED_HOSTS = []
 DEBUG = True
 
 ALLOWED_HOSTS = []
@@ -67,7 +155,6 @@ INSTALLED_APPS = [
     'core',
     'user',
     'checkout',
-    'dashboard',
 ]
 
 MIDDLEWARE = [

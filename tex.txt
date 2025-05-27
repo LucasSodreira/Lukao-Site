@@ -60,7 +60,6 @@ class DefinirEnderecoPrincipal(View):
 
 Como prosseguir:
 
-Se quiser, continue revisando webhooks do Stripe, implemente e-mails assíncronos, revise testes automatizados, melhore templates para internacionalização ou revise o dashboard.
 Sempre priorize segurança, performance, logging detalhado e feedback ao usuário.
 Resumo do objetivo:
 Quero que você atue como um revisor e refatorador crítico, sugerindo e implementando melhorias para garantir um e-commerce Django robusto, seguro, escalável e pronto para produção.

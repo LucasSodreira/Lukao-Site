@@ -33,7 +33,17 @@ class Categoria(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         if not self.slug:
-            self.slug = slugify(self.nome)
+            # Gera slug base
+            base_slug = slugify(self.nome)
+            slug = base_slug
+            
+            # Garante que o slug seja único
+            counter = 1
+            while Categoria.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            
+            self.slug = slug
         super().save(*args, **kwargs)
 
 
@@ -54,7 +64,17 @@ class Marca(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         if not self.slug:
-            self.slug = slugify(self.nome)
+            # Gera slug base
+            base_slug = slugify(self.nome)
+            slug = base_slug
+            
+            # Garante que o slug seja único
+            counter = 1
+            while Marca.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            
+            self.slug = slug
         super().save(*args, **kwargs)
 
 
@@ -235,7 +255,18 @@ class Produto(models.Model):
         if not self.seo_title:
             self.seo_title = self.nome[:70]
         if not self.slug:
-            self.slug = slugify(self.nome)
+            # Gera slug base
+            base_slug = slugify(self.nome)
+            slug = base_slug
+            
+            # Garante que o slug seja único
+            counter = 1
+            while Produto.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            
+            self.slug = slug
+            
         if not self.preco_original:
             self.preco_original = self.preco
         
@@ -286,8 +317,16 @@ class ProdutoVariacao(models.Model):
         ]
 
     def __str__(self):
-        atributos_str = " - ".join([f"{attr.tipo.nome}: {attr.valor}" for attr in self.atributos.all()])
-        return f"{self.produto.nome} - {atributos_str}"
+        try:
+            # Verifica se a instância já foi salva no banco
+            if self.pk and self.atributos.exists():
+                atributos_str = " - ".join([f"{attr.tipo.nome}: {attr.valor}" for attr in self.atributos.all()])
+                return f"{self.produto.nome} - {atributos_str}"
+            else:
+                return f"{self.produto.nome} - Variação (sem atributos definidos)"
+        except:
+            # Fallback em caso de erro
+            return f"Variação de {getattr(self.produto, 'nome', 'Produto')} (ID: {self.pk or 'Novo'})"
     
     def clean(self):
         super().clean()
@@ -458,9 +497,7 @@ class Endereco(models.Model):
     )
     principal = models.BooleanField(default=False, verbose_name="Endereço Principal")
     criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
-    atualizado_em = models.DateTimeField(
-        auto_now=True, verbose_name="Última Atualização"
-    )
+    atualizado_em = models.DateTimeField(auto_now=True, verbose_name="Última Atualização")
 
     class Meta:
         verbose_name = "Endereço"
@@ -911,7 +948,17 @@ class Tag(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.nome)
+            # Gera slug base
+            base_slug = slugify(self.nome)
+            slug = base_slug
+            
+            # Garante que o slug seja único
+            counter = 1
+            while Tag.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            
+            self.slug = slug
         super().save(*args, **kwargs)
 
 

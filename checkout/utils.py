@@ -10,7 +10,6 @@ from decimal import Decimal
 from core.models import LogAcao
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ==========================
@@ -107,7 +106,7 @@ def limpar_carrinho(request):
 
 def adicionar_ao_carrinho(request, produto_id, variacao_id=None, quantidade=1):
     """Adiciona um produto ao carrinho, validando estoque e status ativo."""
-    quantidade = min(int(quantidade), 10)
+    quantidade = min(int(quantidade), settings.CARRINHO_MAX_QUANTIDADE)
     produto = Produto.objects.filter(id=produto_id, ativo=True).first()
     if not produto:
         return None  # Produto inativo ou inexistente
@@ -124,7 +123,7 @@ def adicionar_ao_carrinho(request, produto_id, variacao_id=None, quantidade=1):
         carrinho = request.session.get('carrinho', {})
         chave_item = f"{produto_id}-{variacao_id}" if variacao_id else str(produto_id)
         if chave_item in carrinho:
-            nova_qtd = min(carrinho[chave_item]['quantidade'] + quantidade, 10)
+            nova_qtd = min(carrinho[chave_item]['quantidade'] + quantidade, settings.CARRINHO_MAX_QUANTIDADE)
             carrinho[chave_item]['quantidade'] = nova_qtd
         else:
             carrinho[chave_item] = {
@@ -142,7 +141,7 @@ def adicionar_ao_carrinho(request, produto_id, variacao_id=None, quantidade=1):
         variacao_id=variacao_id
     )
     if not created:
-        item.quantidade = min(item.quantidade + quantidade, 10)
+        item.quantidade = min(item.quantidade + quantidade, settings.CARRINHO_MAX_QUANTIDADE)
     else:
         item.quantidade = quantidade
     item.save()
@@ -171,27 +170,10 @@ def remover_do_carrinho(request, produto_key):
         return len(carrinho_sessao)
 
 def calcular_total_carrinho(request):
-    """Calcula o total geral dos produtos no carrinho, usando aggregate para performance."""
-    if request.user.is_authenticated:
-        carrinho = obter_carrinho_usuario(request)
-        total = carrinho.itens.filter(produto__ativo=True).aggregate(
-            total=Sum(F('produto__preco') * F('quantidade'))
-        )['total'] or 0
-        return total
-    carrinho = request.session.get('carrinho', {})
-    total = 0
-    produto_ids = []
-    for item in carrinho.values():
-        if isinstance(item, dict) and 'produto_id' in item:
-            produto_ids.append(item['produto_id'])
-    produtos = Produto.objects.filter(id__in=produto_ids, ativo=True)
-    produto_dict = {p.id: p for p in produtos}
-    for item in carrinho.values():
-        if isinstance(item, dict) and 'produto_id' in item:
-            produto = produto_dict.get(item['produto_id'])
-            if produto:
-                total += produto.preco * item['quantidade']
-    return total
+    """Calcula o total geral dos produtos no carrinho usando a lógica de preços correta."""
+    # Usa a mesma lógica de obter_itens_do_carrinho para garantir consistência
+    itens_carrinho, subtotal = obter_itens_do_carrinho(request)
+    return subtotal
 
 
 def migrar_carrinho_sessao_para_banco(request):
@@ -215,7 +197,7 @@ def migrar_carrinho_sessao_para_banco(request):
                         continue
                 except (KeyError, ValueError, TypeError):
                     continue
-                quantidade = min(quantidade, 10)
+                quantidade = min(quantidade, settings.CARRINHO_MAX_QUANTIDADE)
                 produto = Produto.objects.filter(id=produto_id, ativo=True).first()
                 if not produto:
                     continue
@@ -240,7 +222,7 @@ def migrar_carrinho_sessao_para_banco(request):
                     variacao=variacao
                 )
                 if not created:
-                    item_carrinho.quantidade = min(item_carrinho.quantidade + quantidade, 10)
+                    item_carrinho.quantidade = min(item_carrinho.quantidade + quantidade, settings.CARRINHO_MAX_QUANTIDADE)
                 else:
                     item_carrinho.quantidade = quantidade
                 item_carrinho.save()
@@ -264,10 +246,12 @@ def migrar_carrinho_sessao_para_banco(request):
 # Funções relacionadas ao frete
 # ==========================
 
-def cotar_frete_melhor_envio(cep_destino, token, produtos, cep_origem='01001-000'):
+def cotar_frete_melhor_envio(cep_destino, token, produtos, cep_origem=None):
     """Cota frete via Melhor Envio, com tratamento de exceções e logging de falha."""
-    import logging
-    url = "https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate"
+    if cep_origem is None:
+        cep_origem = settings.MELHOR_ENVIO_CEP_ORIGEM
+    
+    url = f"{settings.MELHOR_ENVIO_BASE_URL}/me/shipment/calculate"
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
@@ -291,27 +275,29 @@ def cotar_frete_melhor_envio(cep_destino, token, produtos, cep_origem='01001-000
             try:
                 return response.json()
             except Exception as e:
-                logging.error(f"Erro ao decodificar resposta do Melhor Envio: {e}")
+                logger.error(f"Erro ao decodificar resposta do Melhor Envio: {e}")
                 return []
         else:
-            logging.warning(f"Falha ao cotar frete: status {response.status_code} | retorno: {response.text}")
+            logger.warning(f"Falha ao cotar frete: status {response.status_code} | retorno: {response.text}")
             return []
     except Exception as e:
-        logging.error(f"Erro de conexão ao cotar frete: {e}")
+        logger.error(f"Erro de conexão ao cotar frete: {e}")
         return []
 
 
 def preparar_produtos_para_frete(itens_carrinho):
     """Prepara a lista de produtos para cálculo de frete considerando variação, validando dados."""
     produtos = []
+    defaults = settings.FRETE_DEFAULTS
+    
     for item in itens_carrinho:
         produto = item['produto']
         variacao = item.get('variacao')
         try:
-            peso = float(variacao.peso) if variacao and hasattr(variacao, 'peso') and variacao.peso else float(produto.peso or 1)
-            width = getattr(variacao, 'width', 15) if variacao else 15
-            height = getattr(variacao, 'height', 10) if variacao else 10
-            length = getattr(variacao, 'length', 20) if variacao else 20
+            peso = float(variacao.peso) if variacao and hasattr(variacao, 'peso') and variacao.peso else float(produto.peso or defaults['peso_padrao'])
+            width = getattr(variacao, 'width', defaults['largura_padrao']) if variacao else defaults['largura_padrao']
+            height = getattr(variacao, 'height', defaults['altura_padrao']) if variacao else defaults['altura_padrao']
+            length = getattr(variacao, 'length', defaults['comprimento_padrao']) if variacao else defaults['comprimento_padrao']
             insurance_value = float(item['subtotal'])
             quantidade = int(item['quantidade'])
             produtos.append({
@@ -323,16 +309,14 @@ def preparar_produtos_para_frete(itens_carrinho):
                 "quantity": quantidade
             })
         except Exception as e:
-            import logging
-            logging.warning(f"Item ignorado no cálculo de frete por dados inválidos: {e}")
+            logger.warning(f"Item ignorado no cálculo de frete por dados inválidos: {e}")
             continue
     return produtos
 
 
 def criar_envio_melhor_envio(pedido, token):
     """Cria envio no Melhor Envio, com tratamento de exceções e logging de falha."""
-    import logging
-    url = "https://sandbox.melhorenvio.com.br/api/v2/me/shipment"
+    url = f"{settings.MELHOR_ENVIO_BASE_URL}/me/shipment"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
@@ -345,36 +329,39 @@ def criar_envio_melhor_envio(pedido, token):
             try:
                 return response.json()
             except Exception as e:
-                logging.error(f"Erro ao decodificar resposta do Melhor Envio (envio): {e}")
+                logger.error(f"Erro ao decodificar resposta do Melhor Envio (envio): {e}")
                 return None
         else:
-            logging.warning(f"Falha ao criar envio: status {response.status_code} | retorno: {response.text}")
+            logger.warning(f"Falha ao criar envio: status {response.status_code} | retorno: {response.text}")
             return None
     except Exception as e:
-        logging.error(f"Erro de conexão ao criar envio: {e}")
+        logger.error(f"Erro de conexão ao criar envio: {e}")
         return None
 
 def montar_payload_envio(pedido):
     """Monta payload do envio, sanitizando campos obrigatórios."""
     def safe_str(val):
         return str(val) if val is not None else ''
+    
+    remetente = settings.REMETENTE_CONFIG
+    
     return {
         "service": safe_str(getattr(pedido, 'frete_id', '')),
         "from": {
-            "name": "Lukao MultiMarcas",
-            "phone": "(83)99381-0707",
-            "email": "lucas.sobreira@academico.ifpb.edu.br",
-            "document": "00000000000",
-            "company_document": "00000000000000",
-            "state_register": "",
-            "address": "Rua Hipólito Cassiano",
-            "complement": "",
-            "number": "123",
-            "district": "Centro",
-            "city": "Pau dos Ferros",
-            "state_abbr": "RN",
-            "country_id": "BR",
-            "postal_code": "01001-000"
+            "name": remetente['name'],
+            "phone": remetente['phone'],
+            "email": remetente['email'],
+            "document": remetente['document'],
+            "company_document": remetente['company_document'],
+            "state_register": remetente['state_register'],
+            "address": remetente['address'],
+            "complement": remetente['complement'],
+            "number": remetente['number'],
+            "district": remetente['district'],
+            "city": remetente['city'],
+            "state_abbr": remetente['state_abbr'],
+            "country_id": remetente['country_id'],
+            "postal_code": remetente['postal_code']
         },
         "to": {
             "name": safe_str(getattr(pedido.endereco, 'nome_completo', '')),
@@ -399,10 +386,10 @@ def montar_payload_envio(pedido):
         ],
         "insurance_value": float(pedido.total),
         "package": {
-            "weight": sum([float(item.produto.peso or 1) for item in pedido.itens.all()]),
-            "width": 15,
-            "height": 10,
-            "length": 20
+            "weight": sum([float(item.produto.peso or settings.FRETE_DEFAULTS['peso_padrao']) for item in pedido.itens.all()]),
+            "width": settings.FRETE_DEFAULTS['largura_padrao'],
+            "height": settings.FRETE_DEFAULTS['altura_padrao'],
+            "length": settings.FRETE_DEFAULTS['comprimento_padrao']
         }
     }
 
@@ -458,7 +445,7 @@ def criar_payment_intent_stripe(user, pedido, itens_carrinho, frete_valor, cupom
         )
         return intent.client_secret
     except Exception as e:
-        logging.error(f"Erro ao criar PaymentIntent Stripe: {e}")
+        logger.error(f"Erro ao criar PaymentIntent Stripe: {e}")
         LogAcao.objects.create(
             usuario=user,
             acao="Falha ao criar PaymentIntent Stripe (utils)",
