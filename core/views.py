@@ -1,4 +1,4 @@
-from django.shortcuts import redirect 
+from django.shortcuts import redirect, get_object_or_404
 from django.conf import settings
 from django.http import JsonResponse, Http404
 from django.views.generic import TemplateView, ListView, DetailView, View
@@ -533,7 +533,6 @@ def calcular_frete(request):
             'descricao': f"{melhor['company']['name']} - {melhor['name']} ({melhor['delivery_time']} dias úteis)"
         })
         
-    except Exception as e:
-        return JsonResponse({'sucesso': False, 'erro': 'Erro ao calcular frete'})
+    except Exception as e:        return JsonResponse({'sucesso': False, 'erro': 'Erro ao calcular frete'})
 
 

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test</title>
+</head>
+<body>
+    <h1>Debug JavaScript Test</h1>
+    <div id="debug-output"></div>
+    
+    <script>
+        // Simular dados das variações
+        window.variacoesPorCor = {
+            1: {
+                cor: { id: 1, valor: "Amarelo", codigo: "#FFFF00" },
+                tamanhos: {
+                    2: { id: 2, valor: "XXG", variacao_id: 1, estoque: 22 },
+                    3: { id: 3, valor: "XG", variacao_id: 2, estoque: 48 }
+                }
+            }
+        };
+        
+        console.log('Dados de teste:', window.variacoesPorCor);
+        
+        // Testar se o objeto está acessível
+        const debugOutput = document.getElementById('debug-output');
+        debugOutput.innerHTML = `
+            <p>window.variacoesPorCor existe: ${!!window.variacoesPorCor}</p>
+            <p>Dados: ${JSON.stringify(window.variacoesPorCor, null, 2)}</p>
+        `;
+    </script>
+</body>
+</html>

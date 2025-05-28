@@ -61,7 +61,7 @@ def obter_itens_do_carrinho(request):
                 variacao_ids.append(item['variacao_id'])
         produtos = Produto.objects.filter(id__in=produto_ids, ativo=True)
         produto_dict = {p.id: p for p in produtos}
-        variacoes = ProdutoVariacao.objects.filter(id__in=variacao_ids, ativo=True)
+        variacoes = ProdutoVariacao.objects.filter(id__in=variacao_ids)
         variacao_dict = {v.id: v for v in variacoes}
         for chave, item in carrinho.items():
             produto = produto_dict.get(item['produto_id'])

@@ -44,6 +44,13 @@ DEBUG = True
 # ==========================
 # Configurações de Logging
 # ==========================
+import logging
+
+class IgnoreCartCountFilter(logging.Filter):
+    def filter(self, record):
+        msg = str(record.getMessage())
+        return '/api/cart/count/' not in msg
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -57,15 +64,22 @@ LOGGING = {
             'style': '{',
         },
     },
+    'filters': {
+        'ignore_cart_count': {
+            '()': IgnoreCartCountFilter,
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose' if DEBUG else 'simple',
+            'filters': ['ignore_cart_count'],
         },
         'file': {
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
             'formatter': 'verbose',
+            'filters': ['ignore_cart_count'],
         },
     },
     'root': {

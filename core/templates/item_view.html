@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load atributos_extras %}
 
 {% block main %}
 <link rel="stylesheet" href="{% static 'css/item_view.css' %}">
-<script src="{% static 'js/item_view.js' %}"></script>
 
 <div class="product-detail-container">
     <!-- Breadcrumb -->
@@ -59,84 +59,110 @@
                 {% endif %}
                 <div id="js-validation" style="color: #c00; font-weight: bold;"></div>
             </div>
-            
-            <!-- Seleção de Cor  -->
-            <div class="size-selection">
-                <hr>
-                <div class="color-container">
-                    <h3>Escolha a Cor</h3>
-                        <div class="color-options">
-                            {% for cor in cores_unicas %}
-                            <button type="button"
-                                class="color-circle color-btn {% if cor.valor_css in request.GET.cores.split|default:'' %}selected{% endif %} available"
-                                style="background-color: {{ cor.valor_css }}; border: 1px solid #ccc;"
-                                data-cor-id="{{ cor.id }}"
-                                onclick="selectColor({{ cor.id }})"
-                                title="{{ cor.nome|capfirst }}">
-                            </button>
-                        {% endfor %}
-                        </div>
-                </div>
-                <hr>
-                    <div class="size-container">
-                        <h3>Escolha o Tamanho</h3>
-                        <div class="size-options">
-                            {% for variacao in produto.variacoes.all %}
-                            <button type="button"
-                            class="size-btn {% if variacao.estoque == 0 %}disabled{% endif %}"
-                            data-cor-id="{{ variacao.cor.id }}"
-                            data-tamanho="{{ variacao.tamanho }}"
-                            data-variacao-id="{{ variacao.id }}"
-                            data-estoque="{{ variacao.estoque }}"
-                            {% if variacao.estoque == 0 %}disabled aria-disabled="true"{% endif %}
-                            onclick="selectSize(this)">
-                            {{ variacao.tamanho }}
-                            {% if variacao.estoque == 0 %}<span class="sem-estoque">(Indisponível)</span>{% endif %}
+          <!-- Seleção de Cor  -->
+        <div class="size-selection">
+            <hr>
+            <div class="color-container">
+                <h3>Escolha a Cor</h3>
+                    <div class="color-options">                            
+                        {% for cor in cores_disponiveis %}
+                        <button type="button"
+                            class="color-circle color-btn"
+                            style="background-color: {{ cor.codigo }}; border: 1px solid #ccc;"
+                            data-cor-id="{{ cor.id }}"
+                            onclick="selectColor({{ cor.id }})"
+                            title="{{ cor.valor|capfirst }}">
                         </button>
                         {% endfor %}
                     </div>
-                    <div id="estoque-info" style="margin-top:10px;"></div>
+            </div>                
+            <hr> 
+            <div class="size-container">
+                    <h3>Escolha o Tamanho</h3>
+                    <div class="size-options">
+                        {% for tamanho_obj in tamanhos_disponiveis %} {# Renomeado para evitar conflito com JS #}
+                        <button type="button"
+                            class="size-btn" {# A classe 'disabled' e o atributo 'disabled' serão controlados pelo JS #}
+                            data-tamanho-id="{{ tamanho_obj.id }}"
+                            data-tamanho-valor="{{ tamanho_obj.valor }}"
+                            onclick="selectSize(this)">
+                            {{ tamanho_obj.valor }}
+                            <span class="sem-estoque" style="display: none;">(Indisponível)</span> {# Inicialmente oculto #}
+                        </button>
+                        {% endfor %}
                 </div>
+                <div id="estoque-info" style="margin-top:10px;"></div>
+            </div>
+        </div>
+        <hr>
+        <div class="container-actions">
+            <div class="quantity-container">
+                <button type="button" class="quantity-btn" onclick="decreaseQuantity()" aria-label="Diminuir quantidade">-</button>
+                <span id="quantity">1</span>
+                <button type="button" class="quantity-btn" onclick="increaseQuantity()" aria-label="Aumentar quantidade">+</button>
             </div>
             <hr>
-            <div class="container-actions">
-                <div class="quantity-container">
-                    <button type="button" class="quantity-btn" onclick="decreaseQuantity()" aria-label="Diminuir quantidade">-</button>
-                    <span id="quantity">1</span>
-                    <button type="button" class="quantity-btn" onclick="increaseQuantity()" aria-label="Aumentar quantidade">+</button>
-                </div>
-                <hr>
-                <!-- Botões de ação -->
-                <div class="action-buttons">
-                    <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form" id="add-to-cart-form" autocomplete="off" onsubmit="return validateAddToCart();">
-                        {% csrf_token %}
-                        <input type="hidden" name="variacao_id" id="selected-variacao" value="">
-                        <input type="hidden" name="quantity" id="selected-quantity" value="1">
-                        <button type="submit" class="action-btn cart-btn" id="add-to-cart-btn" 
-                            {% if not produto.ativo or produto.estoque <= 0 %}disabled{% endif %}>
-                            <img src="{% static 'images/cart.svg' %}" alt="Cart">
-                            Add to Cart
-                        </button>
-                    </form>
-                    <button type="button" class="action-btn buy-now-btn" onclick="validateBuyNow()" 
+            <!-- Botões de ação -->
+            <div class="action-buttons">
+                <form action="{% url 'add-to-cart' produto.id %}" method="post" class="add-to-cart-form" id="add-to-cart-form" autocomplete="off" onsubmit="return validateAddToCart();">
+                    {% csrf_token %}
+                    <input type="hidden" name="variacao_id" id="selected-variacao" value="">
+                    <input type="hidden" name="quantity" id="selected-quantity" value="1">
+                    <button type="submit" class="action-btn cart-btn" id="add-to-cart-btn" 
                         {% if not produto.ativo or produto.estoque <= 0 %}disabled{% endif %}>
-                        Buy Now
+                        <img src="{% static 'images/cart.svg' %}" alt="Cart">
+                        Add to Cart
                     </button>
-                </div>
+                </form>
+                <button type="button" class="action-btn buy-now-btn" onclick="validateBuyNow()" 
+                    {% if not produto.ativo or produto.estoque <= 0 %}disabled{% endif %}>
+                    Buy Now
+                </button>
             </div>
-            <!-- Outras validações possíveis -->
-            <div class="extra-validations" style="margin-top: 10px;">
-                {% if produto.destaque %}
-                    <span class="badge badge-success" style="background: #28a745; color: #fff; padding: 4px 10px; border-radius: 8px;">Produto em destaque</span>
-                {% endif %}
-                {% if produto.estoque <= 5 and produto.estoque > 0 %}
-                    <span class="badge badge-warning" style="background: #ffc107; color: #222; padding: 4px 10px; border-radius: 8px;">Últimas unidades!</span>
-                {% endif %}
-                {% if produto.preco_vigente and produto.preco_vigente < 20 %}
-                    <span class="badge badge-info" style="background: #17a2b8; color: #fff; padding: 4px 10px; border-radius: 8px;">Preço especial!</span>
-                {% endif %}
-            </div>
+        </div>
+        <!-- Outras validações possíveis -->
+        <div class="extra-validations" style="margin-top: 10px;">
+            {% if produto.destaque %}
+                <span class="badge badge-success" style="background: #28a745; color: #fff; padding: 4px 10px; border-radius: 8px;">Produto em destaque</span>
+            {% endif %}
+            {% if produto.estoque <= 5 and produto.estoque > 0 %}
+                <span class="badge badge-warning" style="background: #ffc107; color: #222; padding: 4px 10px; border-radius: 8px;">Últimas unidades!</span>
+            {% endif %}
+            {% if produto.preco_vigente and produto.preco_vigente < 20 %}
+                <span class="badge badge-info" style="background: #17a2b8; color: #fff; padding: 4px 10px; border-radius: 8px;">Preço especial!</span>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+    const variacoesDisponiveis = [
+        {% for variacao in variacoes %}
+            {
+                id: {{ variacao.id }},
+                estoque: {{ variacao.estoque }},
+                atributos: [
+                    {% for atributo_valor in variacao.atributos.all %}
+                        { 
+                            tipo: "{{ atributo_valor.tipo.nome }}", 
+                            id: {{ atributo_valor.id }}, 
+                            valor: "{{ atributo_valor.valor|escapejs }}", 
+                            codigo: "{{ atributo_valor.codigo|escapejs }}" 
+                        }
+                        {% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ]
+            }
+            {% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    const produtoId = {{ produto.id }};
+
+    // Inputs para o formulário de adicionar ao carrinho (se não existirem, adicione-os dentro do seu form)
+    // Certifique-se que seu formulário tenha estes inputs:
+    // <input type="hidden" name="variacao_id" id="selected-variacao" value="">
+    // <input type="hidden" name="quantidade" id="selected-quantity" value="1">
+</script>
+<script src="{% static 'js/item_view.js' %}"></script>
+
 {% endblock %}

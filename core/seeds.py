@@ -199,8 +199,8 @@ def seed_data(qtd_categorias=5, qtd_produtos=50, qtd_usuarios=10, qtd_enderecos=
 
     # 6. Produtos
     produtos = []
-    imagem_padrao_path = os.path.join(settings.BASE_DIR, 'media/produtos/relogio.png')
-    imagem_url = 'produtos/relogio.png'
+    imagem_padrao_path = os.path.join(settings.BASE_DIR, 'media/produtos/camisa.png')
+    imagem_url = 'produtos/camisa.png'
     imagem_ja_existe = os.path.exists(imagem_padrao_path)
 
     generos = ['M', 'F', 'U']

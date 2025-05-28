@@ -34,7 +34,7 @@ urlpatterns = [
     path('carrinho/diminuir/<str:chave>/', DiminuirItemView.as_view(), name='diminuir-item'),
     path('carrinho/remover/<str:chave>/', RemoverItemView.as_view(), name='remover-item'),
     path('salvar-cep/', salvar_cep_usuario, name='salvar_cep_usuario'),
-    path('calcular-frete/', calcular_frete, name='calcular_frete'),
+    path('calcular-frete/', calcular_frete, name='calcular_frete'),    
     path('api/cart/count/', cart_count, name='cart_count'),
     
     path('checkout/', include('checkout.urls', namespace='checkout')),
