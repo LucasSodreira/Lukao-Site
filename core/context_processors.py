@@ -1,5 +1,6 @@
 from .models import Endereco, Categoria, Tag
 from user.models import Notificacao
+from django.db import models
 
 
 def notificacoes_nao_lidas(request):
@@ -37,6 +38,34 @@ def categorias_e_tags(request):
     return {
         'categorias': Categoria.objects.values_list('nome', flat=True).distinct(),
         'tags': Tag.objects.values_list('nome', flat=True).distinct(),
+    }
+
+
+def categorias_globais(request):
+    """
+    Context processor para disponibilizar apenas categorias principais no base.html
+    """
+    categorias_principais = Categoria.objects.filter(categoria_pai=None).annotate(
+        total_produtos=models.Count('produtos', distinct=True)
+    ).order_by('nome')
+    
+    categorias_menu = []
+    
+    for categoria in categorias_principais:
+        # Contar produtos da categoria principal e suas subcategorias
+        produtos_categoria = categoria.total_produtos
+        produtos_subcategorias = sum(
+            sub.produtos.count() for sub in categoria.subcategorias.all()
+        )
+        total_produtos = produtos_categoria + produtos_subcategorias
+        
+        categorias_menu.append({
+            'nome': categoria.nome,
+            'total_produtos': total_produtos
+        })
+    
+    return {
+        'categorias_menu': categorias_menu
     }
 
 

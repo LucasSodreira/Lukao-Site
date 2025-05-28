@@ -290,6 +290,7 @@ class ProdutoVariacao(models.Model):
     atributos = models.ManyToManyField(AtributoValor, related_name='variacoes')
     sku = models.CharField(max_length=50, unique=True, blank=True, null=True, db_index=True)
     estoque = models.PositiveIntegerField(default=0, db_index=True)
+    ativo = models.BooleanField(default=True, db_index=True, help_text="Se a variação está ativa/visível")
     preco_adicional = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     peso = models.DecimalField(
         max_digits=6, decimal_places=3, null=True, blank=True,

@@ -7,13 +7,52 @@ from django.contrib.auth.decorators import login_required
 from django.db import models
 from core.models import (
     Produto, Endereco, Tag, ProdutoVariacao, Cupom, LogAcao, 
-    AtributoTipo, AtributoValor, ItemCarrinho, Carrinho
+    AtributoTipo, AtributoValor, ItemCarrinho, Carrinho, Categoria
 )
-from checkout.utils import adicionar_ao_carrinho, cotar_frete_melhor_envio, obter_itens_do_carrinho
+from checkout.utils import adicionar_ao_carrinho, cotar_frete_melhor_envio, obter_itens_do_carrinho, obter_carrinho_usuario
 from decimal import Decimal
 from django.views.decorators.http import require_GET
 from django.core.exceptions import ValidationError
 
+def obter_categorias_hierarquicas():
+    """
+    Retorna categorias organizadas hierarquicamente com subcategorias
+    """
+    # Buscar todas as categorias com informações dos produtos
+    categorias_principais = Categoria.objects.filter(categoria_pai=None).prefetch_related(
+        'subcategorias', 'produtos'
+    ).annotate(
+        total_produtos=models.Count('produtos', distinct=True)
+    ).order_by('nome')
+    
+    categorias_hierarquicas = []
+    
+    for categoria in categorias_principais:
+        # Contar produtos da categoria principal e subcategorias
+        produtos_categoria = categoria.total_produtos
+        produtos_subcategorias = sum(
+            sub.produtos.count() for sub in categoria.subcategorias.all()
+        )
+        total_produtos = produtos_categoria + produtos_subcategorias
+        
+        categoria_data = {
+            'categoria': categoria,
+            'total_produtos': total_produtos,
+            'subcategorias': []
+        }
+        
+        # Adicionar subcategorias ordenadas
+        for subcategoria in categoria.subcategorias.annotate(
+            total_produtos=models.Count('produtos', distinct=True)
+        ).order_by('nome'):
+            categoria_data['subcategorias'].append({
+                'categoria': subcategoria,
+                'total_produtos': subcategoria.total_produtos
+            })
+        
+        categorias_hierarquicas.append(categoria_data)
+    
+    return categorias_hierarquicas
 
 # ==========================
 # Views relacionadas aos produtos
@@ -49,22 +88,24 @@ class ItemView(DetailView):
         context['desconto'] = produto.calcular_desconto()
         context['media_avaliacoes'] = produto.media_avaliacoes()
         
-        # NOVA ESTRUTURA: Buscar cores disponíveis usando AtributoValor
+        # NOVA ESTRUTURA: Buscar cores disponíveis usando AtributoValor (apenas variações ativas)
         cores_disponiveis = AtributoValor.objects.filter(
             tipo__nome="Cor",
             variacoes__produto=produto,
-            variacoes__estoque__gt=0
+            variacoes__estoque__gt=0,
+            variacoes__ativo=True
         ).distinct().order_by('ordem', 'valor')
         
-        # NOVA ESTRUTURA: Buscar tamanhos disponíveis usando AtributoValor
+        # NOVA ESTRUTURA: Buscar tamanhos disponíveis usando AtributoValor (apenas variações ativas)
         tamanhos_disponiveis = AtributoValor.objects.filter(
             tipo__nome="Tamanho",
             variacoes__produto=produto,
-            variacoes__estoque__gt=0
+            variacoes__estoque__gt=0,
+            variacoes__ativo=True
         ).distinct().order_by('ordem', 'valor')
         
-        # Buscar todas as variações com estoque
-        variacoes = produto.variacoes.filter(estoque__gt=0).prefetch_related('atributos__tipo')
+        # Buscar todas as variações com estoque e ativas
+        variacoes = produto.variacoes.filter(estoque__gt=0, ativo=True).prefetch_related('atributos__tipo')
         
         context.update({
             'cores_disponiveis': cores_disponiveis,
@@ -91,20 +132,22 @@ class Product_Listing(ListView):
             
         queryset = self.get_queryset()
         
-        # NOVA ESTRUTURA: Usar AtributoValor para cores e tamanhos
-        context['categorias'] = Produto.objects.values_list('categoria__nome', flat=True).distinct()
+        # NOVA ESTRUTURA: Categorias hierárquicas organizadas
+        context['categorias_hierarquicas'] = obter_categorias_hierarquicas()
         context['marcas'] = Produto.objects.values_list('marca__nome', flat=True).distinct()
         
-        # Cores disponíveis usando novo sistema de atributos
+        # Cores disponíveis usando novo sistema de atributos (apenas variações ativas)
         context['cores_disponiveis'] = AtributoValor.objects.filter(
             tipo__nome="Cor",
-            variacoes__produto__in=queryset
-        ).distinct().values('id', 'valor', 'codigo_cor').order_by('ordem', 'valor')
+            variacoes__produto__in=queryset,
+            variacoes__ativo=True
+        ).distinct().values('id', 'valor', 'codigo').order_by('ordem', 'valor')
         
-        # Tamanhos disponíveis usando novo sistema de atributos
+        # Tamanhos disponíveis usando novo sistema de atributos (apenas variações ativas)
         context['tamanhos_disponiveis'] = AtributoValor.objects.filter(
             tipo__nome="Tamanho",
-            variacoes__produto__in=queryset
+            variacoes__produto__in=queryset,
+            variacoes__ativo=True
         ).distinct().values('id', 'valor').order_by('ordem', 'valor')
         
         context['tags'] = Tag.objects.values_list('nome', flat=True).distinct()
@@ -183,17 +226,19 @@ class Product_Listing(ListView):
             if preco_max:
                 queryset = queryset.filter(preco__lte=preco_max)
 
-        # NOVA ESTRUTURA: Filtros por atributos
+        # NOVA ESTRUTURA: Filtros por atributos (apenas variações ativas)
         if cores_ids:
             queryset = queryset.filter(
                 variacoes__atributos__id__in=cores_ids,
-                variacoes__atributos__tipo__nome="Cor"
+                variacoes__atributos__tipo__nome="Cor",
+                variacoes__ativo=True
             ).distinct()
             
         if tamanhos_ids:
             queryset = queryset.filter(
                 variacoes__atributos__id__in=tamanhos_ids,
-                variacoes__atributos__tipo__nome="Tamanho"
+                variacoes__atributos__tipo__nome="Tamanho",
+                variacoes__ativo=True
             ).distinct()
 
         # Ordenação
@@ -218,24 +263,31 @@ class CartView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Obtém itens do carrinho (já com produtos/variações populados)
         itens_carrinho, total = obter_itens_do_carrinho(self.request)
         
-        # Atualizar para nova estrutura de atributos
+        # Lógica de chaves para permitir ações de remover/alterar quantidade
         if self.request.user.is_authenticated:
-            carrinho = Carrinho.objects.filter(usuario=self.request.user).first()
+            carrinho = obter_carrinho_usuario(self.request)
             if carrinho:
-                itens_db = ItemCarrinho.objects.filter(carrinho=carrinho).select_related('variacao__produto')
+                itens_banco = carrinho.itens.select_related('produto', 'variacao').prefetch_related('variacao__atributos__tipo').all()
                 chave_map = {}
-                
-                for item in itens_db:
-                    # NOVA ESTRUTURA: Criar chave baseada nos atributos da variação
-                    atributos_str = "-".join([
-                        f"{attr.tipo.nome}:{attr.valor}" 
-                        for attr in item.variacao.atributos.all().order_by('tipo__nome')
-                    ])
-                    chave = f"{item.produto.id}-{atributos_str}"
-                    chave_map[chave] = item.id
-                
+                for item in itens_banco:
+                    variacao = item.variacao
+                    if variacao:
+                        # Garante que atributos estão carregados
+                        atributos_str = "-".join([
+                            f"{attr.tipo.nome}:{attr.valor}" 
+                            for attr in variacao.atributos.all().order_by('tipo__nome')
+                        ])
+                        chave = f"{item.produto.id}-{atributos_str}"
+                        chave_map[chave] = item.id
+                    else:
+                        chave = str(item.produto.id)
+                        chave_map[chave] = item.id
+                        
+                # Mapeia chaves para itens do carrinho
                 for item in itens_carrinho:
                     variacao = item.get('variacao')
                     if variacao:
@@ -255,11 +307,11 @@ class CartView(TemplateView):
                 if 'chave' not in item:
                     item['chave'] = ''
 
-        # Garantir que cada item tenha variação
+        # Garantir que cada item tenha variação carregada com atributos
         for item in itens_carrinho:
             if not item.get('variacao') and 'variacao_id' in item:
                 try:
-                    item['variacao'] = ProdutoVariacao.objects.get(id=item['variacao_id'])
+                    item['variacao'] = ProdutoVariacao.objects.prefetch_related('atributos__tipo').get(id=item['variacao_id'])
                 except ProdutoVariacao.DoesNotExist:
                     item['variacao'] = None
 
@@ -286,17 +338,17 @@ class CartView(TemplateView):
             except Cupom.DoesNotExist:
                 self.request.session.pop('cupom', None)
                 cupom = None
-                
-        context.update({
-            'cupom': cupom,
-            'desconto': desconto,
-            'total_carrinho_com_cupom': total
-        })
 
-        # CEP do usuário
+        context['cupom'] = cupom
+        context['desconto'] = desconto
+        context['total_carrinho_com_cupom'] = total
+
+        # CEP do usuário para cálculo de frete
         if self.request.user.is_authenticated:
-            endereco = Endereco.objects.filter(usuario=self.request.user, principal=True).first()
-            context['cep_usuario'] = endereco.cep if endereco else None
+            endereco_principal = Endereco.objects.filter(
+                usuario=self.request.user, principal=True
+            ).first()
+            context['cep_usuario'] = endereco_principal.cep if endereco_principal else None
         else:
             context['cep_usuario'] = None
             
@@ -391,6 +443,11 @@ class AddToCartView(View):
         variacao_id = request.POST.get('variacao_id')
         quantity = request.POST.get('quantity')
         
+        # Validar se variacao_id foi fornecido
+        if not variacao_id or variacao_id.strip() == '':
+            messages.error(request, "Por favor, selecione uma cor e tamanho antes de adicionar ao carrinho.")
+            return redirect(request.META.get('HTTP_REFERER', 'carrinho'))
+        
         try:
             quantity = int(quantity)
             if quantity < 1:
@@ -400,27 +457,40 @@ class AddToCartView(View):
             return redirect('carrinho')
             
         try:
+            variacao_id = int(variacao_id)
             variacao = ProdutoVariacao.objects.get(pk=variacao_id)
+        except (ValueError, TypeError):
+            messages.error(request, "ID de variação inválido.")
+            return redirect(request.META.get('HTTP_REFERER', 'carrinho'))
         except ProdutoVariacao.DoesNotExist:
             messages.error(request, "Variação do produto não encontrada.")
-            return redirect('carrinho')
+            return redirect(request.META.get('HTTP_REFERER', 'carrinho'))
             
+        if not variacao.ativo:
+            messages.error(request, "Variação do produto não está ativa.")
+            return redirect(request.META.get('HTTP_REFERER', 'carrinho'))
+        
+        
+        
         # Verificar estoque
         if variacao.estoque < quantity:
             messages.error(request, f"Estoque insuficiente. Disponível: {variacao.estoque}")
-            return redirect('carrinho')
+            return redirect(request.META.get('HTTP_REFERER', 'carrinho'))
             
         produto_id = variacao.produto.id
 
-        adicionar_ao_carrinho(request, produto_id, variacao_id=variacao_id, quantidade=quantity)
+        resultado = adicionar_ao_carrinho(request, produto_id, variacao_id=variacao_id, quantidade=quantity)
         
-        LogAcao.objects.create(
-            usuario=request.user if request.user.is_authenticated else None,
-            acao="Adicionou ao carrinho",
-            detalhes=f"Produto: {produto_id}, Variação: {variacao_id}, Quantidade: {quantity}"
-        )
-        
-        messages.success(request, "Produto adicionado ao carrinho!")
+        if resultado:
+            LogAcao.objects.create(
+                usuario=request.user if request.user.is_authenticated else None,
+                acao="Adicionou ao carrinho",
+                detalhes=f"Produto: {produto_id}, Variação: {variacao_id}, Quantidade: {quantity}"
+            )
+            messages.success(request, "Produto adicionado ao carrinho!")
+        else:
+            messages.error(request, "Erro ao adicionar produto ao carrinho.")
+            
         return redirect('carrinho')
 
 class RemoverItemCarrinho(View):

@@ -501,3 +501,156 @@ hr {
         display: block;
     }
 }
+
+/* Categorias hierárquicas */
+.categoria-item {
+    margin-bottom: 8px;
+}
+
+.categoria-principal {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+.categoria-pai-btn {
+    flex: 1;
+    text-align: left;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.categoria-pai-btn:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.categoria-pai-btn.selected {
+    background-color: #000;
+    color: white;
+    border-color: #000;
+}
+
+.expand-arrow {
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    font-weight: bold;
+    color: #6c757d;
+    font-size: 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.expand-arrow:hover {
+    background-color: #e9ecef;
+    color: #495057;
+    transform: scale(1.1);
+}
+
+.expand-arrow.expanded {
+    transform: rotate(90deg) scale(1.1);
+    background-color: #495057;
+    color: white;
+    border-color: #495057;
+}
+
+/* Container das subcategorias - inicialmente oculto */
+.subcategorias-container {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 20px;
+    margin-top: 0;
+}
+
+/* Quando expandido */
+.subcategorias-container.expanded {
+    max-height: 400px;
+    opacity: 1;
+    transform: translateY(0);
+    margin-top: 8px;
+}
+
+/* Botões das subcategorias */
+.subcategoria-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 12px;
+    margin-bottom: 4px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9em;
+    opacity: 0;
+    transform: translateX(-20px);
+    animation: none;
+}
+
+/* Animação em cascata quando o container está expandido */
+.subcategorias-container.expanded .subcategoria-btn {
+    animation: slideInCascade 0.3s ease-out forwards;
+}
+
+/* Keyframe para animação em cascata */
+@keyframes slideInCascade {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.subcategoria-btn:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+    transform: translateX(2px);
+}
+
+.subcategoria-btn.selected {
+    background-color: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+.produto-count {
+    font-size: 0.8em;
+    color: #6c757d;
+    font-weight: normal;
+}
+
+.categoria-pai-btn.selected .produto-count {
+    color: #ced4da;
+}
+
+.subcategoria-btn.selected .produto-count {
+    color: #e9ecef;
+}
+
+/* Estados especiais para melhor UX */
+.categoria-item:hover .expand-arrow {
+    background-color: #e9ecef;
+}
+
+.categoria-item:hover .categoria-pai-btn:not(.selected) {
+    background-color: #f1f3f4;
+}

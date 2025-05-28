@@ -26,14 +26,16 @@ def obter_itens_do_carrinho(request):
     """Obtém os itens do carrinho e calcula o subtotal, validando produtos/variações ativos e estoque."""
     if request.user.is_authenticated:
         carrinho = obter_carrinho_usuario(request)
-        itens = carrinho.itens.select_related('produto', 'variacao').all()
+        itens = carrinho.itens.select_related('produto', 'variacao').prefetch_related('variacao__atributos__tipo').all()
         itens_carrinho = []
         subtotal = 0
         for item in itens:
             # Segurança: só considera produtos/variações ativos
             if not item.produto.ativo:
                 continue
-            if item.variacao and not (item.variacao.ativo and item.variacao.estoque >= item.quantidade):
+            if item.variacao and not item.variacao.ativo:
+                continue
+            if item.variacao and not item.variacao.estoque >= item.quantidade:
                 continue
             if not item.variacao and hasattr(item.produto, 'variacoes') and item.produto.variacoes.exists():
                 continue
@@ -112,7 +114,7 @@ def adicionar_ao_carrinho(request, produto_id, variacao_id=None, quantidade=1):
         return None  # Produto inativo ou inexistente
     variacao = None
     if variacao_id:
-        variacao = ProdutoVariacao.objects.filter(id=variacao_id, produto=produto, ativo=True).first()
+        variacao = ProdutoVariacao.objects.filter(id=variacao_id, produto=produto).first()
         if not variacao or variacao.estoque < quantidade:
             return None  # Variação inválida ou sem estoque
     else:
@@ -206,7 +208,7 @@ def migrar_carrinho_sessao_para_banco(request):
                     try:
                         variacao_id = int(item['variacao_id'])
                         variacao = ProdutoVariacao.objects.filter(
-                            id=variacao_id, produto=produto, estoque__gte=quantidade, ativo=True
+                            id=variacao_id, produto=produto, estoque__gte=quantidade
                         ).first()
                     except (ValueError, TypeError):
                         continue
@@ -418,7 +420,7 @@ def criar_payment_intent_stripe(user, pedido, itens_carrinho, frete_valor, cupom
             variacao = item.get('variacao')
             quantidade = item['quantidade']
             if variacao:
-                if not (variacao.ativo and variacao.estoque >= quantidade):
+                if not variacao.estoque >= quantidade:
                     raise Exception(f"{produto.nome} - Estoque insuficiente para a variação selecionada.")
             else:
                 if hasattr(produto, 'variacoes') and produto.variacoes.exists():

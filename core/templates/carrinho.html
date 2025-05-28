@@ -29,17 +29,11 @@
                         <div class="item-details">
                             <div class="item-info">
                                 <h3 class="item-name">{{ item.produto.nome }}</h3>
-                                {# Sempre mostra cor/tamanho, mesmo se não houver variacao #}
+                                {# Nova estrutura: mostra atributos da variação #}
                                 {% if item.variacao %}
-                                    <p class="item-attribute">Tamanho: {{ item.variacao.tamanho|upper }}</p>
-                                    <p class="item-attribute">Cor: {{ item.variacao.cor.nome }}</p>
-                                {% else %}
-                                    {% if item.tamanho %}
-                                        <p class="item-attribute">Tamanho: {{ item.tamanho|upper }}</p>
-                                    {% endif %}
-                                    {% if item.cor %}
-                                        <p class="item-attribute">Cor: {{ item.cor }}</p>
-                                    {% endif %}
+                                    {% for atributo in item.variacao.atributos.all %}
+                                        <p class="item-attribute">{{ atributo.tipo.nome }}: {{ atributo.valor }}</p>
+                                    {% endfor %}
                                 {% endif %}
                             </div>
                             <div class="item-price-info">

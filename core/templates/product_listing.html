@@ -91,15 +91,32 @@
                         <span class="arrow">^</span> {# seta para baixo #}
                     </div>
                     <div class="filter-section-content">
-                        {% for categoria in categorias %}
-                            <ul>
-                                <button type="button"
-                                    class=" edit-btn {% if categoria == request.GET.categoria %}selected{% endif %}"
-                                    onclick="selectCategoria('{{ categoria }}')">
-                                    {{ categoria }}
-                                </button>
-                                <span id="btn-filter">></span>
-                            </ul>
+                        {% for categoria_data in categorias_hierarquicas %}
+                            <div class="categoria-item">
+                                <div class="categoria-principal">
+                                    <button type="button"
+                                        class="edit-btn categoria-pai-btn {% if categoria_data.categoria.nome == request.GET.categoria %}selected{% endif %}"
+                                        onclick="selectCategoria('{{ categoria_data.categoria.nome }}')">
+                                        {{ categoria_data.categoria.nome }}
+                                        
+                                    </button>
+                                    {% if categoria_data.subcategorias %}
+                                        <span class="expand-arrow" onclick="toggleSubcategorias(this)" title="Ver subcategorias">></span>
+                                    {% endif %}
+                                </div>
+                                {% if categoria_data.subcategorias %}
+                                    <div class="subcategorias-container">
+                                        {% for sub in categoria_data.subcategorias %}
+                                            <button type="button"
+                                                class="subcategoria-btn {% if sub.categoria.nome == request.GET.categoria %}selected{% endif %}"
+                                                onclick="selectCategoria('{{ sub.categoria.nome }}')"
+                                                style="animation-delay: {{ forloop.counter0|floatformat:1 }}00ms;">
+                                                {{ sub.categoria.nome }}
+                                            </button>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
                         {% endfor %}
                     </div>
                 </div>
@@ -172,10 +189,10 @@
                     <div class="colors">
                         {% for cor in cores_disponiveis %}
                             <div 
-                                class="color-circle {% if cor in request.GET.cores.split|default:'' %}selected{% endif %} available"
-                                style="background-color: {{ cor }}; border: 1px solid #ccc;"
-                                onclick="toggleColorFilter('{{ cor }}')"
-                                title="{{ cor|capfirst }}">
+                                class="color-circle {% if cor.id|stringformat:'s' in request.GET.cores.split|default:'' %}selected{% endif %} available"
+                                style="background-color: {% if cor.codigo %}{{ cor.codigo }}{% else %}{{ cor.valor|lower }}{% endif %}; border: 1px solid #ccc;"
+                                onclick="toggleColorFilter('{{ cor.id }}')"
+                                title="{{ cor.valor|capfirst }}">
                             </div>
                         {% endfor %}
                     </div>
@@ -189,11 +206,11 @@
                     </div>
                     <div class="filter-section-content">
                     <div class="sizes">
-                        {% for tamanho in tamanhos %}
+                        {% for tamanho in tamanhos_disponiveis %}
                             <button type="button" 
-                                class="size-button {% if tamanho in request.GET.tamanhos.split|default:'' %}selected{% endif %}" 
-                                onclick="toggleSizeFilter('{{ tamanho }}')">
-                                {{ tamanho }}
+                                class="size-button {% if tamanho.id|stringformat:'s' in request.GET.tamanhos.split|default:'' %}selected{% endif %}" 
+                                onclick="toggleSizeFilter('{{ tamanho.id }}')">
+                                {{ tamanho.valor }}
                             </button>
                         {% endfor %}
                     </div>

@@ -159,20 +159,74 @@ function updateAddToCartButtonState() {
 }
 
 // =====================
-// Outras Funções (Ex: Bottom Sheet, se ainda for usar)
+// Validações para formulário
 // =====================
-function toggleBottomSheet() {
-    const bottomSheet = document.getElementById('bottomSheet');
-    if (bottomSheet) {
-        bottomSheet.classList.toggle('open');
+
+function validateAddToCart() {
+    const selectedVariacaoInput = document.getElementById('selected-variacao');
+    const validationMessage = document.getElementById('js-validation');
+    
+    // Limpa mensagens anteriores
+    validationMessage.innerText = '';
+    
+    // Verifica se uma variação foi selecionada
+    if (!selectedVariacaoId || !selectedVariacaoInput.value) {
+        validationMessage.innerText = 'Por favor, selecione uma cor e tamanho antes de adicionar ao carrinho.';
+        validationMessage.style.color = '#c00';
+        return false;
+    }
+    
+    // Verifica se a quantidade é válida
+    const quantity = parseInt(document.getElementById('quantity').textContent);
+    if (quantity < 1) {
+        validationMessage.innerText = 'Quantidade deve ser pelo menos 1.';
+        validationMessage.style.color = '#c00';
+        return false;
+    }
+    
+    // Verifica estoque disponível
+    const variacaoSelecionada = variacoesDisponiveis.find(v => v.id === selectedVariacaoId);
+    if (variacaoSelecionada && quantity > variacaoSelecionada.estoque) {
+        validationMessage.innerText = `Quantidade solicitada (${quantity}) excede o estoque disponível (${variacaoSelecionada.estoque}).`;
+        validationMessage.style.color = '#c00';
+        return false;
+    }
+    
+    return true;
+}
+
+function validateBuyNow() {
+    if (validateAddToCart()) {
+        // Se a validação passou, submete o formulário e redireciona para checkout
+        const form = document.getElementById('add-to-cart-form');
+        if (form) {
+            // Adiciona um campo hidden para identificar que é "buy now"
+            const buyNowInput = document.createElement('input');
+            buyNowInput.type = 'hidden';
+            buyNowInput.name = 'buy_now';
+            buyNowInput.value = 'true';
+            form.appendChild(buyNowInput);
+            
+            form.submit();
+        }
     }
 }
 
-// Limpa funções não mais necessárias ou que foram refatoradas acima
-// function toggleColorFilter(cor) { ... } // Se não estiver usando filtros de cor desta forma
+// =====================
+// Inicialização quando a página carregar
+// =====================
 
-// Atualiza os event listeners para os botões de cor se eles são adicionados dinamicamente
-// ou se a lógica de seleção mudou (já coberto no selectColor e selectSize)
-
-// Garante que os botões de quantidade estejam funcionando corretamente
-// (já ajustado nas funções increaseQuantity e decreaseQuantity)
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializa o estado dos botões
+    updateAddToCartButtonState();
+    updateEstoqueInfo(null);
+    
+    // Desabilita os botões de tamanho inicialmente
+    document.querySelectorAll('.size-btn').forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('disabled');
+        btn.querySelector('.sem-estoque').style.display = 'inline';
+    });
+    
+    console.log('Variações disponíveis carregadas:', variacoesDisponiveis.length);
+});

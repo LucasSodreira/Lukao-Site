@@ -199,3 +199,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function toggleSubcategorias(arrowElement) {
+    const categoriaItem = arrowElement.closest('.categoria-item');
+    const subcategoriasContainer = categoriaItem.querySelector('.subcategorias-container');
+    
+    // Toggle das classes
+    arrowElement.classList.toggle('expanded');
+    subcategoriasContainer.classList.toggle('expanded');
+    
+    // Se estiver expandindo, adiciona delay nas animações das subcategorias
+    if (subcategoriasContainer.classList.contains('expanded')) {
+        const subcategoriasBtns = subcategoriasContainer.querySelectorAll('.subcategoria-btn');
+        subcategoriasBtns.forEach((btn, index) => {
+            btn.style.animationDelay = `${index * 100}ms`;
+        });
+    }
+}

@@ -56,8 +56,10 @@
                 <div class="search-categories">
                     <select name="categoria" id="categoriaInput" class="search-categories-select">
                         <option value="">Todas</option>
-                        {% for categoria in categorias %}
-                            <option value="{{ categoria }}" {% if request.GET.categoria == categoria %}selected{% endif %}>{{ categoria }}</option>
+                        {% for categoria_data in categorias_menu %}
+                            <option value="{{ categoria_data.nome }}" {% if request.GET.categoria == categoria_data.nome %}selected{% endif %}>
+                                {{ categoria_data.nome }} 
+                            </option>
                         {% endfor %}
                     </select>
                 </div>
