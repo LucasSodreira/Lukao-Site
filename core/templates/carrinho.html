@@ -1,10 +1,12 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load atributos_extras %}
 
 {% block main %}
 <link rel="stylesheet" href="{% static 'css/carrinho.css' %}">
 <script src="{% static 'js/remove.js' %}"></script>
 <script src="{% static 'js/frete.js' %}"></script>
+<script src="{% static 'js/cart_quantity.js' %}"></script>
 
 <div class="cart-container">
     <div class="breadcrumb">
@@ -28,10 +30,9 @@
                         </div>
                         <div class="item-details">
                             <div class="item-info">
-                                <h3 class="item-name">{{ item.produto.nome }}</h3>
-                                {# Nova estrutura: mostra atributos da variação #}
+                                <h3 class="item-name">{{ item.produto.nome }}</h3>                                {# Nova estrutura: mostra apenas atributos principais da variação #}
                                 {% if item.variacao %}
-                                    {% for atributo in item.variacao.atributos.all %}
+                                    {% for atributo in item.variacao.atributos.all|get_atributos_principais %}
                                         <p class="item-attribute">{{ atributo.tipo.nome }}: {{ atributo.valor }}</p>
                                     {% endfor %}
                                 {% endif %}
@@ -42,22 +43,22 @@
                             </div>
                         </div>
                         <div class="action-center">
-                            {# Sempre mostra os botões, mas se item.chave não existir, desabilita/remover funcionalidade #}
-                            <form action="{% if item.chave %}{% url 'remover-item' item.chave %}{% else %}#{% endif %}" method="post">
+                            {# Sempre mostra os botões, mas se item.chave_id não existir, desabilita/remover funcionalidade #}
+                            <form action="{% if item.chave_id %}{% url 'remover-item' item.chave_id %}{% else %}#{% endif %}" method="post" class="remover-form">
                                 {% csrf_token %}
-                                <button type="submit" class="remove-btn" {% if not item.chave %}disabled title="Ação não disponível para este item"{% endif %}>
+                                <button type="submit" class="remove-btn item-remove" {% if not item.chave_id %}disabled title="Ação não disponível para este item"{% endif %}>
                                     <img src="{% static 'images/delete.svg' %}" alt="delete">
                                 </button>
                             </form>
                             <div class="quantity-control">
-                                <form action="{% if item.chave %}{% url 'diminuir-item' item.chave %}{% else %}#{% endif %}" method="post" id="quantity-btn">
+                                <form action="{% if item.chave_id %}{% url 'diminuir-item' item.chave_id %}{% else %}#{% endif %}" method="post">
                                     {% csrf_token %}
-                                    <button type="submit" {% if not item.chave %}disabled title="Ação não disponível para este item"{% endif %}>-</button>
+                                    <button type="submit" class="quantity-decrease" {% if not item.chave_id %}disabled title="Ação não disponível para este item"{% endif %}>-</button>
                                 </form>
                                 <span>{{ item.quantidade }}</span>
-                                <form action="{% if item.chave %}{% url 'aumentar-item' item.chave %}{% else %}#{% endif %}" method="post" id="quantity-btn">
+                                <form action="{% if item.chave_id %}{% url 'aumentar-item' item.chave_id %}{% else %}#{% endif %}" method="post">
                                     {% csrf_token %}
-                                    <button type="submit" {% if not item.chave %}disabled title="Ação não disponível para este item"{% endif %}>+</button>
+                                    <button type="submit" class="quantity-increase" {% if not item.chave_id %}disabled title="Ação não disponível para este item"{% endif %}>+</button>
                                 </form>
                             </div>
                         </div>

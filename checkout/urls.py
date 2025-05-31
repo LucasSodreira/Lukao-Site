@@ -1,6 +1,7 @@
 from django.urls import path
 from checkout.views import *
 from .views import usar_checkout_rapido, desativar_checkout_rapido, salvar_cep_usuario
+from .webhooks import stripe_webhook
 
 app_name = 'checkout'
 
@@ -17,4 +18,5 @@ urlpatterns = [
     path('usar_checkout_rapido/', usar_checkout_rapido, name='usar_checkout_rapido'),
     path('desativar_checkout_rapido/', desativar_checkout_rapido, name='desativar_checkout_rapido'),
     path('salvar_cep/', salvar_cep_usuario, name='salvar_cep_usuario'),
+    path('webhook/', stripe_webhook, name='stripe-webhook'),
 ]

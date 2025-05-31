@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load atributos_extras %}
 {% block main %}
 <link rel="stylesheet" href="{% static 'css/order_summary.css' %}" />
 <div class="container">
@@ -38,38 +39,44 @@
                         Usar Checkout Rápido (Endereço: {{ endereco_rapido }}, Pagamento: {{ metodo_pagamento_rapido }})
                     </button>
                 </form>
-            {% endif %}
+            {% endif %}            
             <div class="order-item">
                 {% if itens_carrinho %}
-                {% for item in itens_carrinho %}
-                <div class="item">
-                    {% if item.produto.imagem %}
-                    <img src="{{ item.produto.imagem.url }}" alt="{{ item.produto.nome }}" />
-                    {% else %}
-                    <img src="{% static 'images/default.png' %}" alt="Imagem não disponível" />
-                    {% endif %}
-                    <div class="item-details">
-                        <span class="product-name">{{ item.produto.nome }}</span>
-                        {% if item.variacao %}
-                        <span class="size">{{ item.variacao.tamanho|upper }} X {{ item.quantidade }}</span>
-                        <span class="color">Cor: {{ item.variacao.cor.nome }}</span>
-                        {% endif %}
+                    {% for item in itens_carrinho %}
+                    <div class="item">
+                        {% if item.produto.imagem %}
+                        <img src="{{ item.produto.imagem.url }}" alt="{{ item.produto.nome }}" />
+                        {% else %}
+                        <img src="{% static 'images/default.png' %}" alt="Imagem não disponível" />
+                        {% endif %}                          <div class="item-details">
+                            <span class="product-name">{{ item.produto.nome }}</span>
+                            {% if item.variacao %}
+                                <span class="attribute">
+                                    {% for atributo in item.variacao.atributos.all|get_atributos_principais %}
+                                        {{ atributo.tipo.nome }}: {{ atributo.valor }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </span>
+                                <span class="quantity">Quantidade: {{ item.quantidade }}</span>
+                            {% else %}
+                                <span class="quantity">Quantidade: {{ item.quantidade }}</span>
+                            {% endif %}
+                        </div>
+                        <span class="price">R$ {{ item.subtotal|floatformat:2 }}</span>
                     </div>
-                    <span class="price">R$ {{ item.subtotal|floatformat:2 }}</span>
-                </div>
-                {% endfor %}
-            </div>
+                    {% endfor %}
+                {% else %}
+                    <p>Nenhum item no carrinho</p>
+                {% endif %}
+            </div>            
             <div class="address">
                 <h3>Address</h3>
                 {% if endereco %}
-                    {% if endereco.complemento %}
                     <p>{{ endereco.nome_completo }}</p>
-                    <p>{{ endereco.rua }}, {{ endereco.numero }}, {{ endereco.bairro }} - {{ endereco.cidade }}/{{endereco.get_estado_display }}</p>
-                    <p>CEP: {{ endereco.cep }} | Complemento: {{ endereco.complemento }}</p>
+                    <p>{{ endereco.rua }}, {{ endereco.numero }}, {{ endereco.bairro }} - {{ endereco.cidade }}/{{ endereco.get_estado_display }}</p>
+                    <p>CEP: {{ endereco.cep }}{% if endereco.complemento %} | Complemento: {{ endereco.complemento }}{% endif %}</p>
                     <p>Telefone: {{ endereco.telefone }}</p>
-                    {% endif %}
                 {% else %}
-                <p>Nenhum endereço cadastrado</p>
+                    <p>Nenhum endereço cadastrado</p>
                 {% endif %}
             </div>
             <div class="shipping">
@@ -105,7 +112,7 @@
                 <p style="font-size: 15px; color: #444;">
                     Você pode solicitar a troca ou devolução de produtos em até <strong>7 dias</strong> após o recebimento, conforme o Código de Defesa do Consumidor.
                     O produto deve estar em perfeitas condições, sem sinais de uso, e com a embalagem original.
-                    Para iniciar o processo, entre em contato pelo nosso <a href="mailto:suporte@lukao.com" style="color: #1976d2;">suporte</a> ou consulte a <a href="{% url 'pagina_politica_troca' %}" style="color: #1976d2;">página de política completa</a>.
+                    Para iniciar o processo, entre em contato pelo nosso <a href="mailto:suporte@lukao.com" style="color: #1976d2;">suporte</a> ou consulte a <a href="#" style="color: #1976d2;">página de política completa</a>.
                 </p>
             </div>
         </div>

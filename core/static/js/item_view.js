@@ -228,5 +228,5 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.querySelector('.sem-estoque').style.display = 'inline';
     });
     
-    console.log('Variações disponíveis carregadas:', variacoesDisponiveis.length);
+
 });

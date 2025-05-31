@@ -4,7 +4,8 @@ from .models import (
     Categoria, Produto, Endereco, Pedido, ItemPedido, Marca, ProdutoVariacao,
     ImagemProduto, AvaliacaoProduto, Cupom, Tag, Carrinho, ItemCarrinho,
     AtributoTipo, AtributoValor, HistoricoPreco, LogStatusPedido, LogAcao,
-    Reembolso, Notification, Wishlist, ItemWishlist, LogEstoque
+    Reembolso, Notification, Wishlist, ItemWishlist, LogEstoque, ReservaEstoque,
+    AuditoriaPreco, VerificacaoPedido, ProtecaoCarrinho
 )
 import random
 from decimal import Decimal
@@ -581,6 +582,72 @@ def seed_data(qtd_categorias=5, qtd_produtos=50, qtd_usuarios=10, qtd_enderecos=
             historicos.append(historico)
     print(f"Criados {len(historicos)} históricos de preço")
 
+    # 20. Reservas de Estoque
+    reservas = []
+    for variacao in random.sample(variacoes, k=min(20, len(variacoes))):
+        if variacao.estoque > 0:
+            try:
+                reserva = ReservaEstoque.objects.create(
+                    variacao=variacao,
+                    quantidade=random.randint(1, min(3, variacao.estoque)),
+                    sessao_id=f"session_{random.randint(1000, 9999)}",
+                    data_expiracao=timezone.now() + timezone.timedelta(minutes=30),
+                    status=random.choice(['P', 'C', 'E', 'L'])
+                )
+                reservas.append(reserva)
+            except:
+                pass  # Ignora erros de validação
+    print(f"Criadas {len(reservas)} reservas de estoque")
+
+    # 21. Auditoria de Preços
+    auditorias = []
+    for produto in random.sample(produtos, k=min(15, len(produtos))):
+        preco_antigo = produto.preco
+        preco_novo = Decimal(random.uniform(20, 400)).quantize(Decimal('0.01'))
+        if preco_novo != preco_antigo:
+            auditoria = AuditoriaPreco.objects.create(
+                produto=produto,
+                preco_antigo=preco_antigo,
+                preco_novo=preco_novo,
+                usuario=random.choice(usuarios) if usuarios else None,
+                motivo=random.choice([
+                    'Ajuste de preço',
+                    'Promoção',
+                    'Aumento de custos',
+                    'Correção de preço',
+                    'Ajuste sazonal'
+                ])
+            )
+            auditorias.append(auditoria)
+    print(f"Criadas {len(auditorias)} auditorias de preço")
+
+    # 22. Verificações de Pedido
+    verificacoes = []
+    for pedido in random.sample(list(Pedido.objects.all()), k=min(10, Pedido.objects.count())):
+        verificacao = VerificacaoPedido.objects.create(
+            pedido=pedido,
+            status=random.choice(['P', 'V', 'E']),
+            erros={} if random.random() < 0.8 else {
+                'erro_teste': 'Erro simulado para teste'
+            }
+        )
+        verificacao.checksum = verificacao.gerar_checksum()
+        verificacao.save()
+        verificacoes.append(verificacao)
+    print(f"Criadas {len(verificacoes)} verificações de pedido")
+
+    # 23. Proteções de Carrinho
+    protecoes = []
+    for usuario in usuarios:
+        protecao = ProtecaoCarrinho.objects.create(
+            sessao_id=f"session_{random.randint(1000, 9999)}",
+            usuario=usuario,
+            tentativas_manipulacao=random.randint(0, 2),
+            bloqueado_ate=timezone.now() + timezone.timedelta(hours=1) if random.random() < 0.2 else None
+        )
+        protecoes.append(protecao)
+    print(f"Criadas {len(protecoes)} proteções de carrinho")
+
     print("\n" + "="*50)
     print("SEED CONCLUÍDO COM SUCESSO!")
     print("="*50)
@@ -604,4 +671,8 @@ def seed_data(qtd_categorias=5, qtd_produtos=50, qtd_usuarios=10, qtd_enderecos=
     print(f"• {len(logs_estoque)} logs de estoque")
     print(f"• {len(logs_acao)} logs de ação")
     print(f"• {len(historicos)} históricos de preço")
+    print(f"• {len(reservas)} reservas de estoque")
+    print(f"• {len(auditorias)} auditorias de preço")
+    print(f"• {len(verificacoes)} verificações de pedido")
+    print(f"• {len(protecoes)} proteções de carrinho")
     print("="*50)

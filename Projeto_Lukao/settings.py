@@ -38,6 +38,8 @@ STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
 # Adicione esta linha - Obtenha o valor no Dashboard Stripe -> Developers -> Webhooks -> Seu Endpoint
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
+
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
